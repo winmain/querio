@@ -14,6 +14,8 @@ import scalax.file.Path
  * @param dir base directory for classes
  * @param tableNamePrefix table name prefix prepending class names
  * @param isDefaultDatabase in default database table names without database prefixes for clarity
+ * @param toTempFile generate classes to temporary file (for testing purposes).
+ *                   Better use with tableNamePattern set.
  */
 class DatabaseGenerator(connection: Connection,
                         catalog: String,
@@ -22,7 +24,8 @@ class DatabaseGenerator(connection: Connection,
                         pkg: String,
                         dir: Path,
                         tableNamePrefix: String = "",
-                        isDefaultDatabase: Boolean = false) {
+                        isDefaultDatabase: Boolean = false,
+                        toTempFile: Boolean = false) {
 
   def generateDb() {
     val metaData: DatabaseMetaData = connection.getMetaData
@@ -35,7 +38,9 @@ class DatabaseGenerator(connection: Connection,
       while (columnsRS.next()) columnsBuilder += new ColumnRS(columnsRS)
       val columns = columnsBuilder.result()
 
-      new TableGenerator(trs, columns, primaryKeyNames, pkg, dir, tableNamePrefix, isDefaultDatabase).generateToFile()
+      val generator: TableGenerator = new TableGenerator(trs, columns, primaryKeyNames, pkg, dir, tableNamePrefix, isDefaultDatabase)
+      if (toTempFile) generator.generateToTempFile()
+      else generator.generateToFile()
     }
   }
 

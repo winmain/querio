@@ -1,7 +1,6 @@
 package querio
 
 import scala.collection.mutable
-import scala.reflect.ClassTag
 
 /**
  * Enumerable для полей БД
@@ -18,7 +17,7 @@ abstract class ScalaDbEnum[E <: ScalaDbEnumCls[E]] {
   def isValidIndex(index: Int): Boolean = index >= 0 && index < _values.size
 }
 
-abstract class ScalaDbEnumCls[E <: ScalaDbEnumCls[E]] protected(enumObj: ScalaDbEnum[E], dbValue: String) {
+abstract class ScalaDbEnumCls[E <: ScalaDbEnumCls[E]] protected(enumObj: ScalaDbEnum[E], dbValue: String) {self: E =>
   enumObj.valueMap.put(dbValue, this.asInstanceOf[E])
   enumObj._values = enumObj._values :+ this.asInstanceOf[E]
 
@@ -26,6 +25,8 @@ abstract class ScalaDbEnumCls[E <: ScalaDbEnumCls[E]] protected(enumObj: ScalaDb
    * Вернуть значение этого поля в БД
    */
   def getDbValue: String = dbValue
+  def in(values: Set[E]): Boolean = values.contains(this)
+  def in(values: Seq[E]): Boolean = values.contains(this)
 
   val index: Int = enumObj._values.size - 1
 }

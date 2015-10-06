@@ -68,7 +68,7 @@ trait SelectOrderByStep[R] extends SelectLimitStep[R] {
   def orderBy(field: El[_, _]): SelectLimitStep[R]
   def orderBy(field: El[_, _], moreFields: El[_, _]*): SelectLimitStep[R]
   def orderBy(fields: Iterable[Field[_, _]]): SelectLimitStep[R]
-  //  def orderBy(sortField: => SortField, moreFields: (=> SortField)*): SelectLimitStep
+  def orderBy(cond: Condition): SelectLimitStep[R]
 }
 
 trait SelectLimitStep[R] extends SelectFinalStep[R] {
@@ -109,11 +109,19 @@ abstract class Condition {selfCond =>
   /** Utility method */
   def renderCondToString: String = (SqlBuffer.stub ++ this).toString
 
+  def toField: BooleanField = new BooleanField {
+    override def render(implicit buf: SqlBuffer): Unit = renderCond(buf)
+  }
+
   // ------------------------------- Abstract methods -------------------------------
 
   def renderCond(buf: SqlBuffer): Unit
   def renderAnd(buf: SqlBuffer): Unit = renderCond(buf)
   def renderOr(buf: SqlBuffer): Unit = renderCond(buf)
+}
+
+class RawCondition(string: String) extends Condition {
+  override def renderCond(buf: SqlBuffer): Unit = buf ++ string
 }
 
 class AndCondition(c1: Condition, c2: Condition) extends Condition {
@@ -128,6 +136,13 @@ class OrCondition(c1: Condition, c2: Condition) extends Condition {
 
 object Condition {
   def empty: Condition = EmptyCondition
+
+  @inline def map[A](option: Option[A])(ifSome: A => Condition): Condition = option match {
+    case Some(v) => ifSome(v)
+    case _ => EmptyCondition
+  }
+
+  @inline def orEmpty(cond: Boolean, ifTrue: => Condition): Condition = if (cond) ifTrue else EmptyCondition
 }
 
 
@@ -208,8 +223,8 @@ abstract class SqlBuilder[R]
   override def orderBy(fields: Iterable[Field[_, _]]): SelectLimitStep[R]
   = { buf ++ "\norder by "; fields._foreachWithSep(_.render, buf ++ ", "); this }
 
-  //  override def orderBy(sortField: => SortField, moreFields: (=> SortField)*): SelectLimitStep
-  //  = { buf ++ " order by "; sortField; moreFields.foreach {buf ++ ", "; _}; this }
+  override def orderBy(cond: Condition): SelectLimitStep[R]
+  = { buf ++ "\norder by " ++ cond; this }
 
   override def limit(numberOfRows: Int): this.type
   = { buf ++ "\nlimit " ++ numberOfRows; this }

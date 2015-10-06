@@ -111,3 +111,5 @@ object SqlBuffer {
     def conn: Conn = throw new UnsupportedOperationException
   }
 }
+
+class CommonSqlBuffer(val conn: Conn) extends SqlBuffer

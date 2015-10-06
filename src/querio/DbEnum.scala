@@ -16,8 +16,7 @@ abstract class DbEnum {
 
   def getValue(id: Int): Option[V] = {
     try {
-      val v = valueMap(id)
-      if (v == null) None else Some(v)
+      Option(valueMap(id))
     } catch {case e: IndexOutOfBoundsException => None}
   }
   def getByIndex(index: Int): Option[V] = if (isValidIndex(index)) Some(values(index)) else None
@@ -27,7 +26,7 @@ abstract class DbEnum {
   def isValidIndex(index: Int): Boolean = index >= 0 && index < _values.size
 
 
-  abstract class Cls protected(id: Int) {
+  abstract class Cls protected(id: Int) {self: V =>
     locally {
       if (id < 0) sys.error("Invalid DbEnum id:" + id)
       if (id < valueMap.length && valueMap(id) != null) sys.error("Duplicate DbEnum with id:" + id)
@@ -38,6 +37,8 @@ abstract class DbEnum {
     }
 
     def getId: Int = id
+    def in(values: Set[V]): Boolean = values.contains(this)
+    def in(values: Seq[V]): Boolean = values.contains(this)
 
     val index: Int = _values.size - 1
   }

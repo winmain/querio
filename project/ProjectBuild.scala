@@ -1,12 +1,14 @@
-import java.lang
-
 import sbt.Keys._
-import sbt.{ScalaVersion, _}
+import sbt._
 
 object ProjectBuild extends sbt.Build {
   val buildScalaVersion = "2.11.6"
+  val module = "querio"
 
   val commonSettings = Seq(
+    organization := "com.github.winmain",
+    version := "0.1-SNAPSHOT",
+
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
     resolvers ++= Seq("Typesafe releases" at "http://repo.typesafe.com/typesafe/releases"),
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -29,7 +31,7 @@ object ProjectBuild extends sbt.Build {
   )
 
   val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(
-
+    name := "querio-codegen"
   )
   /*
       // Task: Сгенерировать часть исходников библиотеки orm
@@ -51,5 +53,6 @@ object ProjectBuild extends sbt.Build {
         }
     */
   lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
+    name := "querio"
   ).dependsOn(codegen).aggregate(codegen)
 }

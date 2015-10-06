@@ -94,7 +94,11 @@ trait CacheRespectingTransaction extends Transaction {
  * Транзакция с данными ModifyData, обосновывающими действие.
  */
 trait DataTr extends Transaction {
+  /** Описание действий транзакции. Используется в логах изменений. */
   def md: ModifyData
-
+  /** Обновить [[md]] - описание действий транзакции. */
   def updateMd(newMd: ModifyData)
+
+  /** Логировать изменения этой транзакции? */
+  def logSql: Boolean
 }

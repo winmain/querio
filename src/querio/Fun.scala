@@ -41,9 +41,12 @@ object Fun {
   // ------------------------------- Date & time methods -------------------------------
 
   def day(el: El[Temporal, _]): El[Int, Int] = intFn("day", el)
+  def week(el: El[Temporal, _], weekMode: Int = -1): El[Int, Int] = if (weekMode == -1) intFn("week", el) else intFnInt("week", el, weekMode)
   def month(el: El[Temporal, _]): El[Int, Int] = intFn("month", el)
   def year(el: El[Temporal, _]): El[Int, Int] = intFn("year", el)
+  def yearWeek(el: El[Temporal, _], weekMode: Int = -1): El[Int, Int] = if (weekMode == -1) intFn("yearweek", el) else intFnInt("yearweek", el, weekMode)
   def date(el: El[Temporal, _]): El[Temporal, _] = fn("date", el)
+  def unixTimestamp(el: El[Temporal, _]): El[Long, Long] = longFn("unix_timestamp", el)
 
   // ------------------------------- Misc functions -------------------------------
 
@@ -57,6 +60,13 @@ object Fun {
   }
   def intOp(el: El[_, _], op: String, value: Int): El[Int, Int] = new IntField {
     override def render(implicit buf: SqlBuffer) { buf ++ el ++ op ++ value }
+  }
+  def intFnInt(fn: String, el: El[_, _], param: Int): El[Int, Int] = new IntField {
+    override def render(implicit buf: SqlBuffer) { buf ++ fn ++ "(" ++ el ++ "," ++ param ++ ")" }
+  }
+
+  def longFn(fn: String, el: El[_, _]): El[Long, Long] = new LongField {
+    override def render(implicit buf: SqlBuffer) { buf ++ fn ++ "(" ++ el ++ ")" }
   }
 
 }

@@ -8,11 +8,17 @@ import querio.utils.SQLExceptionCode
 object Mysql extends OrmDbTrait {
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error {
+    // Connection is closed
+    val ConnectionClosed = SQLExceptionCode(0)
+
     // Lock wait timeout exceeded; try restarting transaction
     val LockWaitTimeoutExceed = SQLExceptionCode(1205)
 
     // Mysql exception: Deadlock found when trying to get lock; try restarting transaction
     val Deadlock = SQLExceptionCode(1213)
+
+    // Mysql exception: SAVEPOINT ... does not exist
+    val SavepointDoesNotExist = SQLExceptionCode(1305)
 
     // Cannot add or update a child row: a foreign key constraint fails
     val ForeignKeyConstraintFails = SQLExceptionCode(1452)

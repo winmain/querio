@@ -10,3 +10,5 @@ import java.sql.Connection
 trait Conn {
   def connection: Connection
 }
+
+class DefaultConn(val connection: Connection) extends Conn
