@@ -1,6 +1,6 @@
 package querio
 
-trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {self: SelectFlagStep =>
+trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {
   def select[TR <: TableRecord](table: TrTable[TR]): SelectFromStep[TR]
   = { buf ++ "select "; _tableFields(table) }
 
@@ -15,7 +15,7 @@ trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils
   def select[R, V1](fn: (V1) => R, field1: El[_, V1]): SelectFromStep[R]
   = { buf ++ "select " ++ field1; new SqlBuilderCase1[R, V1](fn, field1) }
 
-  def select: SelectFlagStep = { buf ++ "select"; this }
+  def select: SelectFlagStep = { buf ++ "select"; new SelectBuilder }
 
   def selectExists: SelectFromStep[Int] = { buf ++ "select 1"; new SqlBuilder1(Fun.one) }
 }
@@ -40,7 +40,7 @@ trait SelectFlagOfStep extends SqlQuery with SelectFlagOfStepGenerated with Sele
 }
 
 
-trait QuickSelectTrait extends SqlQuery with SelectTrait {self: SelectFlagStep =>
+trait QuickSelectTrait extends SqlQuery with SelectTrait {
   def findById[TR <: TableRecord](table: TrTable[TR], id: Int): Option[TR] = table._primaryKey match {
     case Some(pk) => (select(table) from table where pk == id).fetchOne()
     case None => sys.error("Table " + table._defName + " must have integer primary key")
@@ -73,3 +73,4 @@ protected trait SelectSqlUtils extends SqlQuery {
   }
 }
 
+class SelectBuilder(implicit val buf: SqlBuffer) extends SelectFlagStep with SelectFlagOfStep

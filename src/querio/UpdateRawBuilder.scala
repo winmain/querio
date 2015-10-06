@@ -5,26 +5,12 @@ package querio
 
 trait UpdateRawSetStep extends SqlQuery {
   def set[T](tf: AnyTable#Field[T, _], value: T): UpdateRawSetNextStep
-  = { buf ++ " set " ++ tf ++ " = "; tf.renderEscapedValue(value); new UpdateRawBuilder }
-
-  def set[T](tf: AnyTable#Field[T, Option[T]], value: Option[T]): UpdateRawSetNextStep
-  = { buf ++ " set " ++ tf ++ " = "; tf.renderEscapedValue(value); new UpdateRawBuilder }
-
-  def set[T](tf: AnyTable#Field[T, _], el: El[T, _]): UpdateRawSetNextStep
-  = { buf ++ " set " ++ tf ++ " = " ++ el; new UpdateRawBuilder }
-
-  def setNull[V](tf: AnyTable#Field[_, Option[V]]): UpdateRawSetNextStep
-  = { buf ++ " set " ++ tf ++ " = null"; new UpdateRawBuilder }
-}
-
-trait UpdateRawSetNextStep extends UpdateRawWhereStep {
-  def set[T](tf: AnyTable#Field[T, _], value: T): UpdateRawSetNextStep
   def set[T](tf: AnyTable#Field[T, Option[T]], value: Option[T]): UpdateRawSetNextStep
   def set[T](tf: AnyTable#Field[T, _], el: El[T, _]): UpdateRawSetNextStep
   def setNull[V](tf: AnyTable#Field[_, Option[V]]): UpdateRawSetNextStep
 }
 
-trait UpdateRawWhereStep {
+trait UpdateRawSetNextStep extends UpdateRawSetStep {
   def where(cond: Condition): UpdateRawConditionStep
 }
 
@@ -46,19 +32,22 @@ trait UpdateRawFinalStep extends SqlQuery {
 }
 
 class UpdateRawBuilder(implicit val buf: SqlBuffer)
-  extends UpdateRawSetNextStep with UpdateRawWhereStep with UpdateRawConditionStep {
+  extends UpdateRawSetNextStep with UpdateRawConditionStep {
+
+  private var firstSet = true
+  private def setPrefix: String = if (firstSet) {firstSet = false; " set "} else ", "
 
   override def set[T](tf: AnyTable#Field[T, _], value: T): UpdateRawSetNextStep
-  = { buf ++ ", " ++ tf ++ " = "; if (value == null) buf ++ "null" else tf.renderEscapedValue(value); this }
+  = { buf ++ setPrefix ++ tf.name ++ " = "; if (value == null) buf ++ "null" else tf.renderEscapedValue(value); this }
 
   override def set[T](tf: AnyTable#Field[T, Option[T]], value: Option[T]): UpdateRawSetNextStep
-  = { buf ++ ", " ++ tf ++ " = "; tf.renderEscapedValue(value); this }
+  = { buf ++ setPrefix ++ tf.name ++ " = "; tf.renderEscapedValue(value); this }
 
   override def set[T](tf: AnyTable#Field[T, _], el: El[T, _]): UpdateRawSetNextStep
-  = { buf ++ ", " ++ tf ++ " = " ++ el; this }
+  = { buf ++ setPrefix ++ tf.name ++ " = " ++ el; this }
 
   override def setNull[V](tf: AnyTable#Field[_, Option[V]]): UpdateRawSetNextStep
-  = { buf ++ ", " ++ tf ++ " = null"; this }
+  = { buf ++ setPrefix ++ tf.name ++ " = null"; this }
 
   override def &&(cond: Condition): this.type = { buf ++ " and (" ++ cond ++ ")"; this }
   override def ||(cond: Condition): this.type = { buf ++ " or (" ++ cond ++ ")"; this }
@@ -72,6 +61,8 @@ class UpdateRawBuilder(implicit val buf: SqlBuffer)
   // ------------------------------- Execute statements -------------------------------
 
   override def execute(): Int = {
+    if (firstSet) return 0 // Может быть так, что изменений-то нет
+
     buf.statement {(st, sql) =>
       st.executeUpdate(sql)
     }

@@ -49,7 +49,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     val tableObjectName = reader.objectName.getOrElse(GeneratorConfig.tableNameObjectName(namePrefix, table.name))
     val tableMutableName = reader.mutableName.getOrElse(GeneratorConfig.tableNameMutableName(namePrefix, table.name))
 
-    val primaryKey: Option[Col] = if (primaryKeyNames.size > 0) {
+    val primaryKey: Option[Col] = if (primaryKeyNames.nonEmpty) {
       val pkName = primaryKeyNames.head
       val pk = columns.find(_.rs.name == pkName).getOrElse(sys.error(s"Field for primary key not found in ${table.cat}.${table.name}"))
       if (pk.shortScalaType == "Int") Some(pk) else None
@@ -170,6 +170,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     def genObject(p: SourcePrinter): Unit = {
       p ++ reader.objectDefinition.getOrElse(s"""object $tableObjectName extends $tableTableName(null)""")
       if (reader.userObjectLines.nonEmpty) p block {
+        p del 1
         printUserLines(p, reader.userObjectLines)
       }
     }

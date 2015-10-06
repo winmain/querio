@@ -7,9 +7,10 @@ trait SqlQuery {
 }
 
 trait QueryTrait extends SqlQuery
-with SelectTrait with SelectFlagStep with SelectFlagOfStep
-with ModifyTrait with UpdateRawSetStep
-with QuickSelectTrait with SqlMiscTrait
+with SelectTrait with ModifyTrait with QuickSelectTrait with SqlMiscTrait
+
+
+class DefaultQuery(val buf: SqlBuffer) extends QueryTrait
 
 
 /**

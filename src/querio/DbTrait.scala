@@ -1,8 +1,10 @@
 package querio
+import java.lang.StringBuilder
 import java.sql.{Connection, SQLException}
 import java.time.LocalDateTime
+import javax.annotation.Nullable
 
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import querio.db.Mysql
 
 import scala.util.Random
@@ -13,6 +15,8 @@ trait DbTrait {
   type DT <: DataTr with TR
 
   implicit def db: this.type = this
+
+  @Nullable def transactionLog: Logger = null
 
   protected val currentTransaction: ThreadLocal[Option[TR]] = new ThreadLocal[Option[TR]] {
     override def initialValue(): Option[TR] = None
@@ -36,7 +40,10 @@ trait DbTrait {
   def transaction[A](isolationLevel: Int, block: TR => A): A =
     transaction0(isolationLevel, newTransactionObject, block, transactionAttempts)
   def transaction[A](isolationLevel: Int, md: ModifyData, block: DT => A): A =
-    transaction0(isolationLevel, newDataTrObject(_, _, _, md), block, transactionAttempts)
+    transaction0(isolationLevel, newDataTrObject(_, _, _, md, logSql = true), block, transactionAttempts)
+  def transactionNoLog[A](isolationLevel: Int, block: DT => A): A = {
+    transaction0(isolationLevel, newDataTrObject(_, _, _, null, logSql = false), block, transactionAttempts)
+  }
 
   protected def transaction0[A, T <: TR](isolationLevel: Int,
                                          trFactory: (Connection, Int, Option[Transaction]) => T,
@@ -53,50 +60,100 @@ trait DbTrait {
 
     conn.setTransactionIsolation(isolationLevel)
     conn.setAutoCommit(false)
+
+    def log(title: String, ending: => String = null): Unit = {
+      if (transactionLog != null) {
+        val sb = new StringBuilder()
+        sb append title append " " append Integer.toHexString(conn.hashCode())
+        if (ending != null) sb append "/" append ending
+        transactionLog.debug(sb.toString)
+      }
+    }
+
     parent match {
       case Some(par) =>
         val savepoint = conn.setSavepoint()
+        log("setSavepoint", savepoint.getSavepointName)
         try {
           val r = block(tr)
           tr.afterCommit()
+          log("afterCommit", savepoint.getSavepointName)
           r
         } catch {
-          case e: Throwable => conn.rollback(savepoint); throw e
+          case e: Throwable =>
+            log("rollback", savepoint.getSavepointName)
+            try {
+              conn.rollback(savepoint)
+            } catch {
+              case Mysql.Error.SavepointDoesNotExist(_) =>
+                // Mysql имеет неприятную особенность терять сейвпоинты, поэтому здесь может быть
+                // ошибка с кодом 1305 MySQLSyntaxErrorException: SAVEPOINT ... does not exist
+                // В таком случае, перезапускаем транзакцию, как и с deadlock'ом
+                log("savepoint does not exist", savepoint.getSavepointName)
+                conn.rollback()
+                conn.close()
+                currentTransaction.set(None)
+                if (attempts <= 1) {
+                  LoggerFactory.getLogger(getClass).warn(s"Restarting transaction after losing savepoint in $transactionAttempts attempts wasn't successful. Giving up.")
+                  throw e
+                }
+                Thread.sleep(Random.nextInt(750))
+                transaction0(isolationLevel, trFactory, block, attempts - 1)
+            }
+            throw e
         } finally {
           conn.setTransactionIsolation(par.isolationLevel)
           currentTransaction.set(tr.parent.asInstanceOf[Option[TR]])
         }
 
       case None =>
+        def restartTransaction(reason: String, e: SQLException): A = {
+          currentTransaction.set(None)
+          if (attempts <= 1) {
+            LoggerFactory.getLogger(getClass).warn(s"$reason: Restarting transaction in $transactionAttempts attempts wasn't successful. Giving up.")
+            throw e
+          }
+          Thread.sleep(Random.nextInt(750))
+          transaction0(isolationLevel, trFactory, block, attempts - 1)
+        }
+
         try {
+          log("init")
           val r = block(tr)
           conn.commit()
+          log("commit")
           tr.afterCommit()
           r
         } catch {
+          case Mysql.Error.ConnectionClosed(e) =>
+            // Соединение с БД закрылось. Перезапустим всю транзакцию через случайный промежуток времени.
+            log("connection closed")
+            conn.close()
+            restartTransaction("Connection closed", e)
+
           case Mysql.Error.Deadlock(e) =>
             // Случился transaction deadlock. Перезапустим всю транзакцию через случайный промежуток времени.
+            log("deadlock")
             conn.rollback()
             conn.close()
-            currentTransaction.set(None)
-            if (attempts <= 1) {
-              LoggerFactory.getLogger(getClass).warn(s"Restarting deadlock transaction in $transactionAttempts attempts wasn't successful. Giving up.")
-              throw e
-            }
-            Thread.sleep(Random.nextInt(750))
-            transaction0(isolationLevel, trFactory, block, attempts - 1)
+            restartTransaction("Deadlock", e)
 
           case e: SQLException =>
             LoggerFactory.getLogger(getClass).error("SQLException code " + e.getErrorCode)
+            log("exception", "code " + e.getErrorCode)
             conn.rollback()
             throw e
 
           case e: Throwable =>
+            log("exception", e.toString)
             conn.rollback()
             throw e
 
         } finally {
-          if (!conn.isClosed) conn.close()
+          if (!conn.isClosed) {
+            log("close")
+            conn.close()
+          }
           currentTransaction.set(tr.parent.asInstanceOf[Option[TR]])
         }
     }
@@ -107,15 +164,19 @@ trait DbTrait {
 
   def transactionReadUncommitted[A](block: TR => A): A = transaction(Connection.TRANSACTION_READ_UNCOMMITTED, block)
   def dataTrReadUncommitted[A](md: ModifyData)(block: DT => A): A = transaction(Connection.TRANSACTION_READ_UNCOMMITTED, md, block)
+  def dataTrReadUncommittedNoLog[A](block: DT => A): A = transactionNoLog(Connection.TRANSACTION_READ_UNCOMMITTED, block)
 
   def transactionReadCommitted[A](block: TR => A): A = transaction(Connection.TRANSACTION_READ_COMMITTED, block)
   def dataTrReadCommitted[A](md: ModifyData)(block: DT => A): A = transaction(Connection.TRANSACTION_READ_COMMITTED, md, block)
+  def dataTrReadCommittedNoLog[A](block: DT => A): A = transactionNoLog(Connection.TRANSACTION_READ_COMMITTED, block)
 
   def transactionRepeatableRead[A](block: TR => A): A = transaction(Connection.TRANSACTION_REPEATABLE_READ, block)
   def dataTrRepeatableRead[A](md: ModifyData)(block: DT => A): A = transaction(Connection.TRANSACTION_REPEATABLE_READ, md, block)
+  def dataTrRepeatableReadNoLog[A](block: DT => A): A = transactionNoLog(Connection.TRANSACTION_REPEATABLE_READ, block)
 
   def transactionSerializable[A](block: TR => A): A = transaction(Connection.TRANSACTION_SERIALIZABLE, block)
   def dataTrSerializable[A](md: ModifyData)(block: DT => A): A = transaction(Connection.TRANSACTION_SERIALIZABLE, md, block)
+  def dataTrSerializableNoLog[A](block: DT => A): A = transactionNoLog(Connection.TRANSACTION_SERIALIZABLE, block)
 
   // -------------------------------------
 
@@ -225,6 +286,10 @@ trait DbTrait {
 
   // -------------------------------------
 
+  // --- queryAll
+
+  def queryAll[TR <: TableRecord](table: TrTable[TR]): Vector[TR] = query(_ select table from table fetch())
+
   // --- *ById*
 
   def findById[TR <: TableRecord](table: TrTable[TR], id: Int): Option[TR] =
@@ -280,8 +345,10 @@ trait DbTrait {
   protected def getConnection: Connection
   protected def newQuery(conn: Conn): Q
   protected def newConn(connection: Connection): Conn
-  protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR
-  protected def newDataTrObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction], md: ModifyData): DT
+  protected def newTransactionObject(connection: Connection, isolationLevel: Int,
+                                     parent: Option[Transaction]): TR
+  protected def newDataTrObject(connection: Connection, isolationLevel: Int,
+                                parent: Option[Transaction], md: ModifyData, logSql: Boolean): DT
 }
 
 

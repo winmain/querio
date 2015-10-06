@@ -124,7 +124,7 @@ class TableReader(lines: List[String]) {
   // read object extending table
   def readObject(head: String, classBody: List[String]): Unit = {
     objectDefinition = makeDefinition(head)
-    for (line <- classBody) userObjectLines += line.trim
+    for (line <- classBody) userObjectLines += line
   }
 
   // read class

@@ -1,5 +1,4 @@
 package querio
-import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 /**
@@ -88,8 +87,8 @@ trait ChangeableRecord {
 
   def setChanged(info: ChangeRecordInfo): Unit = {
     _changed = true
-    _changeInfo = changeInfo
+    _changeInfo = info
   }
 }
 
-case class ChangeRecordInfo(md: ModifyData, message: String = null)
+case class ChangeRecordInfo(md: ModifyData, message: String)
