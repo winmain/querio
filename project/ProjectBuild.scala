@@ -8,6 +8,8 @@ object ProjectBuild extends sbt.Build {
   val commonSettings = Seq(
     organization := "com.github.winmain",
     version := "0.1-SNAPSHOT",
+    publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else None),
+    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
     resolvers ++= Seq("Typesafe releases" at "http://repo.typesafe.com/typesafe/releases"),
@@ -34,6 +36,7 @@ object ProjectBuild extends sbt.Build {
     name := "querio-codegen"
   )
 
+
   // Task: Generate some querio lib sources
   val genQuerioLibSources = TaskKey[Unit]("gen-querio-lib-sources")
   lazy val genQuerioLibSourcesTask = genQuerioLibSources <<=
@@ -53,6 +56,8 @@ object ProjectBuild extends sbt.Build {
           }
         }
     */
+
+
   /**
    * Запустить scala класс кодогенерации в отдельном процессе
    */
