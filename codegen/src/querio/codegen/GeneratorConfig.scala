@@ -3,15 +3,15 @@ package querio.codegen
 import org.apache.commons.lang3.StringUtils
 
 object GeneratorConfig {
-  val libPackage = "orm"
+  val libPackage = "querio"
   val maxArity = 22
 
   val importJavaResultSet = "java.sql.ResultSet"
-  val importTable = "orm.Table"
-  val importTableRecord = "orm.TableRecord"
-  val importMutableTableRecord = "orm.MutableTableRecord"
-  val importSqlBuffer = "orm.SqlBuffer"
-  val importUpdateSetStep = "orm.UpdateSetStep"
+  val importTable = "querio.Table"
+  val importTableRecord = "querio.TableRecord"
+  val importMutableTableRecord = "querio.MutableTableRecord"
+  val importSqlBuffer = "querio.SqlBuffer"
+  val importUpdateSetStep = "querio.UpdateSetStep"
 
   /**
    * Сконвертировать имя таблицы (или имя БД) в название класса, реализующего TableRecord.

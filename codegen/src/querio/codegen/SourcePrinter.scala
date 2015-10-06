@@ -19,7 +19,7 @@ class SourcePrinter(groupImports: Boolean = true) {
   def getSource: String = {
     val src = new java.lang.StringBuilder(sb.length() + 256)
     if (_package != null) src append "package " append _package append "\n"
-    src append "// ormVersion: " append _version append "\n\n"
+    src append "// querioVersion: " append _version append "\n\n"
     val allImports: mutable.SortedSet[String] = _imports ++ _wildImports.map(_ + "._")
 
     def writeImportGroup(group: mutable.SortedSet[String]): Unit = {

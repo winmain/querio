@@ -12,7 +12,7 @@ object OrmPatches {
 
   // ------------------------------- Inner methods -------------------------------
 
-  val versionR = """// ormVersion: (\d)+\s*""".r
+  val versionR = """// querioVersion: (\d)+\s*""".r
 
   def autoPatchChopVersion(original: List[String]): List[String] = {
     val (versionLines, lines) = original.partition(versionR.pattern.matcher(_).matches())

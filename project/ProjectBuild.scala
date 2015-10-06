@@ -33,16 +33,17 @@ object ProjectBuild extends sbt.Build {
   val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(
     name := "querio-codegen"
   )
-  /*
-      // Task: Сгенерировать часть исходников библиотеки orm
-      val genOrmLibSources = TaskKey[Unit]("gen-orm-lib-sources")
-      lazy val genOrmLibSourcesTask = genOrmLibSources <<=
-        (scalaSource in Compile in orm, dependencyClasspath in Compile, baseDirectory in Compile, classDirectory in Runtime) map {
-          (scalaSource, classPath, baseDir, classesDir) => {
-            runScala(classPath.files :+ baseDir :+ classesDir, "orm.codegen.SelfClassesGenerator", Seq(scalaSource.absolutePath))
-          }
-        }
 
+  // Task: Generate some querio lib sources
+  val genQuerioLibSources = TaskKey[Unit]("gen-querio-lib-sources")
+  lazy val genQuerioLibSourcesTask = genQuerioLibSources <<=
+    (scalaSource in Compile, dependencyClasspath in Compile, baseDirectory in Compile, classDirectory in Runtime) map {
+      (scalaSource, classPath, baseDir, classesDir) => {
+        runScala(classPath.files :+ baseDir :+ classesDir, "querio.codegen.SelfClassesGenerator", Seq(scalaSource.absolutePath))
+      }
+    }
+
+  /*
       // Task: Сгенерировать классы для таблиц БД
       val genDbSources = TaskKey[Unit]("gen-db-sources")
       lazy val genDbSourcesTask = genDbSources <<=
@@ -52,7 +53,17 @@ object ProjectBuild extends sbt.Build {
           }
         }
     */
+  /**
+   * Запустить scala класс кодогенерации в отдельном процессе
+   */
+  def runScala(classPath: Seq[File], className: String, arguments: Seq[String]) {
+    val ret: Int = new Fork("java", Some(className)).apply(ForkOptions(bootJars = classPath), arguments)
+    if (ret != 0) sys.error("Trouble with code generator")
+  }
+
+
   lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
-    name := "querio"
+    name := "querio",
+    genQuerioLibSourcesTask
   ).dependsOn(codegen).aggregate(codegen)
 }
