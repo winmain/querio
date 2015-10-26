@@ -28,9 +28,7 @@ trait UpdateFinalStep extends SqlQuery {
   def execute(): Unit
 }
 
-class UpdateBuilder(table: AnyTable,
-                    id: Int,
-                    afterExecute: (String, AnyMutableTableRecord) => Unit)(implicit val buf: SqlBuffer)
+class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
   extends UpdateSetNextStep {
 
   private var firstSet = true
@@ -67,6 +65,17 @@ class UpdateBuilder(table: AnyTable,
   override def setMtr(mtr: AnyMutableTableRecord): UpdateSetNextStep
   = { require(mtr._table == table && mtr._primaryKey == id); this.mtr = mtr; this }
 
+  // ------------------------------- Overridable methods -------------------------------
+
+  protected def doExecute(buf: SqlBuffer): Unit = {
+    buf.statement { (st, sql) =>
+      st.executeUpdate(sql)
+      afterExecute(sql, mtr)
+    }
+  }
+
+  protected def afterExecute(sql: String, mtr: AnyMutableTableRecord): Unit = {}
+
   // ------------------------------- Execute statements -------------------------------
 
   override def execute(): Unit = {
@@ -76,9 +85,6 @@ class UpdateBuilder(table: AnyTable,
     table._primaryKey.getOrElse(sys.error(s"Cannot update for table '${table._defName}' without primary field")).render
     buf ++ " = " ++ id ++ "\nlimit 1"
 
-    buf.statement {(st, sql) =>
-      st.executeUpdate(sql)
-      afterExecute(sql, mtr)
-    }
+    doExecute(buf)
   }
 }
