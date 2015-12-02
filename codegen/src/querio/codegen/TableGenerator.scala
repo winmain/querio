@@ -14,13 +14,19 @@ import scalax.file.Path
 
 class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyNames: Vector[String],
                      pkg: String, dir: Path, namePrefix: String = "", isDefaultDatabase: Boolean = false) {
-  val version = 1
-
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
   val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
 
-  def generateToFile(): Unit = new Generator(readSource(filePath)).generate().saveToFile(filePath)
-  def generateToTempFile(): Unit = new Generator(readSource(filePath)).generate().saveToFile(Path(new File("/tmp/tt.scala")))
+  def generateToFile(): Generator = {
+    val gen: Generator = new Generator(readSource(filePath))
+    gen.generate().saveToFile(filePath)
+    gen
+  }
+  def generateToTempFile(): Generator = {
+    val gen: Generator = new Generator(readSource(filePath))
+    gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
+    gen
+  }
   def generateDoubleTest(): Unit = {
     val result1 = new Generator(readSource(filePath)).generate().getSource
     val result2 = new Generator(result1).generate().getSource
@@ -146,7 +152,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     def genTableClass(p: SourcePrinter) {
       p imp GeneratorConfig.importTable
       val fullTableName: String = if (isDefaultDatabase) table.name else table.cat + "." + table.name
-      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$fullTableName", alias)""")
+      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("${table.name}", "$fullTableName", alias)""")
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
@@ -253,7 +259,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     def generate(): SourcePrinter = {
       val p = new SourcePrinter()
       p pkg pkg
-      p version version
+      p version OrmPatches.currentVersion
       reader.imports.foreach(p.imp)
       reader.preTableLines.foreach(p ++ _ n())
       genTableClass(p)

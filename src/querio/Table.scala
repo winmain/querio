@@ -11,7 +11,17 @@ import querio.utils.IterableTools.{wrapArray, wrapIterable}
 import scala.collection.immutable.IntMap
 import scala.collection.mutable
 
-abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _tableName: String, @Nullable val _alias: String) extends ElTable[TR] {selfTable =>
+/**
+ * Database table description
+ *
+ * @param _fullTableName Full table name optionally with database or schema. Used to make SQL queries. For table dbname.user it will be "dbname.user".
+ *                       When flag [[querio.codegen.TableGenerator#isDefaultDatabase]] is set database name not prefixed.
+ * @param _tableName Short table name without database or schema. For table dbname.user it will be "user".
+ * @param _alias Table alias for SQL queries. For example, if alias equals "u2" then the query will be like "select * from dbname.user u2".
+ * @tparam TR Bound [[TableRecord]] type
+ * @tparam MTR Bound [[MutableTableRecord]] type
+ */
+abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _fullTableName: String, val _tableName: String, @Nullable val _alias: String) extends ElTable[TR] {selfTable =>
   type ThisField = this.Field[_, _]
 
   override def _fieldNum: Int = fields.length
@@ -27,10 +37,17 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _tabl
   private var fieldsBuilder = mutable.Buffer[ThisField]()
   private var fields: Vector[ThisField] = null
 
-  /** Имя алиаса, чтобы можно было сослаться на эту таблицу */
-  def _aliasName: String = if (_alias != null) _alias else _tableName
-  /** Имя для задания таблицы */
-  def _defName: String = if (_alias != null) _tableName + " " + _alias else _tableName
+  /*
+    Example usage for _aliasName, _defName in SQL query:
+
+    select {_aliasName}.name
+    from {_defName}
+    where {_aliasName}.id = 1
+   */
+  /** Aliased name for SQL queries. */
+  def _aliasName: String = if (_alias != null) _alias else _fullTableName
+  /** Name for defining table in SQL queries. */
+  def _defName: String = if (_alias != null) _fullTableName + " " + _alias else _fullTableName
 
   def _fields: Vector[ThisField] = fields
 
@@ -72,6 +89,27 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _tabl
 
   def createSubTableUpdater[V](get: TR => V, create: (MTR, Int) => Any, update: (MTR, V) => Any)(implicit db: DbTrait) =
     new SubTableUpdater[TR, MTR, V](this, get, create, update)
+
+  // ------------------------------- Fill MTR from Map and make Map from MTR -------------------------------
+
+  def _patchMTR(mtr: MTR, fields: Map[String, String]) {
+    for ((name, value) <- fields) {
+      val field = _fields.find(_.name == name).getOrElse(sys.error("Invalid field name: '" + name + "'"))
+      try field.setFromString(mtr, value)
+      catch {
+        case e: Exception => throw new RuntimeException("Field: " + field.name + "\n" + e.toString, e)
+      }
+    }
+  }
+
+  def _patchAnyMTR(mtr: AnyMutableTableRecord, fields: Map[String, String]): Unit =
+    _patchMTR(mtr.asInstanceOf[MTR], fields)
+
+  def _newPatchedMTR(fields: Map[String, String]): MTR = {
+    val mtr = _newMutableRecord
+    _patchMTR(mtr, fields)
+    mtr
+  }
 
   // ------------------------------- Private & protected methods -------------------------------
 

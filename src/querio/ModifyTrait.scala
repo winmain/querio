@@ -41,11 +41,11 @@ trait EssentialModifyTrait extends SqlQuery {
     val table = record._table
     table._primaryKey match {
       case Some(pk) if record._primaryKey == 0 =>
-        buf ++ "insert into " ++ table._tableName ++ " (" ++ table._fields.withFilter(_ != pk).map(_.name).mkString(", ") ++ ") values("
+        buf ++ "insert into " ++ table._fullTableName ++ " (" ++ table._fields.withFilter(_ != pk).map(_.name).mkString(", ") ++ ") values("
         record._renderValues(withPrimaryKey = false)
         buf ++ ")"
       case _ =>
-        buf ++ "insert into " ++ table._tableName ++ " (" ++ table._fields.map(_.name).mkString(", ") ++ ") values("
+        buf ++ "insert into " ++ table._fullTableName ++ " (" ++ table._fields.map(_.name).mkString(", ") ++ ") values("
         record._renderValues(withPrimaryKey = true)
         buf ++ ")"
     }

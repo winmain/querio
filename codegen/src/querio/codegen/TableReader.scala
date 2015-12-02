@@ -185,7 +185,7 @@ class TableReader(lines: List[String]) {
 object TableReader {
   val extendsR = """(?s).*\) *(extends .*) *\{""".r
 
-  val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *alias\).*""".r
+  val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *"[^"]+"\, *alias\).*""".r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
   val tableFieldR = """val +([^ ]+) *= *new +([^ (]+)(\([^)]+\)|) *\( *TFD *\( *"([^"]+)" *(?:,[^,]+){3}(?:, *comment *= *"[^"]*"|)\)(.*\).*)( *//.*|)$""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r

@@ -2,6 +2,7 @@ package querio.codegen
 
 import java.sql.{Connection, DatabaseMetaData, ResultSet}
 
+import scala.collection.mutable
 import scalax.file.Path
 
 /**
@@ -10,6 +11,7 @@ import scalax.file.Path
  * @param catalog database name for mysql
  * @param schema null for mysql
  * @param tableNamePattern DatabaseMetaData.getTables table name pattern (use "%" for all tables)
+ * @param tableListClass qualified class name for database object
  * @param pkg package for classes
  * @param dir base directory for classes
  * @param tableNamePrefix table name prefix prepending class names
@@ -22,6 +24,7 @@ class DatabaseGenerator(connection: Connection,
                         schema: String = null,
                         tableNamePattern: String = "%",
                         pkg: String,
+                        tableListClass: String,
                         dir: Path,
                         tableNamePrefix: String = "",
                         isDefaultDatabase: Boolean = false,
@@ -30,6 +33,7 @@ class DatabaseGenerator(connection: Connection,
   def generateDb() {
     val metaData: DatabaseMetaData = connection.getMetaData
     val tablesRS: ResultSet = metaData.getTables(catalog, schema, tableNamePattern, Array("TABLE"))
+    val tableObjectNames = mutable.Buffer[String]()
     while (tablesRS.next()) {
       val trs = new TableRS(tablesRS)
       val primaryKeyNames: Vector[String] = getStrings(metaData.getPrimaryKeys(catalog, schema, trs.name), 4)
@@ -39,14 +43,21 @@ class DatabaseGenerator(connection: Connection,
       val columns = columnsBuilder.result()
 
       val generator: TableGenerator = new TableGenerator(trs, columns, primaryKeyNames, pkg, dir, tableNamePrefix, isDefaultDatabase)
-      if (toTempFile) generator.generateToTempFile()
-      else generator.generateToFile()
+      tableObjectNames += {
+        val gen: TableGenerator#Generator =
+          if (toTempFile) generator.generateToTempFile()
+          else generator.generateToFile()
+        gen.tableObjectName
+      }
     }
+    val generator: TableListGenerator = new TableListGenerator(tableNamePrefix, pkg, tableObjectNames, tableListClass, dir)
+    if (toTempFile) generator.generateToTempFile()
+    else generator.generateToFile()
   }
 
   // ------------------------------- Private & protected methods -------------------------------
 
-  def getStrings(rs: ResultSet, fieldIndex: Int): Vector[String] = {
+  private def getStrings(rs: ResultSet, fieldIndex: Int): Vector[String] = {
     val b = Vector.newBuilder[String]
     while (rs.next()) b += rs.getString(fieldIndex)
     b.result()
