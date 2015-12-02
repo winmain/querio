@@ -12,6 +12,7 @@ object GeneratorConfig {
   val importMutableTableRecord = "querio.MutableTableRecord"
   val importSqlBuffer = "querio.SqlBuffer"
   val importUpdateSetStep = "querio.UpdateSetStep"
+  val importAnyTable = "querio.AnyTable"
 
   /**
    * Сконвертировать имя таблицы (или имя БД) в название класса, реализующего TableRecord.

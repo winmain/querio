@@ -4,10 +4,11 @@ import java.io.File
 import scalax.file.Path
 
 object OrmPatches {
-  val currentVersion = 1
+  val currentVersion = 2
 
   private def patch(lines: List[String], fromVersion: Int): List[String] = (fromVersion match {
     case 0 => OrmPatch0
+    case 1 => OrmPatch1
   }).patch(lines)
 
   // ------------------------------- Inner methods -------------------------------
@@ -16,7 +17,7 @@ object OrmPatches {
 
   def autoPatchChopVersion(original: List[String]): List[String] = {
     val (versionLines, lines) = original.partition(versionR.pattern.matcher(_).matches())
-    var version = versionLines match {
+    var version: Int = versionLines match {
       case List(line) => versionR.findFirstMatchIn(line).get.group(1).toInt
       case Nil => 0
     }

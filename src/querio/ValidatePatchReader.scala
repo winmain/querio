@@ -1,26 +1,6 @@
 package querio
 
 
-trait ValidatingTable[MTR <: MutableTableRecord[_ <: TableRecord]] {self: AnyTable =>
-  def _patchMTR(mtr: MTR, fields: Map[String, String]) {
-    val table = self.asInstanceOf[Table[_, MTR]]
-    for ((name, value) <- fields) {
-      val field = table._fields.find(_.name == name).getOrElse(sys.error("Invalid field name: '" + name + "'"))
-      try field.setFromString(mtr, value)
-      catch {
-        case e: Exception => throw new RuntimeException("Field: " + field.name + "\n" + e.toString, e)
-      }
-    }
-  }
-
-  def _newPatchedMTR(fields: Map[String, String]): MTR = {
-    val mtr = _newMutableRecord.asInstanceOf[MTR]
-    _patchMTR(mtr, fields)
-    mtr
-  }
-}
-
-
 class ValidatePatchReader(fields: Map[String, String]) {
 
   def intField(name: String, setter: Int => Unit) =

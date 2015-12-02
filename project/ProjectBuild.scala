@@ -2,12 +2,12 @@ import sbt.Keys._
 import sbt._
 
 object ProjectBuild extends sbt.Build {
-  val buildScalaVersion = "2.11.6"
+  val buildScalaVersion = "2.11.7"
   val module = "querio"
 
   val commonSettings = Seq(
     organization := "com.github.winmain",
-    version := "0.1-SNAPSHOT",
+    version := "0.2-SNAPSHOT",
     publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else None),
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
