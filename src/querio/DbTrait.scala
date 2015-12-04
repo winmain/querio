@@ -180,12 +180,12 @@ trait DbTrait {
 
   // -------------------------------------
 
+  def inner: InnerQuery = new InnerQuery
+
   def sql[A](block: Q => A)(implicit conn: Conn): A = block(newQuery(conn))
   def query[A](block: Q => A)(implicit conn: Conn = null): A = connection(conn => sql(block)(conn))
 
-  // -------------------------------------
-
-  def inner: InnerQuery = new InnerQuery
+  // ------------------------------- Modification methods -------------------------------
 
   def insert(record: AnyMutableTableRecord)(implicit dt: DataTr): Option[Int] = {
     newQuery(dt).insert(record)
@@ -197,6 +197,10 @@ trait DbTrait {
 
   def delete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord] = None)(implicit dt: DataTr): Int = {
     newQuery(dt).delete(table, id, mtrOpt)
+  }
+
+  def deleteRaw(table: AnyTable, id: Int)(implicit tr: Transaction): Int = {
+    newQuery(tr).deleteRaw(table) where table._primaryKey.get == id execute()
   }
 
   /** Удалить запись и все её подтаблицы */
@@ -227,6 +231,13 @@ trait DbTrait {
     val ids: Vector[Int] = newQuery(dt) select table._primaryKey.get from table where cond fetch()
     subTableFields.foreach(field => deleteByCondition(field.table, field.in(ids)))
     ids.foreach(delete(table, _))
+    ids
+  }
+
+  def deleteWithSubTablesRaw(table: AnyTable, cond: Condition)(subTableFields: AnyTable#Field[Int, _]*)(implicit tr: Transaction): Vector[Int] = {
+    val ids: Vector[Int] = newQuery(tr) select table._primaryKey.get from table where cond fetch()
+    subTableFields.foreach(field => deleteByConditionRaw(field.table, field.in(ids)))
+    ids.foreach(deleteRaw(table, _))
     ids
   }
 
@@ -284,7 +295,7 @@ trait DbTrait {
     if (disableForeignKeyChecks) execute("SET FOREIGN_KEY_CHECKS=1")
   }
 
-  // -------------------------------------
+  // ------------------------------- Query methods -------------------------------
 
   // --- queryAll
 
