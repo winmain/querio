@@ -157,12 +157,20 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
     def setFromString(mtr: MTR, s: String): Unit = set(mtr, fromString(s))
     def setFromStringAnyMtr(mtr: AnyMutableTableRecord, s: String): Unit = setFromString(mtr.asInstanceOf[MTR], s)
 
+    def :=(el: El[T, _]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = el.render
+    }
+
     /**
      * Создать option-вариант этого поля.
      */
     def option = new Field[T, Option[V]](new TFD[Option[V]](name, null, null, null)) {
       override protected def registerField: Int = field.index
-      override def renderEscapedValue(value: T)(implicit sql: SqlBuffer) = field.renderEscapedValue(value)
+      override def renderEscapedT(value: T)(implicit sql: SqlBuffer) = field.renderEscapedT(value)
+      override def renderEscapedValue(value: Option[V])(implicit buf: SqlBuffer) = value match {
+        case Some(v) => field.renderEscapedValue(v)
+        case None => buf ++ "null"
+      }
       override def getValue(rs: ResultSet, index: Int): Option[V] = {
         if (rs.getObject(index) == null) None
         else Some(field.getValue(rs, index))
@@ -172,6 +180,10 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       override def fromStringNotNull(s: String): Option[V] = Some(field.fromString(s))
       override def setValue(st: PreparedStatement, index: Int, value: Option[V]) = field.setValue(st, index, value.get)
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
+
+      def setNull: FieldSetClause = new FieldSetClause(this) {
+        override def renderValue(implicit sql: SqlBuffer): Unit = sql.renderNull
+      }
     }
 
     def forTableAlias[AT <: Table[TR, MTR]](t: AT) = new t.Field[T, V](tfd.asInstanceOf[t.TFD[V]]) {
@@ -184,18 +196,44 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index)
       override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, value)
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
-      override def renderEscapedValue(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedValue(value)
+      override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedValue(value)
     }
 
     protected def checkNotNull(v: AnyRef) {
       if (v == null) throw new NullPointerException("Field " + fullName + " cannot be null")
     }
   }
-  abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T]
-  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]]
+
+  trait SimpleFieldSetClause[T] {this: Field[T, _] =>
+    def :=(value: T): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedT(value)
+    }
+  }
+  abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T] with SimpleFieldSetClause[T]
+
+  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] with SimpleFieldSetClause[T] {
+    def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = sql.renderNull
+    }
+    def :=(value: Some[T]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedT(value)
+    }
+    def :=(value: Option[T]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = value match {
+        case Some(v) => renderEscapedT(v)
+        case None => sql.renderNull
+      }
+    }
+  }
   abstract class OptionCovariantTableField[T, V <: T](tfd: TFD[Option[V]]) extends BaseOptionTableField[T, V](tfd) with querio.OptionCovariantField[T, V]
   abstract class OptionTableField[T](tfd: TFD[Option[T]]) extends BaseOptionTableField[T, T](tfd) with querio.OptionField[T]
-  abstract class SetTableField[T](tfd: TFD[Set[T]]) extends Field[T, Set[T]](tfd) with querio.SetField[T]
+
+  abstract class SetTableField[T](tfd: TFD[Set[T]]) extends Field[T, Set[T]](tfd) with querio.SetField[T] {
+    def :=(value: Set[T]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedValue(value)
+    }
+  }
 
 
   // ---------------------- Boolean ----------------------
@@ -221,7 +259,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   // ---------------------- String ----------------------
 
   class String_TF(tfd: TFD[String]) extends SimpleTableField[String](tfd) with StringField {
-    override def renderEscapedValue(value: String)(implicit buf: SqlBuffer) = { checkNotNull(value); super.renderEscapedValue(value) }
+    override def renderEscapedT(value: String)(implicit buf: SqlBuffer) = { checkNotNull(value); super.renderEscapedT(value) }
   }
   class OptionString_TF(tfd: TFD[Option[String]]) extends OptionTableField[String](tfd) with OptionStringField
 
@@ -247,8 +285,8 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       if (rs.wasNull()) None else enum.getValue(v)
     }
     /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    override def renderEscapedValue(value: Option[E#V])(implicit sql: SqlBuffer) = value match {
-      case Some(v) => renderEscapedValue(v)
+    override def renderEscapedT(value: Option[E#V])(implicit sql: SqlBuffer) = value match {
+      case Some(v) => renderEscapedT(v)
       case None => sql ++ "default"
     }
     override def fromStringSimple(s: String): E#V = throw new UnsupportedOperationException
@@ -279,8 +317,8 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       if (rs.wasNull()) None else fromStringNotNull(v)
     }
     /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    override def renderEscapedValue(value: Option[E])(implicit sql: SqlBuffer) = value match {
-      case Some(v) => renderEscapedValue(v)
+    override def renderEscapedT(value: Option[E])(implicit sql: SqlBuffer) = value match {
+      case Some(v) => renderEscapedT(v)
       case None => sql ++ "default"
     }
     override def fromStringSimple(s: String): E = throw new UnsupportedOperationException
@@ -289,7 +327,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
 
   class SetEnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[Set[E]]) extends SetTableField[E](tfd) with BaseStringEnumRender[E] {self =>
     def contains(el: E): Condition = new Condition {
-      def renderCond(buf: SqlBuffer) { buf ++ "FIND_IN_SET("; renderEscapedValue(el)(buf); buf ++ ", " ++ self ++ ")" }
+      def renderCond(buf: SqlBuffer) { buf ++ "FIND_IN_SET("; renderEscapedT(el)(buf); buf ++ ", " ++ self ++ ")" }
     }
 
     override def getValue(rs: ResultSet, index: Int): Set[E] = {
@@ -300,7 +338,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       checkNotNull(value)
       if (value.nonEmpty) st.setString(index, valueAsString(value))
     }
-    override def renderEscapedValue(value: Set[E])(implicit sql: SqlBuffer) {
+    override def renderEscapedT(value: Set[E])(implicit sql: SqlBuffer) {
       checkNotNull(value)
       if (value.nonEmpty) sql renderStringValue valueAsString(value)
       else sql.renderNull
@@ -348,11 +386,17 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
 
   // ---------------------- DateTime ----------------------
 
-  class LocalDateTime_TF(tfd: TFD[LocalDateTime]) extends Field[Temporal, LocalDateTime](tfd) with LocalDateTimeField
+  class LocalDateTime_TF(tfd: TFD[LocalDateTime]) extends Field[Temporal, LocalDateTime](tfd) with LocalDateTimeField with SimpleFieldSetClause[Temporal]
   class OptionLocalDateTime_TF(tfd: TFD[Option[LocalDateTime]]) extends OptionCovariantTableField[Temporal, LocalDateTime](tfd) with OptionDateTimeField
 
   // ---------------------- DateMidnight ----------------------
 
-  class LocalDate_TF(tfd: TFD[LocalDate]) extends Field[Temporal, LocalDate](tfd) with LocalDateField
-  class OptionLocalDate_TF(tfd: TFD[Option[LocalDate]]) extends OptionCovariantTableField[Temporal, LocalDate](tfd) with OptionDateMidnightField
+  class LocalDate_TF(tfd: TFD[LocalDate]) extends Field[Temporal, LocalDate](tfd) with LocalDateField with SimpleFieldSetClause[Temporal]
+  class OptionLocalDate_TF(tfd: TFD[Option[LocalDate]]) extends OptionCovariantTableField[Temporal, LocalDate](tfd) with OptionDateField
+}
+
+
+abstract class FieldSetClause(field: Field[_, _]) {
+  def render(implicit sql: SqlBuffer): Unit = { field.render; sql ++ " = "; renderValue }
+  def renderValue(implicit sql: SqlBuffer): Unit
 }

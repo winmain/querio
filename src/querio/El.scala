@@ -69,7 +69,7 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
   def desc: El[T, T] = newExpression {_ ++ self ++ " desc"}
 
   def condition(op: String, value: T): Condition = new Condition {
-    override def renderCond(buf: SqlBuffer) { buf ++ self ++ op; renderEscapedValue(value)(buf) }
+    override def renderCond(buf: SqlBuffer) { buf ++ self ++ op; renderEscapedT(value)(buf) }
   }
   def condition(op: String, el: El[T, _]): Condition = new Condition {
     override def renderCond(buf: SqlBuffer) { buf ++ self ++ op ++ el }
@@ -77,14 +77,14 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
   def condition(op: String, select: => Select[T]): Condition = new Condition {
     override def renderCond(buf: SqlBuffer) { buf ++ self ++ op ++ "("; select; buf ++ ")" }
   }
-  def expression(op: String, value: T): El[T, T] = newExpression {implicit buf => buf ++ self ++ op; renderEscapedValue(value)}
+  def expression(op: String, value: T): El[T, T] = newExpression {implicit buf => buf ++ self ++ op; renderEscapedT(value)}
   def expression(op: String, el: El[T, _]): El[T, T] = newExpression {implicit buf => buf ++ self ++ op ++ el}
 
   def renderIterable(values: Iterable[T], sep: String)(implicit buf: SqlBuffer) {
     val it = values.iterator
     if (it.hasNext) {
-      renderEscapedValue(it.next())
-      while (it.hasNext) {buf ++ sep; renderEscapedValue(it.next())}
+      renderEscapedT(it.next())
+      while (it.hasNext) {buf ++ sep; renderEscapedT(it.next())}
     }
   }
 
@@ -94,9 +94,11 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
 
   def render(implicit buf: SqlBuffer): Unit
   def renderToString: String = (SqlBuffer.stub ++ self).toString
-  def renderEscapedValue(value: T)(implicit buf: SqlBuffer): Unit
-  def renderEscapedValue(value: Option[T])(implicit buf: SqlBuffer): Unit = value match {
-    case Some(v) => renderEscapedValue(v)
+  def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit
+  def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit
+
+  def renderEscapedT(value: Option[T])(implicit buf: SqlBuffer): Unit = value match {
+    case Some(v) => renderEscapedT(v)
     case None => buf ++ "null"
   }
 
@@ -115,11 +117,13 @@ trait OptionEl[T, V <: T] extends El[T, Option[V]] {
     case Some(v) => condition(" != ", v)
     case None => isNotNull
   }
+  override def renderEscapedValue(value: Option[V])(implicit buf: SqlBuffer): Unit = renderEscapedT(value)
 }
 
 trait SetEl[T] extends El[T, Set[T]] {
   def &(value: Int): El[Int, Int] = Fun.intOp(this, " & ", value)
-  def renderEscapedValue(value: Set[T])(implicit sql: SqlBuffer) = renderIterable(value, ",")
+  def renderEscapedT(value: Set[T])(implicit sql: SqlBuffer) = renderIterable(value, ",")
+  override def renderEscapedValue(value: Set[T])(implicit sql: SqlBuffer) = renderEscapedT(value)
 }
 
 trait StringEl[V] extends El[String, V] {
@@ -139,6 +143,7 @@ trait Field[T, V] extends El[T, V] {
   protected def fromStringNotNull(s: String): V
 }
 trait SimpleField[T] extends Field[T, T] {
+  override def renderEscapedValue(value: T)(implicit buf: SqlBuffer): Unit = renderEscapedT(value)
   override def fromString(s: String): T = fromStringSimple(s)
   override def fromStringNotNull(s: String): T = fromStringSimple(s)
 }
@@ -158,11 +163,12 @@ trait SetField[T] extends Field[T, Set[T]] with SetEl[T] {
 
 // ---------------------- Select ----------------------
 
-class SelectEl[T,V]() extends El[T,V] {
+class SelectEl[T, V]() extends El[T, V] {
   override def fullName: String = ???
   override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = ???
   override def setValue(st: PreparedStatement, index: Int, value: V): Unit = ???
   override def getValue(rs: ResultSet, index: Int): V = ???
-  override def renderEscapedValue(value: T)(implicit buf: SqlBuffer): Unit = ???
+  override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = ???
+  override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = ???
   override def render(implicit buf: SqlBuffer): Unit = ???
 }

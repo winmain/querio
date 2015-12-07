@@ -243,7 +243,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
           p ++ "def _renderChangedUpdate($: " ++ tableClassName ++ ", $u: UpdateSetStep): Unit = { "
           for (c <- columns) {
             p ++ "if (" ++ c.varName ++ " != $." ++ c.varName ++ ") "
-            p ++ "$u.set(" ++ tableObjectName ++ "." ++ c.varName ++ ", " ++ c.varName ++ "); "
+            p ++ "$u.set(" ++ tableObjectName ++ "." ++ c.varName ++ " := " ++ c.varName ++ "); "
           }
           p ++ "}" n()
         }
