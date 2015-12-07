@@ -1,13 +1,10 @@
 package querio
 
-
 // ------------------------------- Update traits -------------------------------
 
 trait UpdateRawSetStep extends SqlQuery {
-  def set[T](tf: AnyTable#Field[T, _], value: T): UpdateRawSetNextStep
-  def set[T](tf: AnyTable#Field[T, Option[T]], value: Option[T]): UpdateRawSetNextStep
-  def set[T](tf: AnyTable#Field[T, _], el: El[T, _]): UpdateRawSetNextStep
-  def setNull[V](tf: AnyTable#Field[_, Option[V]]): UpdateRawSetNextStep
+  def set(clause: FieldSetClause): UpdateRawSetNextStep
+  def set(clauses: FieldSetClause*): UpdateRawSetNextStep
 }
 
 trait UpdateRawSetNextStep extends UpdateRawSetStep {
@@ -32,22 +29,22 @@ trait UpdateRawFinalStep extends SqlQuery {
 }
 
 class UpdateRawBuilder(implicit val buf: SqlBuffer)
-  extends UpdateRawSetNextStep with UpdateRawConditionStep {
+  extends UpdateRawSetStep with UpdateRawSetNextStep with UpdateRawConditionStep {
 
   private var firstSet = true
+
   private def setPrefix: String = if (firstSet) {firstSet = false; " set "} else ", "
 
-  override def set[T](tf: AnyTable#Field[T, _], value: T): UpdateRawSetNextStep
-  = { buf ++ setPrefix ++ tf.name ++ " = "; if (value == null) buf ++ "null" else tf.renderEscapedValue(value); this }
+  override def set(clause: FieldSetClause): UpdateRawSetNextStep = {
+    buf ++ setPrefix
+    clause.render
+    this
+  }
 
-  override def set[T](tf: AnyTable#Field[T, Option[T]], value: Option[T]): UpdateRawSetNextStep
-  = { buf ++ setPrefix ++ tf.name ++ " = "; tf.renderEscapedValue(value); this }
-
-  override def set[T](tf: AnyTable#Field[T, _], el: El[T, _]): UpdateRawSetNextStep
-  = { buf ++ setPrefix ++ tf.name ++ " = " ++ el; this }
-
-  override def setNull[V](tf: AnyTable#Field[_, Option[V]]): UpdateRawSetNextStep
-  = { buf ++ setPrefix ++ tf.name ++ " = null"; this }
+  override def set(clauses: FieldSetClause*): UpdateRawSetNextStep = {
+    if (clauses.isEmpty) this
+    else {clauses.foreach(set); this}
+  }
 
   override def &&(cond: Condition): this.type = { buf ++ " and (" ++ cond ++ ")"; this }
   override def ||(cond: Condition): this.type = { buf ++ " or (" ++ cond ++ ")"; this }
