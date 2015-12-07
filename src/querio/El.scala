@@ -99,7 +99,7 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
 
   def renderEscapedT(value: Option[T])(implicit buf: SqlBuffer): Unit = value match {
     case Some(v) => renderEscapedT(v)
-    case None => buf ++ "null"
+    case None => buf.renderNull
   }
 
   def getValue(rs: ResultSet, index: Int): V
