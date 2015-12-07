@@ -212,7 +212,10 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   }
   abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T] with SimpleFieldSetClause[T]
 
-  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] with SimpleFieldSetClause[T] {
+  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {
+    def :=(value: T): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit sql: SqlBuffer): Unit = if (value == null) sql.renderNull else renderEscapedT(value)
+    }
     def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit sql: SqlBuffer): Unit = sql.renderNull
     }
