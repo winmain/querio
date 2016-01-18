@@ -152,7 +152,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     def genTableClass(p: SourcePrinter) {
       p imp GeneratorConfig.importTable
       val fullTableName: String = if (isDefaultDatabase) table.name else table.cat + "." + table.name
-      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("${table.name}", "$fullTableName", alias)""")
+      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$fullTableName", "${table.name}", alias)""")
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
