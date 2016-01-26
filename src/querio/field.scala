@@ -79,6 +79,18 @@ trait OptionLongField extends OptionField[Long] with BaseLongRender {
   override def setValue(st: PreparedStatement, index: Int, value: Option[Long]) = value.foreach(v => st.setLong(index, v))
 }
 
+// ---------------------- FlagSet ----------------------
+
+trait FlagSetField[F <: Flag] extends SimpleField[FlagSet[F]] {
+  override protected def fromStringSimple(s: String): FlagSet[F] = new FlagSet[F](s.toLong)
+  override def getValue(rs: ResultSet, index: Int): FlagSet[F] = new FlagSet[F](rs.getLong(index))
+  override def setValue(st: PreparedStatement, index: Int, value: FlagSet[F]): Unit = st.setLong(index, value.bitMask)
+  override def renderEscapedT(value: FlagSet[F])(implicit buf: SqlBuffer): Unit = buf ++ value.bitMask
+  override def newExpression(r: (SqlBuffer) => Unit): El[FlagSet[F], FlagSet[F]] = new FlagSetField[F] {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
 // ---------------------- String ----------------------
 
 trait BaseStringRender {

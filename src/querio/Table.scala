@@ -259,6 +259,17 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   class Long_TF(tfd: TFD[Long]) extends SimpleTableField[Long](tfd) with LongField
   class OptionLong_TF(tfd: TFD[Option[Long]]) extends OptionTableField[Long](tfd) with OptionLongField
 
+  // ---------------------- FlagSet ----------------------
+
+  /**
+   * Поле для [[FlagSet]]
+   *
+   * Этот тип для поля проставляется вручную (вместо [[Long_TF]]), при этом:
+   * - соответствующее поле в базе должно иметь тип BIGINT (8байтовое целое число)
+   * - соответствующие поля в mutable и immutable классах должны иметь тип [[FlagSet]]
+   */
+  class FlagSet_TF[F <: Flag](tfd: TFD[FlagSet[F]]) extends SimpleTableField[FlagSet[F]](tfd) with FlagSetField[F]
+
   // ---------------------- String ----------------------
 
   class String_TF(tfd: TFD[String]) extends SimpleTableField[String](tfd) with StringField {
