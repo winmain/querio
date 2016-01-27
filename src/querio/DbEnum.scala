@@ -1,10 +1,13 @@
 package querio
 
+import javax.annotation.Nullable
+
 import scala.collection.mutable
 
 /**
- * Реализация Enumerable с ключевым полем типа int.
- * Внутреннее хранилище основано на ArrayBuffer, поэтому ключи не должны быть с большими значениями.
+ * Enumerable implementation with integer key field.
+ * Internally store values in [[mutable.ArrayBuffer]]. Each value key is an array index hence.
+ * Hence keys should not be scarce.
  */
 abstract class DbEnum {
   type V <: Cls
@@ -14,9 +17,10 @@ abstract class DbEnum {
 
   protected def initialSize = 16
 
+  @Nullable def getNullable(id: Int) = valueMap(id)
   def getValue(id: Int): Option[V] = {
     try {
-      Option(valueMap(id))
+      Option(getNullable(id))
     } catch {case e: IndexOutOfBoundsException => None}
   }
   def getByIndex(index: Int): Option[V] = if (isValidIndex(index)) Some(values(index)) else None

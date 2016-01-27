@@ -259,6 +259,13 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   class Long_TF(tfd: TFD[Long]) extends SimpleTableField[Long](tfd) with LongField
   class OptionLong_TF(tfd: TFD[Option[Long]]) extends OptionTableField[Long](tfd) with OptionLongField
 
+  // ---------------------- String ----------------------
+
+  class String_TF(tfd: TFD[String]) extends SimpleTableField[String](tfd) with StringField {
+    override def renderEscapedT(value: String)(implicit buf: SqlBuffer) = { checkNotNull(value); super.renderEscapedT(value) }
+  }
+  class OptionString_TF(tfd: TFD[Option[String]]) extends OptionTableField[String](tfd) with OptionStringField
+
   // ---------------------- FlagSet ----------------------
 
   /**
@@ -268,14 +275,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
    * - соответствующее поле в базе должно иметь тип BIGINT (8байтовое целое число)
    * - соответствующие поля в mutable и immutable классах должны иметь тип [[FlagSet]]
    */
-  class FlagSet_TF[F <: Flag](tfd: TFD[FlagSet[F]]) extends SimpleTableField[FlagSet[F]](tfd) with FlagSetField[F]
-
-  // ---------------------- String ----------------------
-
-  class String_TF(tfd: TFD[String]) extends SimpleTableField[String](tfd) with StringField {
-    override def renderEscapedT(value: String)(implicit buf: SqlBuffer) = { checkNotNull(value); super.renderEscapedT(value) }
-  }
-  class OptionString_TF(tfd: TFD[Option[String]]) extends OptionTableField[String](tfd) with OptionStringField
+  class FlagSet_TF[F <: DbFlag](enum: F)(tfd: TFD[FlagSet[F#V]]) extends SimpleTableField[FlagSet[F#V]](tfd) with FlagSetField[F#V]
 
   // ---------------------- Int Enum ----------------------
 

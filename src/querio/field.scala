@@ -81,12 +81,12 @@ trait OptionLongField extends OptionField[Long] with BaseLongRender {
 
 // ---------------------- FlagSet ----------------------
 
-trait FlagSetField[F <: Flag] extends SimpleField[FlagSet[F]] {
-  override protected def fromStringSimple(s: String): FlagSet[F] = new FlagSet[F](s.toLong)
-  override def getValue(rs: ResultSet, index: Int): FlagSet[F] = new FlagSet[F](rs.getLong(index))
-  override def setValue(st: PreparedStatement, index: Int, value: FlagSet[F]): Unit = st.setLong(index, value.bitMask)
-  override def renderEscapedT(value: FlagSet[F])(implicit buf: SqlBuffer): Unit = buf ++ value.bitMask
-  override def newExpression(r: (SqlBuffer) => Unit): El[FlagSet[F], FlagSet[F]] = new FlagSetField[F] {
+trait FlagSetField[V <: DbFlag#Cls] extends SimpleField[FlagSet[V]] {
+  override protected def fromStringSimple(s: String): FlagSet[V] = new FlagSet[V](s.toLong)
+  override def getValue(rs: ResultSet, index: Int): FlagSet[V] = new FlagSet[V](rs.getLong(index))
+  override def setValue(st: PreparedStatement, index: Int, value: FlagSet[V]): Unit = st.setLong(index, value.value)
+  override def renderEscapedT(value: FlagSet[V])(implicit buf: SqlBuffer): Unit = buf ++ value.value
+  override def newExpression(r: (SqlBuffer) => Unit): El[FlagSet[V], FlagSet[V]] = new FlagSetField[V] {
     override def render(implicit buf: SqlBuffer): Unit = r(buf)
   }
 }
