@@ -1,3 +1,4 @@
+// TODO: нет компиляции перед выполнением этого таска
 // Task: Generate database classes
 val genDbSources = TaskKey[Unit]("gen-db-sources")
 lazy val genDbSourcesTask = genDbSources <<=
@@ -16,14 +17,13 @@ def runScala(classPath: Seq[File], className: String, arguments: Seq[String]) {
 }
 
 lazy val example = (project in file(".")).settings(
-  name := "example",
+  name := "querio-example-mysql",
   version := "0.1",
-  scalaVersion := "2.11.6",
-  libraryDependencies += "com.github.winmain" %% "querio" % "0.1-SNAPSHOT",
+  scalaVersion := "2.11.7",
+  libraryDependencies += "com.github.winmain" %% "querio" % "0.4-SNAPSHOT",
   libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.36",
 
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
   scalaSource in Compile := baseDirectory.value / "src",
-
   genDbSourcesTask
 )

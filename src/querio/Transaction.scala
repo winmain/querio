@@ -18,20 +18,23 @@ trait Transaction extends Conn {
   protected val modifyQueries = mutable.Buffer[String]()
 
   /** Добавить информацию о том, что создана новая запись. Эта информация используется для обновления кешей. */
-  protected[querio] def addInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit
+  protected def addInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit = {}
+  private[querio] def querioAddInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit = addInsertChange(record, newId)
 
   /** Добавить информацию о том, что запись обновлена или удалена. Эта информация используется для обновления кешей. */
-  protected[querio] def addUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit
+  protected def addUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit = {}
+  private[querio] def querioAddUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit = addUpdateDeleteChange(table, id, change)
 
   /** Продублировать выполненный sql-запрос модификации данных.
     * Это нужно для того, чтобы перезапустить транзакцию в случае ошибки БД sql deadlock. */
-  protected[querio] def addModifySql(sql: String) {
+  protected def addModifySql(sql: String) {
     modifyQueries += sql
   }
 
-  protected[querio] def afterCommit() {
+  protected def afterCommit() {
     parent.foreach(tr => modifyQueries.foreach(tr.addModifySql))
   }
+  private[querio] def querioAfterCommit(): Unit = afterCommit()
 }
 
 
@@ -101,4 +104,23 @@ trait DataTr extends Transaction {
 
   /** Логировать изменения этой транзакции? */
   def logSql: Boolean
+}
+
+
+// ------------------------------- Default implementations -------------------------------
+
+class DefaultTransaction(val connection: Connection, val isolationLevel: Int, val parent: Option[Transaction])
+  extends Transaction {
+
+  override def toDataTr(md: ModifyData): DataTr =
+    new DefaultDataTr(connection, isolationLevel, parent, md, true)
+}
+
+
+class DefaultDataTr(connection: Connection, isolationLevel: Int, parent: Option[Transaction],
+                    private var modifyData: ModifyData, val logSql: Boolean)
+  extends DefaultTransaction(connection, isolationLevel, parent) with DataTr {
+
+  override def md: ModifyData = modifyData
+  override def updateMd(newMd: ModifyData): Unit = modifyData = newMd
 }
