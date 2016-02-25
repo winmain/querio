@@ -76,7 +76,7 @@ trait DbTrait {
         log("setSavepoint", savepoint.getSavepointName)
         try {
           val r = block(tr)
-          tr.afterCommit()
+          tr.querioAfterCommit()
           log("afterCommit", savepoint.getSavepointName)
           r
         } catch {
@@ -122,7 +122,7 @@ trait DbTrait {
           val r = block(tr)
           conn.commit()
           log("commit")
-          tr.afterCommit()
+          tr.querioAfterCommit()
           r
         } catch {
           case Mysql.Error.ConnectionClosed(e) =>
@@ -365,4 +365,26 @@ trait DbTrait {
 
 trait ModifyData {
   def dateTime: LocalDateTime
+}
+
+
+// ------------------------------- Default implementations -------------------------------
+
+abstract class BaseDb extends DbTrait {
+  override type Q = DefaultQuery
+  override type TR = DefaultTransaction
+  override type DT = DefaultDataTr
+
+  override protected def newQuery(conn: Conn): Q = new DefaultQuery(new DefaultSqlBuffer(conn))
+  override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
+  override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
+    new DefaultTransaction(connection, isolationLevel, parent)
+  override protected def newDataTrObject(connection: Connection, isolationLevel: Int,
+                                         parent: Option[Transaction], md: querio.ModifyData,
+                                         logSql: Boolean): DT =
+    new DefaultDataTr(connection, isolationLevel, parent, md, logSql)
+}
+
+class DefaultDb(connectionFactory: => Connection) extends BaseDb {
+  override protected def getConnection: Connection = connectionFactory
 }

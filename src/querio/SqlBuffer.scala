@@ -112,4 +112,4 @@ object SqlBuffer {
   }
 }
 
-class CommonSqlBuffer(val conn: Conn) extends SqlBuffer
+class DefaultSqlBuffer(val conn: Conn) extends SqlBuffer

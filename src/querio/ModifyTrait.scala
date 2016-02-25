@@ -84,7 +84,7 @@ trait ModifyTrait extends EssentialModifyTrait {
         Some(id)
       } else None
       if (logSql) modifyData.foreach(this.logSql(record._table, idOpt, _, sql))
-      tr.foreach(_.addInsertChange(record, idOpt))
+      tr.foreach(_.querioAddInsertChange(record, idOpt))
       idOpt
     }
   }
@@ -93,7 +93,7 @@ trait ModifyTrait extends EssentialModifyTrait {
     new UpdateBuilder(table, id) {
       override protected def afterExecute(sql: String, mtr: AnyMutableTableRecord): Unit = {
         if (dt.logSql) logSql(table, Some(id), dt.md, sql)
-        dt.addUpdateDeleteChange(table, id, TrSomeChange(mtr))
+        dt.querioAddUpdateDeleteChange(table, id, TrSomeChange(mtr))
       }
     }
 
@@ -103,7 +103,7 @@ trait ModifyTrait extends EssentialModifyTrait {
     buf.statement { (st, sql) =>
       val ret = st.executeUpdate(sql)
       if (dt.logSql) logSql(table, Some(id), dt.md, sql)
-      dt.addUpdateDeleteChange(table, id, TrDeleteChange(mtrOpt))
+      dt.querioAddUpdateDeleteChange(table, id, TrDeleteChange(mtrOpt))
       ret
     }
   }
