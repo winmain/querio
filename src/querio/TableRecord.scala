@@ -80,7 +80,7 @@ trait MutableTableRecord[R <: TableRecord] {
  * Используется для того, чтобы маркировать записи, когда они изменились.
  */
 trait ChangeableRecord {
-  private var _changed = false
+  @volatile private var _changed = false
   def changed: Boolean = _changed
   @Nullable private var _changeInfo: ChangeRecordInfo = null
   @Nullable def changeInfo: ChangeRecordInfo = _changeInfo
