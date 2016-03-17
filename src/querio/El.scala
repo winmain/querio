@@ -141,6 +141,8 @@ trait Field[T, V] extends El[T, V] {
   protected def fromStringSimple(s: String): T
   /** Внутренний метод для работы fromString. Конвертирует строку, не проверяя её на null. */
   protected def fromStringNotNull(s: String): V
+
+  def renderName(implicit buf: SqlBuffer) = render
 }
 trait SimpleField[T] extends Field[T, T] {
   override def renderEscapedValue(value: T)(implicit buf: SqlBuffer): Unit = renderEscapedT(value)
