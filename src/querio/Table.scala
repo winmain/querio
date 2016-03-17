@@ -151,6 +151,8 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
 
     override def render(implicit sql: SqlBuffer) { sql ++ table._aliasName ++ '.' ++ name }
 
+    override def renderName(implicit sql: SqlBuffer) { sql ++ name }
+
     override def fullName = selfTable._aliasName + "." + name
     def getTableValue(rs: ResultSet, addIndex: Int): V = getValue(rs, index + addIndex)
 
@@ -411,6 +413,6 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
 
 
 abstract class FieldSetClause(field: Field[_, _]) {
-  def render(implicit sql: SqlBuffer): Unit = { field.render; sql ++ " = "; renderValue }
+  def render(implicit sql: SqlBuffer): Unit = { field.renderName; sql ++ " = "; renderValue }
   def renderValue(implicit sql: SqlBuffer): Unit
 }

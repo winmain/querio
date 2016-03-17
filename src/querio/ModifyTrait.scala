@@ -23,7 +23,7 @@ trait EssentialModifyTrait extends SqlQuery {
   def delete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord] = None)(implicit dt: DataTr): Int = {
     mtrOpt.foreach(mtr => require(mtr._table == table && mtr._primaryKey == id))
     val pk = table._primaryKey.getOrElse(sys.error("Cannot delete from table without primary key"))
-    buf ++ "delete from " ++ table._defName ++ " where " ++ pk.name ++ " = " ++ id ++ " limit 1"
+    buf ++ "delete from " ++ table._defName ++ " where " ++ pk.name ++ " = " ++ id
 
     doDelete(table, id, mtrOpt)
   }

@@ -59,7 +59,7 @@ class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
 
     buf ++ "\nwhere "
     table._primaryKey.getOrElse(sys.error(s"Cannot update for table '${table._defName}' without primary field")).render
-    buf ++ " = " ++ id ++ "\nlimit 1"
+    buf ++ " = " ++ id
 
     doExecute(buf)
   }
