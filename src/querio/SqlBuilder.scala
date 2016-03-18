@@ -230,7 +230,7 @@ abstract class SqlBuilder[R]
   = { buf ++ "\nlimit " ++ numberOfRows; this }
 
   override def limit(offset: Int, numberOfRows: Int): this.type
-  = { buf ++ "\nlimit " ++ offset ++ ", " ++ numberOfRows; this }
+  = { buf ++ "\nlimit " ++ numberOfRows ++ " offset " ++ offset; this }
 
   // ------------------------------- Execute statements -------------------------------
 
