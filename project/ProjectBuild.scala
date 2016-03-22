@@ -29,7 +29,9 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "com.google.code.findbugs" % "jsr305" % "2.0.1",
     libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.4",
     libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.12",
-    libraryDependencies += "com.github.scala-incubator.io" %% "scala-io-file" % "0.4.3-1"
+    libraryDependencies += "com.github.scala-incubator.io" %% "scala-io-file" % "0.4.3-1",
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0-M15" % "test",
+    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test"
   )
 
   val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(
