@@ -2,11 +2,19 @@ package querio
 
 import java.sql.Statement
 
+import querio.utils.IterableTools.wrapIterable
+
 trait EssentialModifyTrait extends SqlQuery {
 
   def insert(record: AnyMutableTableRecord)(implicit dt: DataTr): Option[Int] = _insert(record, Some(dt.md), Some(dt), dt.logSql)
 
   def insertRaw(record: AnyMutableTableRecord): Option[Int] = _insert(record, None, None, logSql = false)
+
+  def multiInsertRaw[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean = false): MultiInsertRawStep[TR] = {
+    printInsertInto(table, withPrimaryKey = withPrimaryKey)
+    buf ++ " values"
+    multipleInsertRawBuilder[TR](table, withPrimaryKey = withPrimaryKey)
+  }
 
   def update(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep = {
     buf ++ "update " ++ table._aliasName
@@ -39,17 +47,25 @@ trait EssentialModifyTrait extends SqlQuery {
                         tr: Option[Transaction], logSql: Boolean): Option[Int] = {
     record.validateOrFail
     val table = record._table
-    table._primaryKey match {
-      case Some(pk) if record._primaryKey == 0 =>
-        buf ++ "insert into " ++ table._fullTableName ++ " (" ++ table._fields.withFilter(_ != pk).map(_.name).mkString(", ") ++ ") values("
-        record._renderValues(withPrimaryKey = false)
-        buf ++ ")"
-      case _ =>
-        buf ++ "insert into " ++ table._fullTableName ++ " (" ++ table._fields.map(_.name).mkString(", ") ++ ") values("
-        record._renderValues(withPrimaryKey = true)
-        buf ++ ")"
-    }
+    val withPK: Boolean = record._primaryKey != 0 || table._primaryKey.isEmpty
+    printInsertInto(table, withPrimaryKey = withPK)
+    buf ++ " values("
+    record._renderValues(withPrimaryKey = withPK)
+    buf ++ ')'
     doInsert(record, modifyData, tr, logSql)
+  }
+
+  protected def printInsertInto(table: AnyTable, withPrimaryKey: Boolean): Unit = {
+    buf ++ "insert into " ++ table._fullTableName ++ " ("
+    val maybePK = table._primaryKey
+    val fields: Seq[AnyTable#ThisField] =
+      if (withPrimaryKey || maybePK.isEmpty) table._fields
+      else {
+        val pk = maybePK.get
+        table._fields.view.filter(_ != pk)
+      }
+    fields._foreachWithSep(buf ++ _.name, buf ++ ", ")
+    buf ++ ')'
   }
 
   // ------------------------------- Methods to override -------------------------------
@@ -57,6 +73,8 @@ trait EssentialModifyTrait extends SqlQuery {
   protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit
 
   protected def doInsert(record: AnyMutableTableRecord, modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[Int]
+
+  protected def multipleInsertRawBuilder[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean): MultiInsertRawStep[TR]
 
   protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep
 
@@ -72,10 +90,10 @@ trait EssentialModifyTrait extends SqlQuery {
  */
 trait ModifyTrait extends EssentialModifyTrait {
 
-  protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit = {}
+  override protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit = {}
 
-  protected def doInsert(record: AnyMutableTableRecord, modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[Int] = {
-    buf.statement { (st, sql) =>
+  override protected def doInsert(record: AnyMutableTableRecord, modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[Int] = {
+    buf.statement {(st, sql) =>
       st.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
       val rs = st.getGeneratedKeys
       val idOpt = if (rs.next()) {
@@ -89,7 +107,10 @@ trait ModifyTrait extends EssentialModifyTrait {
     }
   }
 
-  protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep =
+  override protected def multipleInsertRawBuilder[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean): MultiInsertRawStep[TR] =
+    new MultiInsertRawBuilder[TR](table, withPrimaryKey = withPrimaryKey)
+
+  override protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep =
     new UpdateBuilder(table, id) {
       override protected def afterExecute(sql: String, mtr: AnyMutableTableRecord): Unit = {
         if (dt.logSql) logSql(table, Some(id), dt.md, sql)
@@ -97,10 +118,10 @@ trait ModifyTrait extends EssentialModifyTrait {
       }
     }
 
-  protected def updateRawBuilder(): UpdateRawSetStep = new UpdateRawBuilder
+  override protected def updateRawBuilder(): UpdateRawSetStep = new UpdateRawBuilder
 
-  protected def doDelete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord])(implicit dt: DataTr): Int = {
-    buf.statement { (st, sql) =>
+  override protected def doDelete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord])(implicit dt: DataTr): Int = {
+    buf.statement {(st, sql) =>
       val ret = st.executeUpdate(sql)
       if (dt.logSql) logSql(table, Some(id), dt.md, sql)
       dt.querioAddUpdateDeleteChange(table, id, TrDeleteChange(mtrOpt))
@@ -108,7 +129,5 @@ trait ModifyTrait extends EssentialModifyTrait {
     }
   }
 
-  protected def deleteBuilder(): DeleteWhereStep = new DeleteBuilder
+  override protected def deleteBuilder(): DeleteWhereStep = new DeleteBuilder
 }
-
-
