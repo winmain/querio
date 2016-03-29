@@ -28,11 +28,16 @@ class TableListGenerator(tableNamePrefix: String, tablePkg: String, tableObjectN
         p ++ "object " ++ className
         p block {
           p ++ "val tables: Vector[AnyTable] = Vector[AnyTable]("
+          var notFirst = false
           tableObjectNames.foreach {tblObjectName =>
+            if (notFirst){
+              p ++ ", "
+            }
+            notFirst = true
             p.imp(tablePkg + "." + tblObjectName)
-            p ++ tblObjectName ++ ", "
+            p ++ tblObjectName
           }
-          p.del(2) ++ ")"
+          p ++ ")"
         }
       }
       p
