@@ -1,11 +1,9 @@
 package example
 
 import java.io.File
-import java.sql.DriverManager
-import java.util.Properties
 
 import querio.codegen.DatabaseGenerator
-import querio.db.{Mysql, OrmDb}
+import querio.db.PostgreSQL
 
 import scalax.file.Path
 
@@ -14,7 +12,8 @@ object ExampleGenerator {
     val connection = ConnectionFactory.newConnection()
 
     val dir = Path(new File(args(0)))
-    new DatabaseGenerator(Mysql,connection, "example",
+    println(s"Dir: $dir")
+    new DatabaseGenerator(PostgreSQL, connection, "example",
       pkg = "model.db.table",
       tableListClass = "model.db.Tables",
       dir = dir,

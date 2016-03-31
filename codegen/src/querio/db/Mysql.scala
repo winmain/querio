@@ -6,8 +6,9 @@ import org.apache.commons.lang3.StringUtils
 import querio.utils.SQLExceptionCode
 
 object Mysql extends OrmDbTrait {
+
   // Коды ошибок mysql (SQLException.getErrorCode)
-  object Error {
+  object Error extends ErrorMatcher {
     // Connection is closed
     val ConnectionClosed = SQLExceptionCode(0)
 
@@ -24,10 +25,12 @@ object Mysql extends OrmDbTrait {
     val ForeignKeyConstraintFails = SQLExceptionCode(1452)
   }
 
+  val errorMatcher = Error
+
   /**
-   * Метод позволяет сделать несколько попыток выполнения sql запроса, если при этом возникает ошибка
-   * Lock wait timeout exceeded.
-   */
+    * Метод позволяет сделать несколько попыток выполнения sql запроса, если при этом возникает ошибка
+    * Lock wait timeout exceeded.
+    */
   def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T = {
     val t0 = System.currentTimeMillis()
     var i = 0
@@ -75,7 +78,9 @@ object Mysql extends OrmDbTrait {
     "DAY_HOUR", "YEAR_MONTH")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
+
   override def escapeName(name: String): String = '`' + name + '`'
+
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
 }

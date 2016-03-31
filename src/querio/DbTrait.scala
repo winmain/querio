@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 import org.slf4j.{Logger, LoggerFactory}
-import querio.db.Mysql
+import querio.db.{Mysql, OrmDbTrait, PostgreSQL}
 
 import scala.util.Random
 
@@ -17,6 +17,8 @@ trait DbTrait {
   implicit def db: this.type = this
 
   @Nullable def transactionLog: Logger = null
+
+  val ormDbTrait: OrmDbTrait
 
   protected val currentTransaction: ThreadLocal[Option[TR]] = new ThreadLocal[Option[TR]] {
     override def initialValue(): Option[TR] = None
@@ -85,7 +87,7 @@ trait DbTrait {
             try {
               conn.rollback(savepoint)
             } catch {
-              case Mysql.Error.SavepointDoesNotExist(_) =>
+              case ormDbTrait.errorMatcher.SavepointDoesNotExist(_) =>
                 // Mysql имеет неприятную особенность терять сейвпоинты, поэтому здесь может быть
                 // ошибка с кодом 1305 MySQLSyntaxErrorException: SAVEPOINT ... does not exist
                 // В таком случае, перезапускаем транзакцию, как и с deadlock'ом
@@ -125,13 +127,15 @@ trait DbTrait {
           tr.querioAfterCommit()
           r
         } catch {
-          case Mysql.Error.ConnectionClosed(e) =>
+          // TODO: Здесь нужно матчить не тип ошибок, ошибки в разных бд имеют плавающие определения,
+          // TODO: а нужно проверять какое общее поведение необходиомо при разных ошибках.
+          case ormDbTrait.errorMatcher.ConnectionClosed(e) =>
             // Соединение с БД закрылось. Перезапустим всю транзакцию через случайный промежуток времени.
             log("connection closed")
             conn.close()
             restartTransaction("Connection closed", e)
 
-          case Mysql.Error.Deadlock(e) =>
+          case ormDbTrait.errorMatcher.Deadlock(e) =>
             // Случился transaction deadlock. Перезапустим всю транзакцию через случайный промежуток времени.
             log("deadlock")
             conn.rollback()
@@ -370,7 +374,7 @@ trait ModifyData {
 
 // ------------------------------- Default implementations -------------------------------
 
-abstract class BaseDb extends DbTrait {
+abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
   override type Q = DefaultQuery
   override type TR = DefaultTransaction
   override type DT = DefaultDataTr
@@ -385,6 +389,10 @@ abstract class BaseDb extends DbTrait {
     new DefaultDataTr(connection, isolationLevel, parent, md, logSql)
 }
 
-class DefaultDb(connectionFactory: => Connection) extends BaseDb {
+class DefaultSql(connectionFactory: => Connection) extends BaseDb(Mysql) {
+  override protected def getConnection: Connection = connectionFactory
+}
+
+class DefaultPostgres(connectionFactory: => Connection) extends BaseDb(PostgreSQL) {
   override protected def getConnection: Connection = connectionFactory
 }

@@ -21,7 +21,11 @@ import scala.collection.mutable
  * @tparam TR Bound [[TableRecord]] type
  * @tparam MTR Bound [[MutableTableRecord]] type
  */
-abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _fullTableName: String, val _tableName: String, @Nullable val _alias: String) extends ElTable[TR] {selfTable =>
+abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _fullTableName: String,
+                                                                       val _tableName: String,
+                                                                       @Nullable val _alias: String)
+  extends ElTable[TR] { selfTable =>
+
   type ThisField = this.Field[_, _]
 
   override def _fieldNum: Int = fields.length

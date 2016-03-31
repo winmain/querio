@@ -5,15 +5,16 @@ import java.io.File
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.wrapIterable
 import querio.codegen.patch.OrmPatches
-import querio.db.OrmDb
+import querio.db.OrmDbTrait
 
 import scala.collection.mutable
 import scala.io.Source
 import scalax.file.Path
 
 
-class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyNames: Vector[String],
-                     pkg: String, dir: Path, namePrefix: String = "", isDefaultDatabase: Boolean = false) {
+class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS],
+                     primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
+                     isDefaultDatabase: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
   val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
 
@@ -22,11 +23,13 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     gen.generate().saveToFile(filePath)
     gen
   }
+
   def generateToTempFile(): Generator = {
     val gen: Generator = new Generator(readSource(filePath))
     gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
     gen
   }
+
   def generateDoubleTest(): Unit = {
     val result1 = new Generator(readSource(filePath)).generate().getSource
     val result2 = new Generator(result1).generate().getSource
@@ -36,14 +39,14 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
 
   class Generator(source: String) {
-    val reader: TableReader = if (source == null) new TableReader(Nil)
+    val reader: TableReader = if (source == null) new TableReader(db,Nil)
     else {
       val original: List[String] = StringUtils.splitPreserveAllTokens(source, '\n').toList
       val patched: List[String] = OrmPatches.autoPatchChopVersion(original)
-      new TableReader(patched)
+      new TableReader(db,patched)
     }
 
-    val columns: Vector[Col] = columnsRs.map {crs =>
+    val columns: Vector[Col] = columnsRs.map { crs =>
       reader.userColumnsByColName.get(crs.name) match {
         case Some(uc) => UserCol(uc, crs)
         case None => NamedCol(crs)
@@ -63,14 +66,18 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
 
     trait Col {
       def rs: ColumnRS
+
       def varName: String
+
       def shortScalaType: String
 
       def objectField(p: SourcePrinter): Unit
+
       def classField(p: SourcePrinter): Unit
+
       def mutableClassField(p: SourcePrinter): Unit
 
-      def nameForDb: String = OrmDb.db.maybeEscapeName(rs.name)
+      def nameForDb: String = db.maybeEscapeName(rs.name)
 
       protected def withComment: String = rs.remarks match {
         case s if StringUtils.isEmpty(s) => ""
@@ -78,8 +85,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
       }
 
       /**
-       * ВАЖНО! Изменяя этот метод, нужно не забыть подправить регулярку TableReader.mutableFieldR
-       */
+        * ВАЖНО! Изменяя этот метод, нужно не забыть подправить регулярку TableReader.mutableFieldR
+        */
       protected def defaultMutableValue(shortScalaType: String): String = shortScalaType match {
         case s if s.startsWith("Option[") => "None"
         case s if s.startsWith("Set[") => "Set.empty"
@@ -89,8 +96,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Новый столбец, который полностью описываются сведениями из БД.
-     */
+      * Новый столбец, который полностью описываются сведениями из БД.
+      */
     case class NamedCol(rs: ColumnRS) extends Col {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
@@ -106,6 +113,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
         className.imp(p)
         p ++ s"""val $varName = new ${className.shortName}(TFD("$nameForDb", _.$varName, _.$varName, _.$varName = _$withComment))""" n()
       }
+
       def classField(p: SourcePrinter) {
         p ++ s"""val $varName: $shortScalaType"""
       }
@@ -116,13 +124,14 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Столбец, который уже описан юзером. Юзер может менять имя переменной для этого столбца, тип класса,
-     * и задавать дополнительные параметры для инициализации класса.
-     */
+      * Столбец, который уже описан юзером. Юзер может менять имя переменной для этого столбца, тип класса,
+      * и задавать дополнительные параметры для инициализации класса.
+      */
     case class UserCol(uc: TableReader#UserCol, rs: ColumnRS) extends Col {
       if (uc.scalaType == null) sys.error(s"Cannot find field ${table.cat}.${table.name}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
 
       def varName = uc.varName
+
       def shortScalaType: String = uc.scalaType
 
       def objectField(p: SourcePrinter) {
@@ -131,6 +140,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
         if (uc.scalaComment != null) p ++ uc.scalaComment
         p n()
       }
+
       def classField(p: SourcePrinter) {
         if (uc.isPrivate) p ++ s"""_$varName: $shortScalaType"""
         else p ++ s"""val $varName: $shortScalaType"""
@@ -147,8 +157,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Создать класс таблицы, наследующий Table с описанием полей
-     */
+      * Создать класс таблицы, наследующий Table с описанием полей
+      */
     def genTableClass(p: SourcePrinter) {
       p imp GeneratorConfig.importTable
       val fullTableName: String = if (isDefaultDatabase) table.name else table.cat + "." + table.name
@@ -162,7 +172,9 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
 
         p ++ "def _newRecordFromResultSet($rs: ResultSet, $i: Int): " ++ tableClassName ++ " = new " ++ tableClassName ++ "("
-        for (c <- columns) {p ++ c.varName ++ ".getTableValue($rs, $i), "}
+        for (c <- columns) {
+          p ++ c.varName ++ ".getTableValue($rs, $i), "
+        }
         p del 2
         p ++ ")" n()
 
@@ -171,8 +183,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Создать объект таблицы как главный экземпляр класса Table.
-     */
+      * Создать объект таблицы как главный экземпляр класса Table.
+      */
     def genObject(p: SourcePrinter): Unit = {
       p ++ reader.objectDefinition.getOrElse(s"""object $tableObjectName extends $tableTableName(null)""")
       if (reader.userObjectLines.nonEmpty) p block {
@@ -182,8 +194,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Создать неизменяемый класс таблицы
-     */
+      * Создать неизменяемый класс таблицы
+      */
     def genClass(p: SourcePrinter) {
       p imp GeneratorConfig.importJavaResultSet
       p imp GeneratorConfig.importTableRecord
@@ -193,7 +205,7 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
         val firstLine: String = s"class $tableClassName("
         val headerIndents = StringUtils.repeat(' ', firstLine.length)
         p ++ firstLine
-        columns.init.foreach {c => c.classField(p); p ++ ",\n" ++ headerIndents}
+        columns.init.foreach { c => c.classField(p); p ++ ",\n" ++ headerIndents }
         columns.last.classField(p)
         p ++ ") " ++ clsExtends
       }
@@ -213,8 +225,8 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
     }
 
     /**
-     * Создать изменяемый класс таблицы
-     */
+      * Создать изменяемый класс таблицы
+      */
     def genMutable(p: SourcePrinter) {
       p imp GeneratorConfig.importMutableTableRecord
       p imp GeneratorConfig.importSqlBuffer
@@ -233,7 +245,11 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
               p ++ tableObjectName ++ "." ++ c.varName ++ ".renderEscapedValue(" ++ c.varName ++ "); "
               p ++ "buf ++ \", \""
             }
-            if (primaryKeyNames.nonEmpty && primaryKeyNames.head == c.rs.name) {p ++ "if (withPrimaryKey) {"; renderRow(); p ++ "}"}
+            if (primaryKeyNames.nonEmpty && primaryKeyNames.head == c.rs.name) {
+              p ++ "if (withPrimaryKey) {";
+              renderRow();
+              p ++ "}"
+            }
             else renderRow()
             p ++ "; "
           }
@@ -276,8 +292,9 @@ class TableGenerator(table: TableRS, columnsRs: Vector[ColumnRS], primaryKeyName
         reader.afterMutableLines.foreach(p ++ _ n())
         p del 1
       }
-//      p saveToFile filePathOut
+      //      p saveToFile filePathOut
       p
     }
   }
+
 }
