@@ -7,6 +7,8 @@ import querio.utils.SQLExceptionCode
 
 object Mysql extends OrmDbTrait {
 
+  override val importPath: String = "querio.db.Mysql"
+
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error extends ErrorMatcher {
     // Connection is closed
