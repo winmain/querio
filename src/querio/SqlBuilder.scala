@@ -8,7 +8,7 @@ import querio.utils.{Pager, TypeEquality}
 
 // ------------------------------- Select traits -------------------------------
 
-trait SelectFromStep[R] extends SelectWhereStep[R] {
+trait SelectFromStep[R] extends SelectFinalStep[R] {
   def from(table: AnyTable): SelectJoinStep[R]
   def from(table: AnyTable, moreTables: AnyTable*): SelectJoinStep[R]
 }
