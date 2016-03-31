@@ -2,6 +2,7 @@ package querio
 import java.sql.{PreparedStatement, ResultSet}
 
 import org.scalatest.FlatSpec
+import querio.db.{Mysql, OrmDbTrait}
 
 class SelectTraitTest extends FlatSpec {
   class ElStub[T, V](renderFn: SqlBuffer => Any) extends El[T, V] {
@@ -15,14 +16,16 @@ class SelectTraitTest extends FlatSpec {
 
   // ------------------------------- Test table -------------------------------
 
-  class ArticleTable(alias: String) extends Table[Article, MutableArticle]("db.article", "article", alias) {
-    val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
-    val vis = new Boolean_TF(TFD("vis", _.vis, _.vis, _.vis = _))
-    val text = new String_TF(TFD("text", _.text, _.text, _.text = _))
+  class ArticleTable(alias: String) extends Table[Article, MutableArticle]("db.article", "article", "db", false, alias) {
+    val id = new Int_TF(TFD("id", false,_.id, _.id, _.id = _))
+    val vis = new Boolean_TF(TFD("vis", false, _.vis, _.vis, _.vis = _))
+    val text = new String_TF(TFD("text", false, _.text, _.text, _.text = _))
 
     override def _primaryKey: Option[Field[Int, Int]] = Some(id)
     override def _newMutableRecord: MutableArticle = new MutableArticle
     override def _newRecordFromResultSet(rs: ResultSet, index: Int): Article = ???
+
+    override val _ormDbTrait: OrmDbTrait = Mysql
   }
   object Article extends ArticleTable(null)
 

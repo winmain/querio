@@ -79,6 +79,8 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
 
       def nameForDb: String = db.maybeEscapeName(rs.name)
 
+      def escaped:Boolean = db.isReservedWord(rs.name)
+
       protected def withComment: String = rs.remarks match {
         case s if StringUtils.isEmpty(s) => ""
         case s => ", comment = \"" + GeneratorUtils.prepareComment(s) + "\""
@@ -111,7 +113,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       def objectField(p: SourcePrinter) {
         ft.scalaType.imp(p)
         className.imp(p)
-        p ++ s"""val $varName = new ${className.shortName}(TFD("$nameForDb", _.$varName, _.$varName, _.$varName = _$withComment))""" n()
+        p ++ s"""val $varName = new ${className.shortName}(TFD("$nameForDb", $escaped, _.$varName, _.$varName, _.$varName = _$withComment))""" n()
       }
 
       def classField(p: SourcePrinter) {
@@ -136,7 +138,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
 
       def objectField(p: SourcePrinter) {
         val varName = this.varName
-        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$nameForDb", _.$varName, _.$varName, _.$varName = _$withComment)${uc.otherParams}"""
+        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$nameForDb", $escaped, _.$varName, _.$varName, _.$varName = _$withComment)${uc.otherParams}"""
         if (uc.scalaComment != null) p ++ uc.scalaComment
         p n()
       }
@@ -160,13 +162,16 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
+      p imp db.importPath
       p imp GeneratorConfig.importTable
+      val escaped = db.isReservedWord(table.name)
       val fullTableName: String = if (isDefaultDatabase) table.name else table.cat + "." + table.name
-      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$fullTableName", "${table.name}", alias)""")
+      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$fullTableName", "${table.name}","${table.cat}", $escaped, alias)""")
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
+        p ++ "override val _ormDbTrait = " ++ db.getClass.getSimpleName n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()

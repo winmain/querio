@@ -6,6 +6,8 @@ import querio.utils._
 
 object PostgreSQL extends OrmDbTrait {
 
+  override val importPath: String = "querio.db.PostgreSQL"
+
   object Error extends ErrorMatcher {
     // Codes from http://www.postgresql.org/docs/9.1/static/errcodes-appendix.html
 
@@ -56,10 +58,10 @@ object PostgreSQL extends OrmDbTrait {
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
 
-  override def escapeName(name: String): String = '`' + name + '`'
+  override def escapeName(name: String): String = '\"' + name + '\"'
 
   override def unescapeName(escaped: String): String =
-    if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
+    if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
 
   override def getAllProcessList(connection: Connection): String = ???
 

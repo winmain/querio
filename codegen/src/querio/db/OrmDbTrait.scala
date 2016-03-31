@@ -3,6 +3,9 @@ package querio.db
 import java.sql.Connection
 
 trait OrmDbTrait {
+
+  val importPath:String
+
   val errorMatcher: ErrorMatcher
 
   def isReservedWord(word: String): Boolean
@@ -21,4 +24,5 @@ trait OrmDbTrait {
   def selectFoundRows: String
 
   def getAllProcessList(connection: Connection): String
+
 }
