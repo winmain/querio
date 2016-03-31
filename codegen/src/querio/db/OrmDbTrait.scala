@@ -1,16 +1,24 @@
 package querio.db
 
+import java.sql.Connection
+
 trait OrmDbTrait {
+  val errorMatcher: ErrorMatcher
+
   def isReservedWord(word: String): Boolean
+
   def escapeName(name: String): String
+
   def unescapeName(escaped: String): String
 
   def maybeEscapeName(name: String): String = if (isReservedWord(name)) escapeName(name) else name
-}
 
-object OrmDb {
-  private var _db: OrmDbTrait = null
+  def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T
 
-  def db: OrmDbTrait = if (_db == null) sys.error("You need to set database type by method OrmDb.set()") else _db
-  def set(ormDb: OrmDbTrait): Unit = _db = ormDb
+
+  def sqlCalcFoundRows: String
+
+  def selectFoundRows: String
+
+  def getAllProcessList(connection: Connection): String
 }

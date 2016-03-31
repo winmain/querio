@@ -4,12 +4,12 @@ import java.util.regex.Pattern
 
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.Splitted
-import querio.db.OrmDb
+import querio.db.OrmDbTrait
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class TableReader(lines: List[String]) {
+class TableReader(db: OrmDbTrait,lines: List[String]) {
 
   import TableReader._
 
@@ -107,7 +107,7 @@ class TableReader(lines: List[String]) {
     tableDefinition = makeDefinition(head)
     for (line <- classBody) line.trim match {
       case tableFieldR(varName, className, prependParams, escapedColName, otherParams, scalaComment) =>
-        val colName = OrmDb.db.unescapeName(escapedColName)
+        val colName = db.unescapeName(escapedColName)
         val uc = UserCol(varName.trim, colName, className.trim, prependParams, otherParams, scalaComment)
         userColumnsByColName(colName) = uc
         userColumnsByVarName(varName) = uc
