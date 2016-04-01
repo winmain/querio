@@ -185,7 +185,15 @@ class TableReader(db: OrmDbTrait,lines: List[String]) {
 object TableReader {
   val extendsR = """(?s).*\) *(extends .*) *\{""".r
 
-  val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *"[^"]+"\, *alias\).*""".r
+  val tableR = """(?xs)
+    class\ +([^\ \[]+Table) # param: name
+    \(alias:\ *String\)     # (alias: String)
+    \s+extends\ +Table      # extends Table
+    \[[^\]]+\]              # [TR, MTR]
+    \("[^"]+"\,             # (_fullTableName,
+    \ *"[^"]+"\,            # _tableName,
+    \ *alias\)              # alias)
+    .*""".r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
   val tableFieldR = """(?x)
     val\ +([^\ ]+)          # param: varName
@@ -209,7 +217,13 @@ object TableReader {
   val classR = """(?s)class +([^ \[\(]+).*(?:extends|with) +TableRecord.*""".r
   val classHeaderFieldR = """val +([^:]+): *(.+?)(?:,|\) +extends.*)""".r
   val classHeaderPrivateFieldR = """_([^:]+): *(.+?)(?:,|\) +extends.*)""".r
-  val classFieldR = """val +([^:]+): *(.+?) *= *[^ \.]+\.([^ \.]+)\.getValue\(rs\)""".r
+  val classFieldR = """(?x)
+    val\ +([^:]+)       # ignore val name
+    :\ *(.+?)           # param: scalaType
+    \ *=\ *[^\ \.]+\.
+    ([^\ \.]+)          # param: varName
+    \.getValue\(rs\)
+    """.r
   val classTableR = "def +_table *=.*".r
   val classPrimaryKeyR = """def +_primaryKey *: *Int *=.*""".r
   val classToMutableString = "def toMutable:"
