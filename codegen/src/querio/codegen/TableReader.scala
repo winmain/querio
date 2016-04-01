@@ -187,7 +187,18 @@ object TableReader {
 
   val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *"[^"]+"\, *alias\).*""".r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
-  val tableFieldR = """val +([^ ]+) *= *new +([^ (]+)(\([^)]+\)|) *\( *TFD *\( *"([^"]+)" *(?:,[^,]+){3}(?:, *comment *= *"[^"]*"|)\)(.*\).*)( *//.*|)$""".r
+  val tableFieldR = """(?x)
+    val\ +([^\ ]+)          # param: varName
+    \ *=\ *new\ +([^\ (]+)  # param: className
+    (\([^)]+\)|)            # param: prependParams
+    \ *\(\ *TFD\ *\(\ *     # (TFD(
+    "([^"]+)"               # param: escapedColName
+    \ *(?:,[^,]+){3}        # skip 3 parameters
+    (?:,\ *comment\ *=\ *"[^"]*"|)  # optional comment, not a parameter
+    \)                      # )
+    (.*\).*)                # param: otherParams, contains second closing bracket )
+    (\ *//.*|)              # param: scalaComment (optional)
+    $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
   val tablePrimaryKeyR = """def +_primaryKey[: =].*""".r
