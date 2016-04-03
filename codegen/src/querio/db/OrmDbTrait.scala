@@ -16,6 +16,8 @@ trait OrmDbTrait {
 
   def maybeEscapeName(name: String): String = if (isReservedWord(name)) escapeName(name) else name
 
+  def maybeUnescapeName(name: String): String = if (isReservedWord(name)) unescapeName(name) else name
+
   def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T
 
 

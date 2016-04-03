@@ -12,7 +12,7 @@ import scala.io.Source
 import scalax.file.Path
 
 
-class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS],
+class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
                      primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
                      isDefaultDatabase: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
@@ -39,14 +39,15 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
 
   class Generator(source: String) {
-    val reader: TableReader = if (source == null) new TableReader(db,Nil)
+    val ormPatches: OrmPatches = new OrmPatches(db)
+    val reader: TableReader = if (source == null) new TableReader(db, Nil)
     else {
       val original: List[String] = StringUtils.splitPreserveAllTokens(source, '\n').toList
-      val patched: List[String] = OrmPatches.autoPatchChopVersion(original)
-      new TableReader(db,patched)
+      val patched: List[String] = ormPatches.autoPatchChopVersion(original)
+      new TableReader(db, patched)
     }
 
-    val columns: Vector[Col] = columnsRs.map { crs =>
+    val columns: Vector[Col] = columnsRs.map {crs =>
       reader.userColumnsByColName.get(crs.name) match {
         case Some(uc) => UserCol(uc, crs)
         case None => NamedCol(crs)
@@ -77,13 +78,18 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
 
       def mutableClassField(p: SourcePrinter): Unit
 
-      def nameForDb: String = db.maybeEscapeName(rs.name)
+      def maybeUnescapeName: String = db.maybeUnescapeName(rs.name)
 
-      def escaped:Boolean = db.isReservedWord(rs.name)
+      def escaped: Boolean = db.isReservedWord(rs.name)
 
       protected def withComment: String = rs.remarks match {
         case s if StringUtils.isEmpty(s) => ""
         case s => ", comment = \"" + GeneratorUtils.prepareComment(s) + "\""
+      }
+
+      protected def escapedArg: String = {
+        val escapedArg = if (escaped) ", escaped=true" else ""
+        escapedArg
       }
 
       /**
@@ -113,7 +119,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       def objectField(p: SourcePrinter) {
         ft.scalaType.imp(p)
         className.imp(p)
-        p ++ s"""val $varName = new ${className.shortName}(TFD("$nameForDb", $escaped, _.$varName, _.$varName, _.$varName = _$withComment))""" n()
+        p ++ s"""val $varName = new ${className.shortName}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _$escapedArg$withComment))""" n()
       }
 
       def classField(p: SourcePrinter) {
@@ -138,7 +144,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
 
       def objectField(p: SourcePrinter) {
         val varName = this.varName
-        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$nameForDb", $escaped, _.$varName, _.$varName, _.$varName = _$withComment)${uc.otherParams}"""
+        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _$escapedArg$withComment)${uc.otherParams}"""
         if (uc.scalaComment != null) p ++ uc.scalaComment
         p n()
       }
@@ -165,13 +171,13 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       p imp db.importPath
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
-      val fullTableName: String = if (isDefaultDatabase) table.name else table.cat + "." + table.name
-      p ++ reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$fullTableName", "${table.name}","${table.cat}", $escaped, alias)""")
+      val needPrefix = !isDefaultDatabase
+      p ++ reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
-        p ++ "override val _ormDbTrait = " ++ db.getClass.getSimpleName n()
+        p ++ "override lazy val _ormDbTrait = " ++ dbTraitClassName n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
@@ -191,7 +197,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       * Создать объект таблицы как главный экземпляр класса Table.
       */
     def genObject(p: SourcePrinter): Unit = {
-      p ++ reader.objectDefinition.getOrElse(s"""object $tableObjectName extends $tableTableName(null)""")
+      p ++ reader.objectDefinition.getOrElse( s"""object $tableObjectName extends $tableTableName(null)""")
       if (reader.userObjectLines.nonEmpty) p block {
         p del 1
         printUserLines(p, reader.userObjectLines)
@@ -210,7 +216,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
         val firstLine: String = s"class $tableClassName("
         val headerIndents = StringUtils.repeat(' ', firstLine.length)
         p ++ firstLine
-        columns.init.foreach { c => c.classField(p); p ++ ",\n" ++ headerIndents }
+        columns.init.foreach {c => c.classField(p); p ++ ",\n" ++ headerIndents}
         columns.last.classField(p)
         p ++ ") " ++ clsExtends
       }
@@ -236,7 +242,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
       p imp GeneratorConfig.importMutableTableRecord
       p imp GeneratorConfig.importSqlBuffer
       p imp GeneratorConfig.importUpdateSetStep
-      p ++ reader.mutableDefinition.getOrElse(s"""class $tableMutableName extends MutableTableRecord[$tableClassName]""")
+      p ++ reader.mutableDefinition.getOrElse( s"""class $tableMutableName extends MutableTableRecord[$tableClassName]""")
       p block {
         columns.foreach(_.mutableClassField(p))
         p n()
@@ -280,7 +286,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
     def generate(): SourcePrinter = {
       val p = new SourcePrinter()
       p pkg pkg
-      p version OrmPatches.currentVersion
+      p version ormPatches.currentVersion
       reader.imports.foreach(p.imp)
       reader.preTableLines.foreach(p ++ _ n())
       genTableClass(p)
@@ -302,4 +308,7 @@ class TableGenerator(db: OrmDbTrait, table: TableRS, columnsRs: Vector[ColumnRS]
     }
   }
 
+  def dbTraitClassName: String = {
+    db.getClass.getSimpleName.replace("$", "")
+  }
 }

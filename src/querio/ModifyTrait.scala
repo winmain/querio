@@ -56,7 +56,7 @@ trait EssentialModifyTrait extends SqlQuery {
   }
 
   protected def printInsertInto(table: AnyTable, withPrimaryKey: Boolean): Unit = {
-    buf ++ "insert into " ++ table._fullTableName ++ " ("
+    buf ++ "insert into " ++ table._fullTableNameSql ++ " ("
     val maybePK = table._primaryKey
     val fields: Seq[AnyTable#ThisField] =
       if (withPrimaryKey || maybePK.isEmpty) table._fields
