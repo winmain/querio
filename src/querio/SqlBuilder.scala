@@ -339,7 +339,7 @@ protected class SqlBuilderTable[TR <: TableRecord](table: TrTable[TR])(implicit 
         table._primaryKey match {
           case Some(pk) =>
             val recordId = try pk.getTableValue(rs, 0) catch {case e: Exception => throw newRecordExc}
-            throw new RuntimeException("Cannot create orm object " + table._fullTableName + ":" + recordId, newRecordExc)
+            throw new RuntimeException("Cannot create orm object " + table._fullTableNameSql + ":" + recordId, newRecordExc)
           case None => throw newRecordExc
         }
     }

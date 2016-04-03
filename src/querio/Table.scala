@@ -15,20 +15,19 @@ import scala.collection.mutable
 /**
   * Database table description
   *
-  * @param _fullTableName Full table name optionally with database or schema. Used to make SQL queries. For table dbname.user it will be "dbname.user".
-  *                       When flag [[querio.codegen.TableGenerator#isDefaultDatabase]] is set database name not prefixed.
-  * @param _tableName     Short table name without database or schema. For table dbname.user it will be "user".
-  * @param _tableCat     First part of full table name.
-  * @param _escaped       Flag shows that escape symbols is required for table name.
-  * @param _alias         Table alias for SQL queries. For example, if alias equals "u2" then the query will be like "select * from dbname.user u2".
+  * @param _dbName       Database name.
+  * @param _name         Table name.
+  * @param _alias        Table alias for SQL queries. For example, if alias equals "u2" then the query will be like "select * from dbname.user u2".
+  * @param _needDbPrefix Flag shows that full table name is required. Example: for true full name is "_dbName._name", for false it's enough "_name"
+  * @param _escapeName   Flag shows that escape symbols is required for table name.
   * @tparam TR  Bound [[TableRecord]] type
   * @tparam MTR Bound [[MutableTableRecord]] type
   */
-abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _fullTableName: String,
-                                                                       val _tableName: String,
-                                                                       val _tableCat: String,
-                                                                       val _escaped: Boolean,
-                                                                       @Nullable val _alias: String)
+abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbName: String,
+                                                                       val _name: String,
+                                                                       @Nullable val _alias: String,
+                                                                       val _needDbPrefix: Boolean = false,
+                                                                       val _escapeName: Boolean = false)
   extends ElTable[TR] {
   selfTable =>
 
@@ -52,13 +51,18 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   private var fieldsBuilder = mutable.Buffer[ThisField]()
   private var fields: Vector[ThisField] = null
 
-  private val _fullTableNameSql: String = {
-    val tName = if (_escaped) {
-      _ormDbTrait.escapeName(_tableName)
+  val _fullTableNameSql: String = {
+    val prefix = if (_needDbPrefix) {
+      _dbName + "."
     } else {
-      _tableName
+      ""
     }
-    _tableCat + "." + tName
+    val postfix = if (_escapeName) {
+      _ormDbTrait.escapeName(_name)
+    } else {
+      _name
+    }
+    prefix + postfix
   }
 
   /*
@@ -162,13 +166,13 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   // =============================== TableField classes ===============================
 
   /** Table field data */
-  sealed case class TFD[V](name: String, escaped: Boolean, get: TR => V, getM: MTR => V, set: (MTR, V) => Unit, comment: String = null)
+  sealed case class TFD[V](name: String, get: TR => V, getM: MTR => V, set: (MTR, V) => Unit, escaped: Boolean = false, comment: String = null)
 
   abstract class Field[T, V](tfd: TFD[V]) extends querio.Field[T, V] {
     field =>
     def table: Table[TR, MTR] = selfTable
 
-    val name: String = if (_escaped) table._ormDbTrait.escapeName(tfd.name) else tfd.name
+    val name: String = if (tfd.escaped) table._ormDbTrait.escapeName(tfd.name) else tfd.name
     val comment: String = tfd.comment
 
     def commentOrName: String = if (comment != null) comment else fullName
@@ -207,7 +211,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
     /**
       * Создать option-вариант этого поля.
       */
-    def option = new Field[T, Option[V]](new TFD[Option[V]](name, false, null, null, null)) {
+    def option = new Field[T, Option[V]](new TFD[Option[V]](name, null, null, null)) {
       override protected def registerField: Int = field.index
 
       override def renderEscapedT(value: T)(implicit sql: SqlBuffer) = field.renderEscapedT(value)

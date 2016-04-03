@@ -16,10 +16,10 @@ class SelectTraitTest extends FlatSpec {
 
   // ------------------------------- Test table -------------------------------
 
-  class ArticleTable(alias: String) extends Table[Article, MutableArticle]("db.article", "article", "db", false, alias) {
-    val id = new Int_TF(TFD("id", false,_.id, _.id, _.id = _))
-    val vis = new Boolean_TF(TFD("vis", false, _.vis, _.vis, _.vis = _))
-    val text = new String_TF(TFD("text", false, _.text, _.text, _.text = _))
+  class ArticleTable(alias: String) extends Table[Article, MutableArticle]("db", "article", alias) {
+    val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
+    val vis = new Boolean_TF(TFD("vis", _.vis, _.vis, _.vis = _))
+    val text = new String_TF(TFD("text", _.text, _.text, _.text = _))
 
     override def _primaryKey: Option[Field[Int, Int]] = Some(id)
     override def _newMutableRecord: MutableArticle = new MutableArticle

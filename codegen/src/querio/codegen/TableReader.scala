@@ -13,7 +13,7 @@ class TableReader(db: OrmDbTrait,lines: List[String]) {
 
   import TableReader._
 
-  case class UserCol(varName: String, colName: String, className: String, prependParams: String, otherParams: String, scalaComment: String) {
+  case class UserCol(varName: String, colName: String, escapedFl:Boolean, className: String, prependParams: String, otherParams: String, scalaComment: String) {
     var scalaType: String = null
     var isPrivate: Boolean = false
   }
@@ -106,16 +106,17 @@ class TableReader(db: OrmDbTrait,lines: List[String]) {
   def readTable(head: String, classBody: List[String]) {
     tableDefinition = makeDefinition(head)
     for (line <- classBody) line.trim match {
-      case tableFieldR(varName, className, prependParams, escapedColName, otherParams, scalaComment) =>
+      case tableFieldR(varName, className, prependParams, escapedColName,escapedFlStr, otherParams, scalaComment) =>
         val colName = db.unescapeName(escapedColName)
-        val uc = UserCol(varName.trim, colName, className.trim, prependParams, otherParams, scalaComment)
+        val escapedFl = if (escapedFlStr.isEmpty) false else escapedFlStr.toBoolean
+        val uc = UserCol(varName.trim, colName, escapedFl,className.trim, prependParams, otherParams, scalaComment)
         userColumnsByColName(colName) = uc
         userColumnsByVarName(varName) = uc
 
       case tableNewRecordR(constructorParams) =>
         constructorVarNames = tableNewRecordGetValueR.findAllMatchIn(constructorParams).map(_.group(1)).toVector
 
-      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() | tableNewMutableRecordR() => ()
+      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() | tableNewMutableRecordR() | tableOrmDbTraitFieldR() => ()
       case s => userTableLines += line
     }
     userTableLines = userTableLines.dropWhile(StringUtils.isBlank)
@@ -185,11 +186,26 @@ class TableReader(db: OrmDbTrait,lines: List[String]) {
 object TableReader {
   val extendsR = """(?s).*\) *(extends .*) *\{""".r
 
-  val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *"[^"]+"\, *alias\).*""".r
+  val tableR = """(?s)class +([^ \[]+Table)\(alias: *String\)\s+extends +Table\[[^\]]+\]\("[^"]+"\, *"[^"]+"\, *alias\, *(?:true|false)\, *(?:true|false) *\).*""".r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
-  val tableFieldR = """val +([^ ]+) *= *new +([^ (]+)(\([^)]+\)|) *\( *TFD *\( *"([^"]+)" *(?:,[^,]+){3}(?:, *comment *= *"[^"]*"|)\)(.*\).*)( *//.*|)$""".r
+  val tableFieldR = """(?x)
+    val\ +([^\ ]+)                 # param: varName
+    \ *=\ *new\ +([^\ (]+)         # param: className
+    (\([^)]+\)|)                   # param: prependParams
+    \ *\(\ *TFD\ *\(\ *            # (TFD(
+    "([^"]+)"                      # param: escapedColName
+    \ *(?:,[^,]+){3}               # skip 3 parameters
+    (?:,\ *escaped\ *=\ *|,\ *|)   # prefix for escaped argument
+    (false|true|)                  # param: escapedFl
+    (?:,\ *comment\ *=\ *"[^"]*"|) # optional comment, not a parameter
+    \)                             # )
+    (.*\).*)                       # param: otherParams, contains second closing bracket )
+    (\ *//.*|)                     # param: scalaComment (optional)
+    $
+    $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
+  val tableOrmDbTraitFieldR = """override +lazy +val +_ormDbTrait *= *(?:\w|\_|\$)+ *""".r
   val tablePrimaryKeyR = """def +_primaryKey[: =].*""".r
   val tableNewMutableRecordR = """def +_newMutableRecord[: =].*""".r
   val tableNewRecordR = """def +_newRecordFromResultSet\([^)]+\):.*?new [^\(]+\((.*)\)""".r

@@ -1,14 +1,18 @@
 package querio.codegen.patch
 import java.io.File
 
+import querio.db.OrmDbTrait
+
 import scalax.file.Path
 
-object OrmPatches {
-  val currentVersion = 2
+class OrmPatches(val ormDbTrait: OrmDbTrait) {
+  val currentVersion = 3
+
 
   private def patch(lines: List[String], fromVersion: Int): List[String] = (fromVersion match {
     case 0 => OrmPatch0
     case 1 => OrmPatch1
+    case 2 => new OrmPatch2(ormDbTrait)
   }).patch(lines)
 
   // ------------------------------- Inner methods -------------------------------

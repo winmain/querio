@@ -47,7 +47,7 @@ class DatabaseGenerator(db: OrmDbTrait,
       while (columnsRS.next()) columnsBuilder += new ColumnRS(columnsRS)
       val columns = columnsBuilder.result()
 
-      val generator: TableGenerator = new TableGenerator(db, trs, columns, primaryKeyNames, pkg,
+      val generator: TableGenerator = new TableGenerator(db,catalog, trs, columns, primaryKeyNames, pkg,
         dir, tableNamePrefix, isDefaultDatabase)
       tableObjectNames += {
         val gen: TableGenerator#Generator =
