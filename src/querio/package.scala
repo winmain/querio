@@ -9,7 +9,4 @@ package object querio {
 
   type AnyScalaDbEnum = ScalaDbEnum[E] forSome {type E <: ScalaDbEnumCls[E]}
   type AnyScalaDbEnumCls = ScalaDbEnumCls[E] forSome {type E <: ScalaDbEnumCls[E]}
-
-//  type AnyDbEnum = DbEnum[E] forSome {type E <: DbEnumCls[E]}
-//  type AnyDbEnumCls = DbEnumCls[E] forSome {type E <: DbEnumCls[E]}
 }
