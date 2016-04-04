@@ -3,7 +3,7 @@ package model.db.table
 
 import java.sql.ResultSet
 
-import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+import querio._
 import querio.db.PostgreSQL
 
 class UserTable(alias: String) extends Table[User, MutableUser]("example", "user", alias, false, true) {
@@ -15,7 +15,7 @@ class UserTable(alias: String) extends Table[User, MutableUser]("example", "user
   val verbose = new OptionBoolean_TF(TFD("verbose", _.verbose, _.verbose, _.verbose = _, escaped=true))
   _fields_registered()
 
-  override lazy val _ormDbTrait = PostgreSQL
+  override lazy val _ormDbTrait = BaseDbGlobal.ormDbTrait
   override val _comment = "null"
   def _primaryKey = Some(id)
   def _newMutableRecord = new MutableUser()

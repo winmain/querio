@@ -12,7 +12,7 @@ class OrmPatches(val ormDbTrait: OrmDbTrait) {
   private def patch(lines: List[String], fromVersion: Int): List[String] = (fromVersion match {
     case 0 => OrmPatch0
     case 1 => OrmPatch1
-    case 2 => new OrmPatch2(ormDbTrait)
+    case 2 => OrmPatch2
   }).patch(lines)
 
   // ------------------------------- Inner methods -------------------------------

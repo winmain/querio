@@ -215,7 +215,7 @@ object TableReader {
     $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
-  val tableOrmDbTraitFieldR = """override +lazy +val +_ormDbTrait *= *(?:\w|\_|\$)+ *""".r
+  val tableOrmDbTraitFieldR = """override +lazy +val +_ormDbTrait *= *BaseDbGlobal\.ormDbTrait+ *""".r
   val tablePrimaryKeyR = """def +_primaryKey[: =].*""".r
   val tableNewMutableRecordR = """def +_newMutableRecord[: =].*""".r
   val tableNewRecordR = """def +_newRecordFromResultSet\([^)]+\):.*?new [^\(]+\((.*)\)""".r

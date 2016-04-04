@@ -3,6 +3,7 @@ package querio.db
 import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import org.apache.commons.lang3.StringUtils
+import querio.codegen.FieldType
 import querio.utils.SQLExceptionCode
 
 object Mysql extends OrmDbTrait {
@@ -85,4 +86,6 @@ object Mysql extends OrmDbTrait {
 
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
+
+  override val specificTypeParser: (Int, String) => Option[FieldType] = {(_, _) => None}
 }

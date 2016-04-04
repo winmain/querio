@@ -379,6 +379,8 @@ abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
   override type TR = DefaultTransaction
   override type DT = DefaultDataTr
 
+  BaseDbGlobal.ormDbTrait = ormDbTrait
+
   override protected def newQuery(conn: Conn): Q = new DefaultQuery(new DefaultSqlBuffer(conn))
   override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
   override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
@@ -387,6 +389,10 @@ abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
                                          parent: Option[Transaction], md: querio.ModifyData,
                                          logSql: Boolean): DT =
     new DefaultDataTr(connection, isolationLevel, parent, md, logSql)
+}
+
+object BaseDbGlobal {
+  var ormDbTrait: OrmDbTrait = null
 }
 
 class DefaultSql(connectionFactory: => Connection) extends BaseDb(Mysql) {

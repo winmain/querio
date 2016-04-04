@@ -2,6 +2,7 @@ package querio.db
 
 import java.sql.Connection
 
+import querio.codegen.FieldType
 import querio.utils._
 
 object PostgreSQL extends OrmDbTrait {
@@ -70,5 +71,7 @@ object PostgreSQL extends OrmDbTrait {
   override def selectFoundRows: String = ???
 
   override def sqlCalcFoundRows: String = ???
+
+  override val specificTypeParser: (Int, String) => Option[FieldType] = {(_, _) => None}
 }
 
