@@ -168,7 +168,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
-      p imp db.importPath
+      p imp "querio.BaseDbGlobal"
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
