@@ -109,7 +109,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     case class NamedCol(rs: ColumnRS) extends Col {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
-        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.specificTypeParser)
+        try GeneratorConfig.columnTypeClassNames(rs.dataType)
         catch {
           case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
         }

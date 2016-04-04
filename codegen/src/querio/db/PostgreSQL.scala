@@ -72,6 +72,5 @@ object PostgreSQL extends OrmDbTrait {
 
   override def sqlCalcFoundRows: String = ???
 
-  override val specificTypeParser: (Int, String) => Option[FieldType] = {(_, _) => None}
 }
 
