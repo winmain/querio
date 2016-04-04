@@ -109,7 +109,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     case class NamedCol(rs: ColumnRS) extends Col {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
-        try GeneratorConfig.columnTypeClassNames(rs.dataType)
+        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.specificTypeParser)
         catch {
           case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
         }
@@ -177,7 +177,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
-        p ++ "override lazy val _ormDbTrait = " ++ dbTraitClassName n()
+        p ++ "override lazy val _ormDbTrait = BaseDbGlobal.ormDbTrait" n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
@@ -306,9 +306,5 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       //      p saveToFile filePathOut
       p
     }
-  }
-
-  def dbTraitClassName: String = {
-    db.getClass.getSimpleName.replace("$", "")
   }
 }
