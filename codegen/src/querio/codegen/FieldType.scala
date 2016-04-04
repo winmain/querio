@@ -25,8 +25,7 @@ object FieldType {
   /**
     * Вернуть тип поля по типу столбца в БД.
     */
-  def columnTypeClassNames(colType: Int, collTypeName: String,
-                           specificTypeParser: (Int, String) => Option[FieldType]): FieldType = colType match {
+  def columnTypeClassNames(colType: Int): FieldType = colType match {
 
     case Types.BIT | Types.BOOLEAN | Types.TINYINT => boolean
     case Types.INTEGER | Types.SMALLINT => int
@@ -37,10 +36,6 @@ object FieldType {
     case Types.DOUBLE => double
     case Types.TIMESTAMP | Types.TIME => dateTime
     case Types.DATE => date
-    case Types.OTHER => specificTypeParser(colType, collTypeName) match {
-      case Some(x) => x
-      case None => sys.error(errStr + colType)
-    }
     case _ => sys.error(errStr + colType)
   }
 }

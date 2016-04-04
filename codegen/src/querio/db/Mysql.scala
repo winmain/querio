@@ -87,5 +87,4 @@ object Mysql extends OrmDbTrait {
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
 
-  override val specificTypeParser: (Int, String) => Option[FieldType] = {(_, _) => None}
 }
