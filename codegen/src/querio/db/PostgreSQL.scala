@@ -7,8 +7,6 @@ import querio.utils._
 
 object PostgreSQL extends OrmDbTrait {
 
-  override val importPath: String = "querio.db.PostgreSQL"
-
   object Error extends ErrorMatcher {
     // Codes from http://www.postgresql.org/docs/9.1/static/errcodes-appendix.html
 

@@ -5,8 +5,6 @@ import java.sql.Connection
 
 trait OrmDbTrait {
 
-  val importPath: String
-
   val errorMatcher: ErrorMatcher
 
   def isReservedWord(word: String): Boolean
