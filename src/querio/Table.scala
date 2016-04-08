@@ -238,10 +238,10 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
       override protected def registerField: Int = field.index
       override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
       override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
-      override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index).get
+      override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
       override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, Option(value))
 
-      override def fromString(s: String): V = field.fromString(s).get
+      override def fromString(s: String): V = field.fromString(s).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
       override protected def fromStringSimple(s: String): T = field.fromStringSimple(s)
       override protected def fromStringNotNull(s: String): V = field.fromStringNotNull(s).get
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
