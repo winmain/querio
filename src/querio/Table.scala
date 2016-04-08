@@ -164,7 +164,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
     }
 
     /**
-     * Создать option-вариант этого поля.
+     * Optionize field. Make option-variant of this field.
      */
     def option = new Field[T, Option[V]](new TFD[Option[V]](name, null, null, null)) {
       override protected def registerField: Int = field.index
@@ -214,7 +214,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
   }
   abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T] with SimpleFieldSetClause[T]
 
-  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {
+  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {field =>
     def :=(value: T): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit sql: SqlBuffer): Unit = if (value == null) sql.renderNull else renderEscapedT(value)
     }
@@ -229,6 +229,22 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _full
         case Some(v) => renderEscapedT(v)
         case None => sql.renderNull
       }
+    }
+
+    /**
+      * De-option field. Make Non-option variant of this field, ex. Option[V] => V
+      */
+    def flat = new Field[T, V](new TFD[V](name, null, null, null)) {
+      override protected def registerField: Int = field.index
+      override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index).get
+      override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, Option(value))
+
+      override def fromString(s: String): V = field.fromString(s).get
+      override protected def fromStringSimple(s: String): T = field.fromStringSimple(s)
+      override protected def fromStringNotNull(s: String): V = field.fromStringNotNull(s).get
+      override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
     }
   }
   abstract class OptionCovariantTableField[T, V <: T](tfd: TFD[Option[V]]) extends BaseOptionTableField[T, V](tfd) with querio.OptionCovariantField[T, V]
