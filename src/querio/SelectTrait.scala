@@ -1,15 +1,9 @@
 package querio
 
 trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {
-  def select[TR <: TableRecord](table: TrTable[TR]): SelectFromStep[TR]
-  = { buf ++ "select "; _tableFields(table) }
-
   def selectFrom[TR <: TableRecord](table: TrTable[TR]): SelectJoinStep[TR] = select(table).from(table)
 
-  def select[CR <: CompositeRecord](compositeTable: CompositeTable[CR]): SelectFromStep[CR]
-  = { buf ++ "select "; _compositeFields(compositeTable) }
-
-  def select[V1](field1: El[_, V1]): SelectFromStep[V1]
+  def select[V1](field1: ElTable[V1]): SelectFromStep[V1]
   = { buf ++ "select "; _fields(field1) }
 
   def select[R, V1](fn: (V1) => R, field1: El[_, V1]): SelectFromStep[R]
@@ -29,13 +23,7 @@ trait SelectFlagStep extends SqlQuery {self: SelectFlagOfStep =>
 
 
 trait SelectFlagOfStep extends SqlQuery with SelectFlagOfStepGenerated with SelectFlagStep with SelectSqlUtils {
-  def of[TR <: TableRecord](table: TrTable[TR]): SelectFromStep[TR]
-  = { buf ++ " "; _tableFields(table) }
-
-  def of[CR <: CompositeRecord](compositeTable: CompositeTable[CR]): SelectFromStep[CR]
-  = { buf ++ " "; _compositeFields(compositeTable) }
-
-  def of[V1](field1: El[_, V1]): SelectFromStep[V1]
+  def of[V1](field1: ElTable[V1]): SelectFromStep[V1]
   = { buf ++ " "; _fields(field1) }
 }
 
@@ -49,26 +37,8 @@ trait QuickSelectTrait extends SqlQuery with SelectTrait {
 
 
 protected trait SelectSqlUtils extends SqlQuery {
-  protected def _tableFields[TR <: TableRecord](table: TrTable[TR]): SelectFromStep[TR] = {
-    var first = true
-    table._fields.foreach { f =>
-      if (first) first = false else buf ++ ", "
-      f.render
-    }
-    new SqlBuilderTable[TR](table)
-  }
-
-  protected def _compositeFields[CR <: CompositeRecord](table: CompositeTable[CR]): SelectFromStep[CR] = {
-    var first = true
-    table.fields.foreach { f =>
-      if (first) first = false else buf ++ ", "
-      f._renderFields
-    }
-    new SqlBuilderComposite[CR](table)
-  }
-
-  protected def _fields[V1](field1: El[_, V1]): SelectFromStep[V1] = {
-    field1.render
+  protected def _fields[V1](field1: ElTable[V1]): SelectFromStep[V1] = {
+    field1._renderFields
     new SqlBuilder1[V1](field1)
   }
 }

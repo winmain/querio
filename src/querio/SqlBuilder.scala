@@ -252,13 +252,13 @@ abstract class SqlBuilder[R]
 
   override def fetchOne(): Option[R] = {
     limit(1)
-    executeQuery(rs => if (rs.next()) Some(recordFromResultSet(rs)) else None)
+    executeQuery(rs => if (rs.next()) Some(wrappedRecordFromResultSet(rs)) else None)
   }
 
   override def fetchExists(): Boolean = executeQuery(rs => rs.next())
 
   override def fetchCallback(handler: R => Unit, fetchSize: Int = 10): Unit = executeQuery({rs =>
-    while (rs.next()) handler(recordFromResultSet(rs))
+    while (rs.next()) handler(wrappedRecordFromResultSet(rs))
   }, st => st.setFetchSize(fetchSize))
 
   override def fetchLazy(body: Iterator[R] => Unit, fetchSize: Int = 10): Unit =
@@ -290,7 +290,7 @@ abstract class SqlBuilder[R]
 
   private def vectorFromRs(rs: ResultSet): Vector[R] = {
     val builder = Vector.newBuilder[R]
-    while (rs.next()) builder += recordFromResultSet(rs)
+    while (rs.next()) builder += wrappedRecordFromResultSet(rs)
     builder.result()
   }
 
@@ -316,7 +316,7 @@ abstract class SqlBuilder[R]
     private def checkLoadNext() {
       if (!_nextLoaded && _hasNext) {
         _hasNext = rs.next()
-        _next = if (_hasNext) recordFromResultSet(rs) else null.asInstanceOf[R]
+        _next = if (_hasNext) wrappedRecordFromResultSet(rs) else null.asInstanceOf[R]
         _nextLoaded = true
       }
     }
@@ -325,33 +325,34 @@ abstract class SqlBuilder[R]
     def next(): R = { checkLoadNext(); _nextLoaded = false; _next }
   }
 
+  protected def wrappedRecordFromResultSet(rs: ResultSet): R = {
+    try recordFromResultSet(rs)
+    catch {
+      case e: Exception => onErrorCreatingResultSet(rs, e)
+    }
+  }
+
+  protected def onErrorCreatingResultSet(rs: ResultSet, e: Exception) = throw e
+
   // ------------------------------- Abstract methods -------------------------------
 
   protected def recordFromResultSet(rs: ResultSet): R
 }
 
-protected class SqlBuilderTable[TR <: TableRecord](table: TrTable[TR])(implicit val buf: SqlBuffer) extends SqlBuilder[TR] {
-  protected def recordFromResultSet(rs: ResultSet): TR = {
-    try {
-      table._newRecordFromResultSet(rs, 0)
-    } catch {
-      case newRecordExc: Exception =>
+protected class SqlBuilder1[V1](f1: ElTable[V1])(implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
+  override protected def recordFromResultSet(rs: ResultSet): V1 = f1._getValue(rs, 1)
+  override protected def onErrorCreatingResultSet(rs: ResultSet, e: Exception): Nothing = {
+    f1 match {
+      case table: TrTable[V1] =>
         table._primaryKey match {
           case Some(pk) =>
-            val recordId = try pk.getTableValue(rs, 0) catch {case e: Exception => throw newRecordExc}
-            throw new RuntimeException("Cannot create orm object " + table._fullTableName + ":" + recordId, newRecordExc)
-          case None => throw newRecordExc
+            val recordId = try pk.getTableValue(rs, 0) catch {case e: Exception => throw e}
+            throw new RuntimeException("Cannot create orm object " + table._fullTableName + ":" + recordId, e)
+          case None => throw e
         }
+      case _ => throw e
     }
   }
-}
-
-protected class SqlBuilderComposite[CR <: CompositeRecord](table: CompositeTable[CR])(implicit val buf: SqlBuffer) extends SqlBuilder[CR] {
-  protected def recordFromResultSet(rs: ResultSet): CR = table.newRecord(rs)
-}
-
-protected class SqlBuilder1[V1](f1: El[_, V1])(implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
-  protected def recordFromResultSet(rs: ResultSet): V1 = f1.getValue(rs, 1)
 }
 
 protected class SqlBuilderCase1[R, V1](fn: (V1) => R, f1: El[_, V1])(implicit val buf: SqlBuffer) extends SqlBuilder[R] {
