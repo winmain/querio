@@ -10,6 +10,7 @@ object JSON4SFieldTypeExtension extends FieldTypeExtension {
   override def recognize(colType: Int, typeName: String): Option[FieldType] = {
     (colType, typeName) match {
       case (1111, "jsonb") => Some(pgJsonb)
+      case (1111, "json") => Some(pgJson)
       case _ => None
     }
   }
