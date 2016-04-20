@@ -4,6 +4,8 @@ import java.sql.ResultSet
 import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 
+import querio.utils.IterableTools.wrapIterable
+
 import scala.collection.mutable
 
 
@@ -25,9 +27,7 @@ class InitCompositeContext extends CompositeContext {
   }
 }
 
-class ReadRecordCompositeContext(rs: ResultSet) extends CompositeContext {
-  private var idx = 1
-
+class ReadRecordCompositeContext(rs: ResultSet, private var idx: Int) extends CompositeContext {
   def getValue[@specialized(Int, Long, Float, Double, Boolean) V](el: ElTable[V], initDefault: V): V = {
     val v: V = el._getValue(rs, idx)
     idx += el._fieldNum
@@ -41,12 +41,15 @@ class ReadRecordCompositeContext(rs: ResultSet) extends CompositeContext {
 }
 
 
-class CompositeTable[CR <: CompositeRecord](val fields: Vector[ElTable[_]], factory: CompositeContext => CR) {
-  def newRecord(rs: ResultSet): CR = factory(new ReadRecordCompositeContext(rs))
+class CompositeTable[CR](val fields: Vector[ElTable[_]], factory: CompositeContext => CR) extends ElTable[CR] {
+  override val _fieldNum: Int = fields.foldLeft(0)(_ + _._fieldNum)
+  override def _getValue(rs: ResultSet, index: Int): CR = factory(new ReadRecordCompositeContext(rs, index))
+  override def _getValueOpt(rs: ResultSet, index: Int): Option[CR] = Some(_getValue(rs, index)) // Assume that we always have record
+  override def _renderFields(implicit buf: SqlBuffer): Unit = fields._foreachWithSep(_._renderFields, buf ++ ", ")
 }
 
 object CompositeTable {
-  def apply[CR <: CompositeRecord](factory: CompositeContext => CR): CompositeTable[CR] = {
+  def apply[CR](factory: CompositeContext => CR): CompositeTable[CR] = {
     val context = new InitCompositeContext
     factory(context)
     new CompositeTable(context.fields.toVector, factory)
@@ -79,13 +82,13 @@ class CompositeRecord(protected val compositeContext: CompositeContext) {
 /*
 Example usage:
 
-class Row(compositeContext: CompositeContext) extends CompositeRecord(compositeContext) {
+class Row(cc: CompositeContext) extends CompositeRecord(cc) {
   val userId: Int = User.id
   val accountId: Int = User.accountId
   val balance: Ruble = Ruble(Account.balance)
   val company: Option[String] = User.company
 }
-private val row = CompositeTable(new Row(_))
+private val Row = CompositeTable(new Row(_))
 
-Db.query(_ select row ...)
+Db.query(_ select Row ...)
  */

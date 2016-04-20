@@ -7,7 +7,7 @@ object ProjectBuild extends sbt.Build {
 
   val commonSettings = Seq(
     organization := "com.github.winmain",
-    version := "0.4.3-SNAPSHOT",
+    version := "0.4.4-SNAPSHOT",
     publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else None),
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
@@ -36,7 +36,7 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0" % "optional"
   )
 
-  val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(
+  val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(
     name := "querio-codegen"
   )
 
@@ -74,5 +74,5 @@ object ProjectBuild extends sbt.Build {
   lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
     name := "querio",
     genQuerioLibSourcesTask
-  ).dependsOn(codegen).aggregate(codegen)
+  ).dependsOn(querioCodegen).aggregate(querioCodegen)
 }

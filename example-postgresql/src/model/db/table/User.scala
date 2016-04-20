@@ -3,8 +3,10 @@ package model.db.table
 
 import java.sql.ResultSet
 
+import model.db.Db
 import org.json4s.JsonAST.JValue
 import querio._
+import querio.db.OrmDbTrait
 import querio.json.JSON4SJsonFields
 
 class UserTable(alias: String) extends Table[User, MutableUser]("example", "user", alias, false, true) with JSON4SJsonFields[User, MutableUser] {
@@ -18,11 +20,12 @@ class UserTable(alias: String) extends Table[User, MutableUser]("example", "user
   val js = new Json_PG_J4S_TF(TFD("js", _.js, _.js, _.js = _))
   _fields_registered()
 
-  override lazy val _ormDbTrait = BaseDbGlobal.ormDbTrait
+
   override val _comment = "null"
   def _primaryKey = Some(id)
   def _newMutableRecord = new MutableUser()
   def _newRecordFromResultSet($rs: ResultSet, $i: Int): User = new User(id.getTableValue($rs, $i), email.getTableValue($rs, $i), passwordHash.getTableValue($rs, $i), active.getTableValue($rs, $i), rating.getTableValue($rs, $i), verbose.getTableValue($rs, $i), jsB.getTableValue($rs, $i), js.getTableValue($rs, $i))
+  override def _ormDbTrait: OrmDbTrait = Db.ormDbTrait
 }
 object User extends UserTable(null)
 

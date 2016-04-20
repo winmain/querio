@@ -9,7 +9,7 @@ import querio.db.OrmDbTrait
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class TableReader(db: OrmDbTrait,lines: List[String]) {
+class TableReader(db: OrmDbTrait, lines: List[String]) {
 
   import TableReader._
 
@@ -130,6 +130,7 @@ class TableReader(db: OrmDbTrait,lines: List[String]) {
 
   // read class
   def readClass(head: String, classBody: List[String]) {
+    require(constructorVarNames != null, "constructorVarNames is null for " + head)
     classExtends = head match {
       case extendsR(ext) => Some(ext)
       case _ => None
@@ -213,7 +214,7 @@ object TableReader {
     $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
-  val tableOrmDbTraitFieldR = """override +lazy +val +_ormDbTrait *= *BaseDbGlobal\.ormDbTrait+ *""".r
+  val tableOrmDbTraitFieldR = """def +_ormDbTrait *=.*""".r
   val tablePrimaryKeyR = """def +_primaryKey[: =].*""".r
   val tableNewMutableRecordR = """def +_newMutableRecord[: =].*""".r
   val tableNewRecordR = """def +_newRecordFromResultSet\([^)]+\):.*?new [^\(]+\((.*)\)""".r

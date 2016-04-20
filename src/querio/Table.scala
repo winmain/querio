@@ -32,8 +32,6 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
   type ThisField = this.Field[_, _]
 
-  val _ormDbTrait: OrmDbTrait
-
   override def _fieldNum: Int = fields.length
 
   // Т.к., внутренний index считается с 1, то эту 1 следует вычесть
@@ -50,19 +48,17 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   private var fieldsBuilder = mutable.Buffer[ThisField]()
   private var fields: Vector[ThisField] = null
 
+  def _ormDbTrait: OrmDbTrait
+
+  /** Table name for sql queries */
   val _fullTableNameSql: String = {
-    val prefix = if (_needDbPrefix) {
-      _dbName + "."
-    } else {
-      ""
-    }
-    val postfix = if (_escapeName) {
-      _ormDbTrait.escapeName(_name)
-    } else {
-      _name
-    }
+    val prefix = if (_needDbPrefix) _dbName + "." else ""
+    val postfix = if (_escapeName) _ormDbTrait.escapeName(_name) else _name
     prefix + postfix
   }
+
+  /** Human-readable table name with optional DB prefix */
+  def _fullTableName: String = if (_needDbPrefix) _dbName + '.' + _name else _name
 
   /*
     Example usage for _aliasName, _defName in SQL query:
@@ -194,7 +190,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
     }
 
     /**
-      * Создать option-вариант этого поля.
+      * Optionize field. Make option-variant of this field.
       */
     def option = new Field[T, Option[V]](new TFD[Option[V]](name, null, null, null)) {
       override protected def registerField: Int = field.index
@@ -244,7 +240,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   }
   abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T] with SimpleFieldSetClause[T]
 
-  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {
+  abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {field =>
     def :=(value: T): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit sql: SqlBuffer): Unit = if (value == null) sql.renderNull else renderEscapedT(value)
     }
@@ -259,6 +255,22 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
         case Some(v) => renderEscapedT(v)
         case None => sql.renderNull
       }
+    }
+
+    /**
+      * De-option field. Make Non-option variant of this field, ex. Option[V] => V
+      */
+    def flat = new Field[T, V](new TFD[V](name, null, null, null)) {
+      override protected def registerField: Int = field.index
+      override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
+      override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, Option(value))
+
+      override def fromString(s: String): V = field.fromString(s).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
+      override protected def fromStringSimple(s: String): T = field.fromStringSimple(s)
+      override protected def fromStringNotNull(s: String): V = field.fromStringNotNull(s).get
+      override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
     }
   }
   abstract class OptionCovariantTableField[T, V <: T](tfd: TFD[Option[V]]) extends BaseOptionTableField[T, V](tfd) with querio.OptionCovariantField[T, V]
