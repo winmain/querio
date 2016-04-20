@@ -1,4 +1,5 @@
 package querio
+import querio.db.OrmDbTrait
 
 
 trait DeleteWhereStep {
@@ -15,7 +16,7 @@ trait DeleteFinalStep extends SqlQuery {
 }
 
 
-protected class DeleteBuilder(implicit val buf: SqlBuffer)
+protected class DeleteBuilder(implicit val ormDbTrait:OrmDbTrait,implicit val buf: SqlBuffer)
   extends DeleteWhereStep with DeleteConditionStep {
 
   override def &&(cond: Condition): this.type = { buf ++ " and (" ++ cond ++ ")"; this }

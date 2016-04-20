@@ -1,4 +1,5 @@
 package querio
+import querio.db.OrmDbTrait
 
 // ------------------------------- Update traits -------------------------------
 
@@ -19,7 +20,7 @@ trait UpdateFinalStep extends SqlQuery {
   def execute(): Unit
 }
 
-class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
+class UpdateBuilder(table: AnyTable, id: Int)(implicit val ormDbTrait:OrmDbTrait,implicit val buf: SqlBuffer)
   extends UpdateSetStep with UpdateSetNextStep {
 
   private var firstSet = true

@@ -1,22 +1,25 @@
 package querio
+import querio.db.OrmDbTrait
 
 trait SqlQuery {
   implicit def buf: SqlBuffer
 
   override def toString: String = buf.toString
+
+  implicit def ormDbTrait:OrmDbTrait
 }
 
 trait QueryTrait extends SqlQuery
 with SelectTrait with ModifyTrait with QuickSelectTrait with SqlMiscTrait
 
 
-class DefaultQuery(val buf: SqlBuffer) extends QueryTrait
+class DefaultQuery(val ormDbTrait:OrmDbTrait,val buf: SqlBuffer) extends QueryTrait
 
 
 /**
  * Специальный query для создания внутренних select'ов
  */
-class InnerQuery extends QueryTrait {
+class InnerQuery(val ormDbTrait:OrmDbTrait) extends QueryTrait {
   val buf: SqlBuffer = new SqlBuffer {
     override def conn: Conn = throw new UnsupportedOperationException("Inner query cannot execute sql")
   }

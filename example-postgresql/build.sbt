@@ -26,6 +26,7 @@ lazy val example_postgresql = (project in file(".")).settings(
 //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
   libraryDependencies += querio,
   libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
+  libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
 
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
   scalaSource in Compile := baseDirectory.value / "src",

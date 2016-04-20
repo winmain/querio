@@ -1,4 +1,5 @@
 package querio
+import querio.db.OrmDbTrait
 
 trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {
   def select[TR <: TableRecord](table: TrTable[TR]): SelectFromStep[TR]
@@ -73,4 +74,4 @@ protected trait SelectSqlUtils extends SqlQuery {
   }
 }
 
-class SelectBuilder(implicit val buf: SqlBuffer) extends SelectFlagStep with SelectFlagOfStep
+class SelectBuilder(implicit val ormDbTrait:OrmDbTrait, implicit val buf: SqlBuffer) extends SelectFlagStep with SelectFlagOfStep

@@ -50,7 +50,7 @@ class DatabaseGenerator(db: OrmDbTrait,
       val generator: TableGenerator = new TableGenerator(db,catalog, trs, columns, primaryKeyNames, pkg,
         dir, tableNamePrefix, isDefaultDatabase)
       tableObjectNames += {
-        val gen: TableGenerator#Generator =
+        val gen: TableGenerator#TableGenerator =
           if (toTempFile) generator.generateToTempFile()
           else generator.generateToFile()
         gen.tableObjectName

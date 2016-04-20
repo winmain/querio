@@ -2,7 +2,7 @@ package querio
 
 import java.sql.{ResultSet, Statement}
 
-import querio.db.Mysql
+import querio.db.OrmDbTrait
 import querio.utils.IterableTools.wrapIterable
 import querio.utils.{Pager, TypeEquality}
 
@@ -79,7 +79,7 @@ trait SelectLimitStep[R] extends SelectFinalStep[R] {
 }
 
 trait SelectFinalCommonStep[R] extends Select[R] {
-  def printSql(): this.type = { println(toString); this }
+  def printSql(): this.type = {println(toString); this}
 
   def execute(): Int
   def fetch(): Vector[R]
@@ -125,13 +125,13 @@ class RawCondition(string: String) extends Condition {
 }
 
 class AndCondition(c1: Condition, c2: Condition) extends Condition {
-  override def renderCond(buf: SqlBuffer) { buf ++ "("; renderAnd(buf); buf ++ ")" }
-  override def renderAnd(buf: SqlBuffer) { c1.renderAnd(buf); buf ++ " and "; c2.renderAnd(buf) }
+  override def renderCond(buf: SqlBuffer) {buf ++ "("; renderAnd(buf); buf ++ ")"}
+  override def renderAnd(buf: SqlBuffer) {c1.renderAnd(buf); buf ++ " and "; c2.renderAnd(buf)}
 }
 
 class OrCondition(c1: Condition, c2: Condition) extends Condition {
-  override def renderCond(buf: SqlBuffer) { buf ++ "("; renderOr(buf); buf ++ ")" }
-  override def renderOr(buf: SqlBuffer) { c1.renderOr(buf); buf ++ " or "; c2.renderOr(buf) }
+  override def renderCond(buf: SqlBuffer) {buf ++ "("; renderOr(buf); buf ++ ")"}
+  override def renderOr(buf: SqlBuffer) {c1.renderOr(buf); buf ++ " or "; c2.renderOr(buf)}
 }
 
 object Condition {
@@ -157,80 +157,80 @@ object EmptyCondition extends Condition {
 
 abstract class SqlBuilder[R]
   extends SelectFromStep[R] with SelectConditionStep[R] with SelectJoinStep[R]
-  with SelectOnStep[R] with SelectOnConditionStep[R] with SelectHavingConditionStep[R] {
+    with SelectOnStep[R] with SelectOnConditionStep[R] with SelectHavingConditionStep[R] {
 
   override def &&(cond: Condition): this.type = if (cond == EmptyCondition) this else {buf ++ " and "; cond.renderAnd(buf); this}
   override def ||(cond: Condition): this.type = if (cond == EmptyCondition) this else {buf ++ " or "; cond.renderOr(buf); this}
 
   override def from(table: AnyTable): this.type
-  = { buf ++ "\nfrom " ++ table._defName; this }
+  = {buf ++ "\nfrom " ++ table._defName; this}
 
   override def from(table: AnyTable, moreTables: AnyTable*): this.type
-  = { buf ++ "\nfrom " ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); this }
+  = {buf ++ "\nfrom " ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); this}
 
   override def join(table: AnyTable): this.type
-  = { buf ++ "\ninner join " ++ table._defName; this }
+  = {buf ++ "\ninner join " ++ table._defName; this}
 
   override def leftJoin(table: AnyTable): this.type
-  = { buf ++ "\nleft outer join " ++ table._defName; this }
+  = {buf ++ "\nleft outer join " ++ table._defName; this}
   override def leftJoin(table: AnyTable, moreTables: AnyTable*): SelectOnStep[R]
-  = { buf ++ "\nleft outer join (" ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); buf ++ ")"; this }
+  = {buf ++ "\nleft outer join (" ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); buf ++ ")"; this}
 
   override def crossJoin(table: AnyTable): this.type
-  = { buf ++ "\ncross join " ++ table._defName; this }
+  = {buf ++ "\ncross join " ++ table._defName; this}
 
   override def rightJoin(table: AnyTable): this.type
-  = { buf ++ "\nright outer join " ++ table._defName; this }
+  = {buf ++ "\nright outer join " ++ table._defName; this}
   override def rightJoin(table: AnyTable, moreTables: AnyTable*): SelectOnStep[R]
-  = { buf ++ "\nright outer join (" ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); buf ++ ")"; this }
+  = {buf ++ "\nright outer join (" ++ table._defName; moreTables.foreach(t => buf ++ ", " ++ t._defName); buf ++ ")"; this}
 
   override def fullJoin(table: AnyTable): this.type
-  = { buf ++ "\nfull outer join " ++ table._defName; this }
+  = {buf ++ "\nfull outer join " ++ table._defName; this}
 
   override def naturalJoin(table: AnyTable): this.type
-  = { buf ++ "\nnatural join " ++ table._defName; this }
+  = {buf ++ "\nnatural join " ++ table._defName; this}
 
   override def naturalLeftJoin(table: AnyTable): this.type
-  = { buf ++ "\nnatural left join " ++ table._defName; this }
+  = {buf ++ "\nnatural left join " ++ table._defName; this}
 
   override def naturalRightJoin(table: AnyTable): this.type
-  = { buf ++ "\nnatural right join " ++ table._defName; this }
+  = {buf ++ "\nnatural right join " ++ table._defName; this}
 
   override def on(cond: Condition): this.type
-  = { buf ++ " on " ++ cond; this }
+  = {buf ++ " on " ++ cond; this}
 
   override def where(cond: Condition): this.type
-  = { if (cond != EmptyCondition) {buf ++ "\nwhere (" ++ cond ++ ")"}; this }
+  = {if (cond != EmptyCondition) {buf ++ "\nwhere (" ++ cond ++ ")"}; this}
 
   override def groupBy(field: El[_, _]): SelectHavingStep[R]
-  = { buf ++ "\ngroup by " ++ field; this }
+  = {buf ++ "\ngroup by " ++ field; this}
 
   override def groupBy(field: El[_, _], moreFields: El[_, _]*): SelectHavingStep[R]
-  = { buf ++ "\ngroup by " ++ field; moreFields.foreach(buf ++ ", " ++ _); this }
+  = {buf ++ "\ngroup by " ++ field; moreFields.foreach(buf ++ ", " ++ _); this}
 
   override def groupBy(fields: Iterable[El[_, _]]): SelectHavingStep[R]
-  = { buf ++ "\ngroup by "; fields._foreachWithSep(_.render, buf ++ ", "); this }
+  = {buf ++ "\ngroup by "; fields._foreachWithSep(_.render, buf ++ ", "); this}
 
   override def having(cond: Condition): SelectHavingConditionStep[R]
-  = { buf ++ "\nhaving (" ++ cond ++ ")"; this }
+  = {buf ++ "\nhaving (" ++ cond ++ ")"; this}
 
   override def orderBy(field: El[_, _]): this.type
-  = { buf ++ "\norder by " ++ field; this }
+  = {buf ++ "\norder by " ++ field; this}
 
   override def orderBy(field: El[_, _], moreFields: El[_, _]*): this.type
-  = { buf ++ "\norder by " ++ field; moreFields.foreach(buf ++ ", " ++ _); this }
+  = {buf ++ "\norder by " ++ field; moreFields.foreach(buf ++ ", " ++ _); this}
 
   override def orderBy(fields: Iterable[Field[_, _]]): SelectLimitStep[R]
-  = { buf ++ "\norder by "; fields._foreachWithSep(_.render, buf ++ ", "); this }
+  = {buf ++ "\norder by "; fields._foreachWithSep(_.render, buf ++ ", "); this}
 
   override def orderBy(cond: Condition): SelectLimitStep[R]
-  = { buf ++ "\norder by " ++ cond; this }
+  = {buf ++ "\norder by " ++ cond; this}
 
   override def limit(numberOfRows: Int): this.type
-  = { buf ++ "\nlimit " ++ numberOfRows; this }
+  = {buf ++ "\nlimit " ++ numberOfRows; this}
 
   override def limit(offset: Int, numberOfRows: Int): this.type
-  = { buf ++ "\nlimit " ++ numberOfRows ++ " offset " ++ offset; this }
+  = {buf ++ "\nlimit " ++ numberOfRows ++ " offset " ++ offset; this}
 
   // ------------------------------- Execute statements -------------------------------
 
@@ -244,7 +244,7 @@ abstract class SqlBuilder[R]
   override def fetch(): Vector[R] = executeQuery(vectorFromRs)
 
   override def fetchCounted(): CountedResult[R] = {
-    buf.addSelectFlags(Mysql.sqlCalcFoundRows)
+    buf.addSelectFlags(ormDbTrait.sqlCalcFoundRows)
     executeQuery {rs =>
       new CountedResult(vectorFromRs(rs), executeFoundRows)
     }
@@ -265,7 +265,7 @@ abstract class SqlBuilder[R]
     executeQuery(rs => body(new RsIterator(rs)), st => st.setFetchSize(fetchSize))
 
   override def fetchCountedLazy(body: CountedLazyResult[R] => Unit, fetchSize: Int = 10): Unit = {
-    buf.addSelectFlags(Mysql.sqlCalcFoundRows)
+    buf.addSelectFlags(ormDbTrait.sqlCalcFoundRows)
     executeQuery({rs =>
       body(new CountedLazyResult(new RsIterator(rs), executeFoundRows))
     }, st => st.setFetchSize(fetchSize))
@@ -297,7 +297,7 @@ abstract class SqlBuilder[R]
   private def executeFoundRows: Int = {
     val st: Statement = buf.conn.connection.createStatement()
     try {
-      val countRs = st.executeQuery(Mysql.selectFoundRows)
+      val countRs = st.executeQuery(ormDbTrait.selectFoundRows)
       countRs.next()
       val count: Int = countRs.getInt(1)
       countRs.close()
@@ -321,8 +321,8 @@ abstract class SqlBuilder[R]
       }
     }
 
-    def hasNext: Boolean = { checkLoadNext(); _hasNext }
-    def next(): R = { checkLoadNext(); _nextLoaded = false; _next }
+    def hasNext: Boolean = {checkLoadNext(); _hasNext}
+    def next(): R = {checkLoadNext(); _nextLoaded = false; _next}
   }
 
   // ------------------------------- Abstract methods -------------------------------
@@ -330,7 +330,7 @@ abstract class SqlBuilder[R]
   protected def recordFromResultSet(rs: ResultSet): R
 }
 
-protected class SqlBuilderTable[TR <: TableRecord](table: TrTable[TR])(implicit val buf: SqlBuffer) extends SqlBuilder[TR] {
+protected class SqlBuilderTable[TR <: TableRecord](table: TrTable[TR])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[TR] {
   protected def recordFromResultSet(rs: ResultSet): TR = {
     try {
       table._newRecordFromResultSet(rs, 0)
@@ -346,15 +346,15 @@ protected class SqlBuilderTable[TR <: TableRecord](table: TrTable[TR])(implicit 
   }
 }
 
-protected class SqlBuilderComposite[CR <: CompositeRecord](table: CompositeTable[CR])(implicit val buf: SqlBuffer) extends SqlBuilder[CR] {
+protected class SqlBuilderComposite[CR <: CompositeRecord](table: CompositeTable[CR])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[CR] {
   protected def recordFromResultSet(rs: ResultSet): CR = table.newRecord(rs)
 }
 
-protected class SqlBuilder1[V1](f1: El[_, V1])(implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
+protected class SqlBuilder1[V1](f1: El[_, V1])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
   protected def recordFromResultSet(rs: ResultSet): V1 = f1.getValue(rs, 1)
 }
 
-protected class SqlBuilderCase1[R, V1](fn: (V1) => R, f1: El[_, V1])(implicit val buf: SqlBuffer) extends SqlBuilder[R] {
+protected class SqlBuilderCase1[R, V1](fn: (V1) => R, f1: El[_, V1])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[R] {
   protected def recordFromResultSet(rs: ResultSet): R = fn(f1.getValue(rs, 1))
 }
 
@@ -364,8 +364,8 @@ trait SqlResult[+R] {
 }
 
 /**
- * Результат запроса (как правило с limit'ом) вместе с общим количеством элементов по этому же запросу без лимита.
- */
+  * Результат запроса (как правило с limit'ом) вместе с общим количеством элементов по этому же запросу без лимита.
+  */
 class CountedResult[+R](val rows: Vector[R], val count: Int) extends SqlResult[R] {
   def ++[S >: R](add: SqlResult[S]): CountedResult[S] = new CountedResult[S](rows ++ add.rows, count + add.count)
 }
@@ -373,8 +373,8 @@ class CountedResult[+R](val rows: Vector[R], val count: Int) extends SqlResult[R
 class CountedLazyResult[+R](val rows: Iterator[R], val count: Int) extends SqlResult[R]
 
 /**
- * Возвращает результат запроса (записи), вызвав fetch, либо их количество, вызвав count.
- */
+  * Возвращает результат запроса (записи), вызвав fetch, либо их количество, вызвав count.
+  */
 trait ResultOrCount[+R] {
   def fetch: Vector[R]
   def count: Int

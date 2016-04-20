@@ -2,10 +2,10 @@ package querio.db
 
 import java.sql.Connection
 
-import querio.codegen.FieldType
+import querio.codegen.json.{JsonSupport, WithoutJson}
 import querio.utils._
 
-object PostgreSQL extends OrmDbTrait {
+class PostgreSQL extends OrmDbTrait {
 
   object Error extends ErrorMatcher {
     // Codes from http://www.postgresql.org/docs/9.1/static/errcodes-appendix.html
@@ -43,6 +43,8 @@ object PostgreSQL extends OrmDbTrait {
   }
 
   override val errorMatcher: ErrorMatcher = Error
+
+  override val jsonSupport: JsonSupport = WithoutJson
 
   val reservedWordsUppercased: Set[String] = Set("ALL", "ANALYSE", "ANALYZE", "AND", "ANY", "AS",
     "ASC", "BOTH", "CASE", "CAST", "CHECK", "COLLATE", "COLUMN", "CONSTRAINT", "CREATE",

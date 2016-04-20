@@ -4,6 +4,7 @@ import java.io.File
 
 import querio.codegen.DatabaseGenerator
 import querio.db.PostgreSQL
+import querio.json.JSON4SExtension
 
 import scalax.file.Path
 
@@ -13,7 +14,7 @@ object ExampleGenerator {
 
     val dir = Path(new File(args(0)))
     println(s"Dir: $dir")
-    new DatabaseGenerator(PostgreSQL, connection, "example",
+    new DatabaseGenerator(new PostgreSQL with JSON4SExtension, connection, "example",
       pkg = "model.db.table",
       tableListClass = "model.db.Tables",
       dir = dir,

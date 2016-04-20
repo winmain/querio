@@ -1,4 +1,5 @@
 package querio
+import querio.db.OrmDbTrait
 
 // ------------------------------- Update traits -------------------------------
 
@@ -28,7 +29,7 @@ trait UpdateRawFinalStep extends SqlQuery {
   def execute(): Int
 }
 
-class UpdateRawBuilder(implicit val buf: SqlBuffer)
+class UpdateRawBuilder(implicit val ormDbTrait:OrmDbTrait, implicit val buf: SqlBuffer)
   extends UpdateRawSetStep with UpdateRawSetNextStep with UpdateRawConditionStep {
 
   private var firstSet = true

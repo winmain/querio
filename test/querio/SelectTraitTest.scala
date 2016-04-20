@@ -25,7 +25,7 @@ class SelectTraitTest extends FlatSpec {
     override def _newMutableRecord: MutableArticle = new MutableArticle
     override def _newRecordFromResultSet(rs: ResultSet, index: Int): Article = ???
 
-    override val _ormDbTrait: OrmDbTrait = Mysql
+    override val _ormDbTrait: OrmDbTrait = new Mysql
   }
   object Article extends ArticleTable(null)
 
@@ -60,7 +60,7 @@ class SelectTraitTest extends FlatSpec {
 
   class QueryContext {
     val buf: DefaultSqlBuffer = new DefaultSqlBuffer(null)
-    val query: DefaultQuery = new DefaultQuery(buf)
+    val query: DefaultQuery = new DefaultQuery(new Mysql,buf)
   }
 
   "SelectTrait" should "select one field" in new QueryContext {

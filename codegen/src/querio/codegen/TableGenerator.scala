@@ -18,27 +18,27 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
   val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
 
-  def generateToFile(): Generator = {
-    val gen: Generator = new Generator(readSource(filePath))
+  def generateToFile(): TableGenerator = {
+    val gen: TableGenerator = new TableGenerator(readSource(filePath))
     gen.generate().saveToFile(filePath)
     gen
   }
 
-  def generateToTempFile(): Generator = {
-    val gen: Generator = new Generator(readSource(filePath))
+  def generateToTempFile(): TableGenerator = {
+    val gen: TableGenerator = new TableGenerator(readSource(filePath))
     gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
     gen
   }
 
   def generateDoubleTest(): Unit = {
-    val result1 = new Generator(readSource(filePath)).generate().getSource
-    val result2 = new Generator(result1).generate().getSource
+    val result1 = new TableGenerator(readSource(filePath)).generate().getSource
+    val result2 = new TableGenerator(result1).generate().getSource
     Path(new File("/tmp/tt.scala")).write(result2)
   }
 
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
 
-  class Generator(source: String) {
+  class TableGenerator(source: String) extends TableGeneratorData {
     val ormPatches: OrmPatches = new OrmPatches(db)
     val reader: TableReader = if (source == null) new TableReader(db, Nil)
     else {
@@ -47,7 +47,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       new TableReader(db, patched)
     }
 
-    val columns: Vector[Col] = columnsRs.map {crs =>
+    val columns: Vector[InnerCol] = columnsRs.map {crs =>
       reader.userColumnsByColName.get(crs.name) match {
         case Some(uc) => UserCol(uc, crs)
         case None => NamedCol(crs)
@@ -59,13 +59,13 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     val tableObjectName = reader.objectName.getOrElse(GeneratorConfig.tableNameObjectName(namePrefix, table.name))
     val tableMutableName = reader.mutableName.getOrElse(GeneratorConfig.tableNameMutableName(namePrefix, table.name))
 
-    val primaryKey: Option[Col] = if (primaryKeyNames.nonEmpty) {
+    val primaryKey: Option[InnerCol] = if (primaryKeyNames.nonEmpty) {
       val pkName = primaryKeyNames.head
       val pk = columns.find(_.rs.name == pkName).getOrElse(sys.error(s"Field for primary key not found in ${table.cat}.${table.name}"))
       if (pk.shortScalaType == "Int") Some(pk) else None
     } else None
 
-    trait Col {
+    trait InnerCol extends Col {
       def rs: ColumnRS
 
       def varName: String
@@ -106,10 +106,10 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     /**
       * Новый столбец, который полностью описываются сведениями из БД.
       */
-    case class NamedCol(rs: ColumnRS) extends Col {
+    case class NamedCol(rs: ColumnRS) extends InnerCol {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
-        try GeneratorConfig.columnTypeClassNames(rs.dataType)
+        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.getTypeExtensions())
         catch {
           case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
         }
@@ -135,7 +135,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       * Столбец, который уже описан юзером. Юзер может менять имя переменной для этого столбца, тип класса,
       * и задавать дополнительные параметры для инициализации класса.
       */
-    case class UserCol(uc: TableReader#UserCol, rs: ColumnRS) extends Col {
+    case class UserCol(uc: TableReader#UserCol, rs: ColumnRS) extends InnerCol {
       if (uc.scalaType == null) sys.error(s"Cannot find field ${table.cat}.${table.name}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
 
       def varName = uc.varName
@@ -172,7 +172,10 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
-      p ++ reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
+      val tableDefinition = reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
+      val (fullTableDefinition, imports) = withAdditionTraitsForTable(tableDefinition)
+      imports.foreach(x => p imp x)
+      p ++ fullTableDefinition
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
@@ -191,6 +194,21 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
 
         printUserLines(p, reader.userTableLines)
       }
+    }
+
+    def withAdditionTraitsForTable(tableDefinition: String): (String, Seq[String]) = {
+      def normalize(s: String): String = s.replace(" ", "").replace("\t", "")
+      val tableDefinitionTemplate = normalize(tableDefinition)
+      val (traits, imports) = db.getTableTraitsExtensions()
+        .flatMap(_.recognize(this))
+        .filter {
+          case (traitDef, _) =>
+            tableDefinitionTemplate.indexOf(normalize(traitDef)) < 0
+        }.unzip
+      val concatenatedTraits = traits.foldLeft(new StringBuilder) {
+        case (sb, traitDef) => sb.append(" with ").append(traitDef)
+      }.result()
+      (tableDefinition + concatenatedTraits, imports)
     }
 
     /**
@@ -307,4 +325,30 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       p
     }
   }
+}
+
+trait Col {
+  def rs: ColumnRS
+
+  def varName: String
+
+  def shortScalaType: String
+
+  def objectField(p: SourcePrinter): Unit
+
+  def classField(p: SourcePrinter): Unit
+
+  def mutableClassField(p: SourcePrinter): Unit
+
+  def maybeUnescapeName: String
+
+  def escaped: Boolean
+}
+
+trait TableGeneratorData {
+  val columns: Vector[Col]
+  val tableClassName: String
+  val tableTableName: String
+  val tableObjectName: String
+  val tableMutableName: String
 }

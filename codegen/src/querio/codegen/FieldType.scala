@@ -21,11 +21,12 @@ object FieldType {
   val date = ft("java.time.LocalDate", "LocalDate_TF", "OptionLocalDate_TF")
 
 
-  private val errStr: String = "Unresolved classes for column type "
+  private val errStrUnresolved: String = "Unresolved classes for column type "
+  private val errStrManyCandidates: String = "To many candidates found  for column type "
   /**
     * Вернуть тип поля по типу столбца в БД.
     */
-  def columnTypeClassNames(colType: Int): FieldType = colType match {
+  def columnTypeClassNames(colType: Int, typeName: String, extensions: Seq[FieldTypeExtension]): FieldType = colType match {
 
     case Types.BIT | Types.BOOLEAN | Types.TINYINT => boolean
     case Types.INTEGER | Types.SMALLINT => int
@@ -36,6 +37,14 @@ object FieldType {
     case Types.DOUBLE => double
     case Types.TIMESTAMP | Types.TIME => dateTime
     case Types.DATE => date
-    case _ => sys.error(errStr + colType)
+    case _ =>
+      val types = extensions.flatMap(_.recognize(colType,typeName))
+      if(types.size == 1){
+        types.head
+      } else if(types.isEmpty){
+        sys.error(errStrUnresolved + colType + " " + typeName)
+      } else {
+        sys.error(errStrManyCandidates + colType + " " + typeName)
+      }
   }
 }

@@ -4,9 +4,10 @@ import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.FieldType
+import querio.codegen.json.{JsonSupport, WithoutJson}
 import querio.utils.SQLExceptionCode
 
-object Mysql extends OrmDbTrait {
+class Mysql extends OrmDbTrait {
 
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error extends ErrorMatcher {
@@ -26,7 +27,9 @@ object Mysql extends OrmDbTrait {
     val ForeignKeyConstraintFails = SQLExceptionCode(1452)
   }
 
-  val errorMatcher = Error
+  override val errorMatcher: ErrorMatcher = Error
+
+  override val jsonSupport: JsonSupport = WithoutJson
 
   /**
     * Метод позволяет сделать несколько попыток выполнения sql запроса, если при этом возникает ошибка

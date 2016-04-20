@@ -31,7 +31,9 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.12",
     libraryDependencies += "com.github.scala-incubator.io" %% "scala-io-file" % "0.4.3-1",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0-M15" % "test",
-    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test"
+    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+    libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4" % "optional",
+    libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0" % "optional"
   )
 
   val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(

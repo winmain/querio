@@ -184,7 +184,7 @@ trait DbTrait {
 
   // -------------------------------------
 
-  def inner: InnerQuery = new InnerQuery
+  def inner: InnerQuery = new InnerQuery(ormDbTrait)
 
   def sql[A](block: Q => A)(implicit conn: Conn): A = block(newQuery(conn))
   def query[A](block: Q => A)(implicit conn: Conn = null): A = connection(conn => sql(block)(conn))
@@ -381,7 +381,7 @@ abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
 
   BaseDbGlobal.ormDbTrait = ormDbTrait
 
-  override protected def newQuery(conn: Conn): Q = new DefaultQuery(new DefaultSqlBuffer(conn))
+  override protected def newQuery(conn: Conn): Q = new DefaultQuery(ormDbTrait, new DefaultSqlBuffer(conn))
   override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
   override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
     new DefaultTransaction(connection, isolationLevel, parent)
@@ -395,10 +395,10 @@ object BaseDbGlobal {
   var ormDbTrait: OrmDbTrait = null
 }
 
-class DefaultSql(connectionFactory: => Connection) extends BaseDb(Mysql) {
+class DefaultSql(connectionFactory: => Connection) extends BaseDb(new Mysql) {
   override protected def getConnection: Connection = connectionFactory
 }
 
-class DefaultPostgres(connectionFactory: => Connection) extends BaseDb(PostgreSQL) {
+class DefaultPostgres(connectionFactory: => Connection) extends BaseDb(new PostgreSQL) {
   override protected def getConnection: Connection = connectionFactory
 }

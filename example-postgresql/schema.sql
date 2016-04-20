@@ -8,7 +8,7 @@ CREATE TABLE "user"
   "active" boolean NOT NULL,
   "rating" integer NULL,
   "verbose" boolean NULL,
---   "js" jsonb NOT NULL DEFAULT '{}'
+  "js_b" jsonb NOT NULL DEFAULT '{}'
 )
 WITH (
   OIDS=FALSE
