@@ -1,11 +1,10 @@
 package example
 
 import java.io.File
-import java.sql.DriverManager
-import java.util.Properties
 
 import querio.codegen.DatabaseGenerator
-import querio.db.{Mysql, OrmDb}
+import querio.db.Mysql
+import querio.json.JSON4SExtension
 
 import scalax.file.Path
 
@@ -14,7 +13,7 @@ object ExampleGenerator {
     val connection = ConnectionFactory.newConnection()
 
     val dir = Path(new File(args(0)))
-    new DatabaseGenerator(Mysql,connection, "example",
+    new DatabaseGenerator(new Mysql with JSON4SExtension, connection, "example",
       pkg = "model.db.table",
       tableListClass = "model.db.Tables",
       dir = dir,

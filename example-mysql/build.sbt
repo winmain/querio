@@ -8,6 +8,9 @@ lazy val genDbSourcesTask = genDbSources <<=
     }
   }
 
+val querio = "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT" // querio orm
+
+lazy val QuerioProject: RootProject = RootProject(file("../"))
 /**
  * Run scala class in separate thread
  */
@@ -20,10 +23,12 @@ lazy val example = (project in file(".")).settings(
   name := "querio-example-mysql",
   version := "0.1",
   scalaVersion := "2.11.7",
-  libraryDependencies += "com.github.winmain" %% "querio" % "0.4-SNAPSHOT",
+  //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4-SNAPSHOT",
+  libraryDependencies += querio,
   libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.36",
+  libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
 
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
   scalaSource in Compile := baseDirectory.value / "src",
   genDbSourcesTask
-)
+).dependsOn(QuerioProject)
