@@ -172,7 +172,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
-      p ++ reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
+      p ++ reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, _needDbPrefix = $needPrefix, _escapeName = $escaped)""")
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
