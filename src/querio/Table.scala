@@ -32,8 +32,6 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
   type ThisField = this.Field[_, _]
 
-  val _ormDbTrait: OrmDbTrait
-
   override def _fieldNum: Int = fields.length
 
   // Т.к., внутренний index считается с 1, то эту 1 следует вычесть
@@ -50,19 +48,17 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   private var fieldsBuilder = mutable.Buffer[ThisField]()
   private var fields: Vector[ThisField] = null
 
+  def _ormDbTrait: OrmDbTrait
+
+  /** Table name for sql queries */
   val _fullTableNameSql: String = {
-    val prefix = if (_needDbPrefix) {
-      _dbName + "."
-    } else {
-      ""
-    }
-    val postfix = if (_escapeName) {
-      _ormDbTrait.escapeName(_name)
-    } else {
-      _name
-    }
+    val prefix = if (_needDbPrefix) _dbName + "." else ""
+    val postfix = if (_escapeName) _ormDbTrait.escapeName(_name) else _name
     prefix + postfix
   }
+
+  /** Human-readable table name with optional DB prefix */
+  def _fullTableName: String = if (_needDbPrefix) _dbName + '.' + _name else _name
 
   /*
     Example usage for _aliasName, _defName in SQL query:

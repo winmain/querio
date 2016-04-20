@@ -6,13 +6,12 @@ import querio.db.OrmDbTrait
 import scalax.file.Path
 
 class OrmPatches(val ormDbTrait: OrmDbTrait) {
-  val currentVersion = 3
+  val currentVersion = 2
 
 
   private def patch(lines: List[String], fromVersion: Int): List[String] = (fromVersion match {
     case 0 => OrmPatch0
     case 1 => OrmPatch1
-    case 2 => OrmPatch2
   }).patch(lines)
 
   // ------------------------------- Inner methods -------------------------------

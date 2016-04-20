@@ -34,7 +34,7 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test"
   )
 
-  val codegen = Project("codegen", base = file("codegen"), settings = commonSettings).settings(
+  val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(
     name := "querio-codegen"
   )
 
@@ -72,5 +72,5 @@ object ProjectBuild extends sbt.Build {
   lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
     name := "querio",
     genQuerioLibSourcesTask
-  ).dependsOn(codegen).aggregate(codegen)
+  ).dependsOn(querioCodegen).aggregate(querioCodegen)
 }

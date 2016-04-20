@@ -18,7 +18,7 @@ trait DbTrait {
 
   @Nullable def transactionLog: Logger = null
 
-  val ormDbTrait: OrmDbTrait
+  def ormDbTrait: OrmDbTrait
 
   protected val currentTransaction: ThreadLocal[Option[TR]] = new ThreadLocal[Option[TR]] {
     override def initialValue(): Option[TR] = None
@@ -379,8 +379,6 @@ abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
   override type TR = DefaultTransaction
   override type DT = DefaultDataTr
 
-  BaseDbGlobal.ormDbTrait = ormDbTrait
-
   override protected def newQuery(conn: Conn): Q = new DefaultQuery(new DefaultSqlBuffer(conn))
   override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
   override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
@@ -391,14 +389,10 @@ abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
     new DefaultDataTr(connection, isolationLevel, parent, md, logSql)
 }
 
-object BaseDbGlobal {
-  var ormDbTrait: OrmDbTrait = null
-}
-
-class DefaultSql(connectionFactory: => Connection) extends BaseDb(Mysql) {
+class DefaultMysqlDb(connectionFactory: => Connection) extends BaseDb(Mysql) {
   override protected def getConnection: Connection = connectionFactory
 }
 
-class DefaultPostgres(connectionFactory: => Connection) extends BaseDb(PostgreSQL) {
+class DefaultPostgreSqlDb(connectionFactory: => Connection) extends BaseDb(PostgreSQL) {
   override protected def getConnection: Connection = connectionFactory
 }

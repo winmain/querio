@@ -67,19 +67,13 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
 
     trait Col {
       def rs: ColumnRS
-
       def varName: String
-
       def shortScalaType: String
-
       def objectField(p: SourcePrinter): Unit
-
       def classField(p: SourcePrinter): Unit
-
       def mutableClassField(p: SourcePrinter): Unit
 
       def maybeUnescapeName: String = db.maybeUnescapeName(rs.name)
-
       def escaped: Boolean = db.isReservedWord(rs.name)
 
       protected def withComment: String = rs.remarks match {
@@ -139,7 +133,6 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       if (uc.scalaType == null) sys.error(s"Cannot find field ${table.cat}.${table.name}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
 
       def varName = uc.varName
-
       def shortScalaType: String = uc.scalaType
 
       def objectField(p: SourcePrinter) {
@@ -168,7 +161,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
-      p imp "querio.BaseDbGlobal"
+      p imp StringUtils.removeEnd(db.getClass.getCanonicalName, "$")
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
@@ -177,8 +170,8 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
-        p ++ "override lazy val _ormDbTrait = BaseDbGlobal.ormDbTrait" n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
+        p ++ "def _ormDbTrait = " ++ StringUtils.removeEnd(db.getClass.getSimpleName, "$") n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
 
@@ -257,8 +250,8 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
               p ++ "buf ++ \", \""
             }
             if (primaryKeyNames.nonEmpty && primaryKeyNames.head == c.rs.name) {
-              p ++ "if (withPrimaryKey) {";
-              renderRow();
+              p ++ "if (withPrimaryKey) {"
+              renderRow()
               p ++ "}"
             }
             else renderRow()
