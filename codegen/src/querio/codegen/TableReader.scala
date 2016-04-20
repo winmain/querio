@@ -193,9 +193,9 @@ object TableReader {
     \[[^\]]+\]              # [TR, MTR]
     \("[^"]+"\,             # (_fullTableName,
     \ *"[^"]+"\,            # _tableName,
-    \ *alias\,              # _alias
-    \ *(?:true|false)\,     # _needDbPrefix
-    \ *(?:true|false)\ *\)  # _escapeName
+    \ *alias(?:\,|)         # _alias
+    \ *(?:true\,|false\,|)  # _needDbPrefix
+    \ *(?:true|false|)\ *\) # _escapeName
     .*""".r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
   val tableFieldR = """(?x)
