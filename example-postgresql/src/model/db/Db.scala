@@ -5,4 +5,4 @@ import java.sql.Connection
 import example.ConnectionFactory
 import querio._
 
-object Db extends DefaultPostgres({ConnectionFactory.newConnection})
+object Db extends DefaultPostgreSqlDb({ConnectionFactory.newConnection})

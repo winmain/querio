@@ -47,13 +47,18 @@ class DatabaseGenerator(db: OrmDbTrait,
       while (columnsRS.next()) columnsBuilder += new ColumnRS(columnsRS)
       val columns = columnsBuilder.result()
 
-      val generator: TableGenerator = new TableGenerator(db,catalog, trs, columns, primaryKeyNames, pkg,
-        dir, tableNamePrefix, isDefaultDatabase)
-      tableObjectNames += {
-        val gen: TableGenerator#Generator =
-          if (toTempFile) generator.generateToTempFile()
-          else generator.generateToFile()
-        gen.tableObjectName
+      try {
+        val generator: TableGenerator = new TableGenerator(db, catalog, trs, columns, primaryKeyNames, pkg,
+          dir, tableNamePrefix, isDefaultDatabase)
+        tableObjectNames += {
+          val gen: TableGenerator#Generator =
+            if (toTempFile) generator.generateToTempFile()
+            else generator.generateToFile()
+          gen.tableObjectName
+        }
+      } catch {
+        case e: Exception =>
+          throw new RuntimeException("Error generating file for table " + trs.cat + "." + trs.name, e)
       }
     }
     val generator: TableListGenerator = new TableListGenerator(tableNamePrefix, pkg,
