@@ -18,27 +18,27 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
   val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
 
-  def generateToFile(): TableGenerator = {
-    val gen: TableGenerator = new TableGenerator(readSource(filePath))
+  def generateToFile(): Generator = {
+    val gen: Generator = new Generator(readSource(filePath))
     gen.generate().saveToFile(filePath)
     gen
   }
 
-  def generateToTempFile(): TableGenerator = {
-    val gen: TableGenerator = new TableGenerator(readSource(filePath))
+  def generateToTempFile(): Generator = {
+    val gen: Generator = new Generator(readSource(filePath))
     gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
     gen
   }
 
   def generateDoubleTest(): Unit = {
-    val result1 = new TableGenerator(readSource(filePath)).generate().getSource
-    val result2 = new TableGenerator(result1).generate().getSource
+    val result1 = new Generator(readSource(filePath)).generate().getSource
+    val result2 = new Generator(result1).generate().getSource
     Path(new File("/tmp/tt.scala")).write(result2)
   }
 
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
 
-  class TableGenerator(source: String) extends TableGeneratorData {
+  class Generator(source: String) extends TableGeneratorData{
     val ormPatches: OrmPatches = new OrmPatches(db)
     val reader: TableReader = if (source == null) new TableReader(db, Nil)
     else {
