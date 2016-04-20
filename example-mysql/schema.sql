@@ -9,6 +9,7 @@ CREATE TABLE `user` (
   `active`        BOOL      NOT NULL
   COMMENT 'is user active and can login?',
   `rating`        INT(11)   NULL
-  COMMENT 'just simple int field',
+  COMMENT 'just simple int field'
+#   `jdoc`          JSON      NOT NULL,
   PRIMARY KEY (`id`)
 );
