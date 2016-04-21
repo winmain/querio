@@ -161,7 +161,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
-      p imp StringUtils.removeEnd(db.getClass.getCanonicalName, "$")
+      p imp db.getClassImport
       p imp GeneratorConfig.importTable
       val escaped = db.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
@@ -174,6 +174,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
         p ++ "_fields_registered()" n()
         p n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
+        // TODO fix it. wrong definition of _ormDbTrait
         p ++ "def _ormDbTrait = " ++ StringUtils.removeEnd(db.getClass.getSimpleName, "$") n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()

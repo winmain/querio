@@ -31,6 +31,8 @@ class Mysql extends OrmDbTrait {
 
   override val jsonSupport: JsonSupport = WithoutJson
 
+  def getClassImport:String = "querio.db.Mysql"
+
   /**
     * Метод позволяет сделать несколько попыток выполнения sql запроса, если при этом возникает ошибка
     * Lock wait timeout exceeded.

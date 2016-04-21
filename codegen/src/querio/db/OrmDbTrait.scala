@@ -14,6 +14,11 @@ trait OrmDbTrait {
 
   val errorMatcher: ErrorMatcher
 
+  /**
+    * Cant just use .getClass() because class can be anonymous. Explicit definition required.
+    */
+  def getClassImport: String
+
   def isReservedWord(word: String): Boolean
 
   def escapeName(name: String): String
