@@ -44,8 +44,6 @@ class PostgreSQL extends OrmDbTrait {
 
   override val errorMatcher: ErrorMatcher = Error
 
-  override val jsonSupport: JsonSupport = WithoutJson
-
   def getClassImport:String = "querio.db.PostgreSQL"
 
   val reservedWordsUppercased: Set[String] = Set("ALL", "ANALYSE", "ANALYZE", "AND", "ANY", "AS",

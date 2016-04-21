@@ -27,9 +27,7 @@ class Mysql extends OrmDbTrait {
     val ForeignKeyConstraintFails = SQLExceptionCode(1452)
   }
 
-  override val errorMatcher: ErrorMatcher = Error
-
-  override val jsonSupport: JsonSupport = WithoutJson
+  override def errorMatcher: ErrorMatcher = Error
 
   def getClassImport:String = "querio.db.Mysql"
 

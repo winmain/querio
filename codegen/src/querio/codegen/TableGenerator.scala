@@ -103,7 +103,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     case class NamedCol(rs: ColumnRS) extends InnerCol {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
-        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.getTypeExtensions())
+        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.getTypeExtensions)
         catch {
           case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
         }
@@ -193,7 +193,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     def withAdditionTraitsForTable(tableDefinition: String): (String, Seq[String]) = {
       def normalize(s: String): String = s.replace(" ", "").replace("\t", "")
       val tableDefinitionTemplate = normalize(tableDefinition)
-      val (traits, imports) = db.getTableTraitsExtensions()
+      val (traits, imports) = db.getTableTraitsExtensions
         .flatMap(_.recognize(this))
         .filter {
           case (traitDef, _) =>
