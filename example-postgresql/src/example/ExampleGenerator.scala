@@ -3,7 +3,7 @@ package example
 import java.io.File
 
 import querio.codegen.DatabaseGenerator
-import querio.db.PostgreSQL
+import querio.vendor.PostgreSQL
 import querio.json.JSON4SExtension
 
 import scalax.file.Path

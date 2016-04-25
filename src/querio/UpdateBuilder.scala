@@ -1,5 +1,5 @@
 package querio
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
 // ------------------------------- Update traits -------------------------------
 
@@ -15,12 +15,12 @@ trait UpdateSetNextStep extends UpdateSetStep with UpdateFinalStep {
 
 trait UpdateFinalStep extends SqlQuery {
   /**
-   * Execute update and return affected row count
-   */
+    * Execute update and return affected row count
+    */
   def execute(): Unit
 }
 
-class UpdateBuilder(table: AnyTable, id: Int)(implicit val ormDbTrait:OrmDbTrait,implicit val buf: SqlBuffer)
+class UpdateBuilder(table: AnyTable, id: Int)(implicit val vendor: Vendor, implicit val buf: SqlBuffer)
   extends UpdateSetStep with UpdateSetNextStep {
 
   private var firstSet = true
@@ -40,12 +40,12 @@ class UpdateBuilder(table: AnyTable, id: Int)(implicit val ormDbTrait:OrmDbTrait
   }
 
   override def setMtr(mtr: AnyMutableTableRecord): UpdateSetNextStep
-  = { require(mtr._table == table && mtr._primaryKey == id); this.mtr = mtr; this }
+  = {require(mtr._table == table && mtr._primaryKey == id); this.mtr = mtr; this}
 
   // ------------------------------- Overridable methods -------------------------------
 
   protected def doExecute(buf: SqlBuffer): Unit = {
-    buf.statement { (st, sql) =>
+    buf.statement {(st, sql) =>
       st.executeUpdate(sql)
       afterExecute(sql, mtr)
     }

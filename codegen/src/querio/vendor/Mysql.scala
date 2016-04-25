@@ -1,13 +1,11 @@
-package querio.db
+package querio.vendor
 
 import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import org.apache.commons.lang3.StringUtils
-import querio.codegen.FieldType
-import querio.codegen.json.{JsonSupport, WithoutJson}
 import querio.utils.SQLExceptionCode
 
-class Mysql extends OrmDbTrait {
+class Mysql extends Vendor {
 
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error extends ErrorMatcher {
@@ -29,7 +27,7 @@ class Mysql extends OrmDbTrait {
 
   override def errorMatcher: ErrorMatcher = Error
 
-  def getClassImport:String = "querio.db.Mysql"
+  def getClassImport: String = "querio.db.Mysql"
 
   /**
     * Метод позволяет сделать несколько попыток выполнения sql запроса, если при этом возникает ошибка
@@ -51,7 +49,6 @@ class Mysql extends OrmDbTrait {
     val t1 = System.currentTimeMillis()
     throw new RuntimeException("Cannot execute sql in " + maxAttempts + " attempts for " + (t1 - t0) + " ms", lastError)
   }
-
 
   def sqlCalcFoundRows = "sql_calc_found_rows"
 
@@ -82,10 +79,10 @@ class Mysql extends OrmDbTrait {
     "DAY_HOUR", "YEAR_MONTH")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
-
   override def escapeName(name: String): String = '`' + name + '`'
-
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
-
 }
+
+
+object DefaultMysql extends Mysql

@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 import org.slf4j.{Logger, LoggerFactory}
-import querio.db.{Mysql, OrmDbTrait, PostgreSQL}
+import querio.vendor.{Mysql, Vendor, PostgreSQL}
 
 import scala.util.Random
 
@@ -18,7 +18,7 @@ trait DbTrait {
 
   @Nullable def transactionLog: Logger = null
 
-  def ormDbTrait: OrmDbTrait
+  def vendor: Vendor
 
   protected val currentTransaction: ThreadLocal[Option[TR]] = new ThreadLocal[Option[TR]] {
     override def initialValue(): Option[TR] = None
@@ -87,7 +87,7 @@ trait DbTrait {
             try {
               conn.rollback(savepoint)
             } catch {
-              case ormDbTrait.errorMatcher.SavepointDoesNotExist(_) =>
+              case vendor.errorMatcher.SavepointDoesNotExist(_) =>
                 // Mysql имеет неприятную особенность терять сейвпоинты, поэтому здесь может быть
                 // ошибка с кодом 1305 MySQLSyntaxErrorException: SAVEPOINT ... does not exist
                 // В таком случае, перезапускаем транзакцию, как и с deadlock'ом
@@ -129,13 +129,13 @@ trait DbTrait {
         } catch {
           // TODO: Здесь нужно матчить не тип ошибок, ошибки в разных бд имеют плавающие определения,
           // TODO: а нужно проверять какое общее поведение необходиомо при разных ошибках.
-          case ormDbTrait.errorMatcher.ConnectionClosed(e) =>
+          case vendor.errorMatcher.ConnectionClosed(e) =>
             // Соединение с БД закрылось. Перезапустим всю транзакцию через случайный промежуток времени.
             log("connection closed")
             conn.close()
             restartTransaction("Connection closed", e)
 
-          case ormDbTrait.errorMatcher.Deadlock(e) =>
+          case vendor.errorMatcher.Deadlock(e) =>
             // Случился transaction deadlock. Перезапустим всю транзакцию через случайный промежуток времени.
             log("deadlock")
             conn.rollback()
@@ -184,7 +184,7 @@ trait DbTrait {
 
   // -------------------------------------
 
-  def inner: InnerQuery = new InnerQuery(ormDbTrait)
+  def inner: InnerQuery = new InnerQuery(vendor)
 
   def sql[A](block: Q => A)(implicit conn: Conn): A = block(newQuery(conn))
   def query[A](block: Q => A)(implicit conn: Conn = null): A = connection(conn => sql(block)(conn))
@@ -374,12 +374,12 @@ trait ModifyData {
 
 // ------------------------------- Default implementations -------------------------------
 
-abstract class BaseDb(override val ormDbTrait: OrmDbTrait) extends DbTrait {
+abstract class BaseDb(override val vendor: Vendor) extends DbTrait {
   override type Q = DefaultQuery
   override type TR = DefaultTransaction
   override type DT = DefaultDataTr
 
-  override protected def newQuery(conn: Conn): Q = new DefaultQuery(ormDbTrait, new DefaultSqlBuffer(conn))
+  override protected def newQuery(conn: Conn): Q = new DefaultQuery(vendor, new DefaultSqlBuffer(conn))
   override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
   override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
     new DefaultTransaction(connection, isolationLevel, parent)

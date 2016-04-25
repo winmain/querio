@@ -1,11 +1,10 @@
-package querio.db
+package querio.vendor
 
 import java.sql.Connection
 
-import querio.codegen.json.{JsonSupport, WithoutJson}
 import querio.utils._
 
-class PostgreSQL extends OrmDbTrait {
+class PostgreSQL extends Vendor {
 
   object Error extends ErrorMatcher {
     // Codes from http://www.postgresql.org/docs/9.1/static/errcodes-appendix.html
@@ -58,19 +57,15 @@ class PostgreSQL extends OrmDbTrait {
     "LEFT", "LIKE", "NATURAL", "NOTNULL", "OUTER", "OVERLAPS", "RIGHT", "SIMILAR", "VERBOSE")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
-
   override def escapeName(name: String): String = '\"' + name + '\"'
-
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
 
   override def getAllProcessList(connection: Connection): String = ???
-
   override def lockWaitWrapper[T](maxAttempts: Int)(block: () => T): T = ???
-
   override def selectFoundRows: String = ???
-
   override def sqlCalcFoundRows: String = ???
 
 }
 
+object DefaultPostgreSQL extends PostgreSQL

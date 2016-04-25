@@ -2,7 +2,7 @@ package querio
 import java.sql.{PreparedStatement, ResultSet}
 
 import org.scalatest.FlatSpec
-import querio.db.{Mysql, OrmDbTrait}
+import querio.vendor.{Mysql, Vendor}
 
 class SelectTraitTest extends FlatSpec {
   class ElStub[T, V](renderFn: SqlBuffer => Any) extends El[T, V] {
@@ -25,7 +25,7 @@ class SelectTraitTest extends FlatSpec {
     override def _newMutableRecord: MutableArticle = new MutableArticle
     override def _newRecordFromResultSet(rs: ResultSet, index: Int): Article = ???
 
-    override val _ormDbTrait: OrmDbTrait = new Mysql
+    override val _vendor: Vendor = new Mysql
   }
   object Article extends ArticleTable(null)
 

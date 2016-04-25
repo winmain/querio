@@ -6,7 +6,7 @@ import java.time.{LocalDate, LocalDateTime}
 import javax.annotation.Nullable
 
 import org.apache.commons.lang3.StringUtils
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 import querio.utils.IterableTools.{wrapArray, wrapIterable}
 
 import scala.collection.immutable.IntMap
@@ -48,12 +48,12 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   private var fieldsBuilder = mutable.Buffer[ThisField]()
   private var fields: Vector[ThisField] = null
 
-  def _ormDbTrait: OrmDbTrait
+  def _vendor: Vendor
 
   /** Table name for sql queries */
   val _fullTableNameSql: String = {
     val prefix = if (_needDbPrefix) _dbName + "." else ""
-    val postfix = if (_escapeName) _ormDbTrait.escapeName(_name) else _name
+    val postfix = if (_escapeName) _vendor.escapeName(_name) else _name
     prefix + postfix
   }
 
@@ -163,7 +163,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
   abstract class Field[T, V](tfd: TFD[V]) extends querio.Field[T, V] {field =>
     def table: Table[TR, MTR] = selfTable
-    val name: String = if (tfd.escaped) table._ormDbTrait.escapeName(tfd.name) else tfd.name
+    val name: String = if (tfd.escaped) table._vendor.escapeName(tfd.name) else tfd.name
     val comment: String = tfd.comment
     def commentOrName: String = if (comment != null) comment else fullName
 

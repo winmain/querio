@@ -1,4 +1,4 @@
-package querio.db
+package querio.vendor
 
 import querio.utils.SQLExceptionMatcher
 

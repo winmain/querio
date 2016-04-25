@@ -2,9 +2,9 @@ package querio
 
 import java.sql.{ResultSet, Statement}
 
-import querio.db.OrmDbTrait
 import querio.utils.IterableTools.wrapIterable
 import querio.utils.{Pager, TypeEquality}
+import querio.vendor.Vendor
 
 // ------------------------------- Select traits -------------------------------
 
@@ -244,7 +244,7 @@ abstract class SqlBuilder[R]
   override def fetch(): Vector[R] = executeQuery(vectorFromRs)
 
   override def fetchCounted(): CountedResult[R] = {
-    buf.addSelectFlags(ormDbTrait.sqlCalcFoundRows)
+    buf.addSelectFlags(vendor.sqlCalcFoundRows)
     executeQuery {rs =>
       new CountedResult(vectorFromRs(rs), executeFoundRows)
     }
@@ -265,7 +265,7 @@ abstract class SqlBuilder[R]
     executeQuery(rs => body(new RsIterator(rs)), st => st.setFetchSize(fetchSize))
 
   override def fetchCountedLazy(body: CountedLazyResult[R] => Unit, fetchSize: Int = 10): Unit = {
-    buf.addSelectFlags(ormDbTrait.sqlCalcFoundRows)
+    buf.addSelectFlags(vendor.sqlCalcFoundRows)
     executeQuery({rs =>
       body(new CountedLazyResult(new RsIterator(rs), executeFoundRows))
     }, st => st.setFetchSize(fetchSize))
@@ -297,7 +297,7 @@ abstract class SqlBuilder[R]
   private def executeFoundRows: Int = {
     val st: Statement = buf.conn.connection.createStatement()
     try {
-      val countRs = st.executeQuery(ormDbTrait.selectFoundRows)
+      val countRs = st.executeQuery(vendor.selectFoundRows)
       countRs.next()
       val count: Int = countRs.getInt(1)
       countRs.close()
@@ -339,7 +339,7 @@ abstract class SqlBuilder[R]
   protected def recordFromResultSet(rs: ResultSet): R
 }
 
-protected class SqlBuilder1[V1](f1: ElTable[V1])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
+protected class SqlBuilder1[V1](f1: ElTable[V1])(implicit val vendor: Vendor, implicit val buf: SqlBuffer) extends SqlBuilder[V1] {
   override protected def recordFromResultSet(rs: ResultSet): V1 = f1._getValue(rs, 1)
   override protected def onErrorCreatingResultSet(rs: ResultSet, e: Exception): Nothing = {
     f1 match {
@@ -355,7 +355,7 @@ protected class SqlBuilder1[V1](f1: ElTable[V1])(implicit val ormDbTrait: OrmDbT
   }
 }
 
-protected class SqlBuilderCase1[R, V1](fn: (V1) => R, f1: El[_, V1])(implicit val ormDbTrait: OrmDbTrait, implicit val buf: SqlBuffer) extends SqlBuilder[R] {
+protected class SqlBuilderCase1[R, V1](fn: (V1) => R, f1: El[_, V1])(implicit val vendor: Vendor, implicit val buf: SqlBuffer) extends SqlBuilder[R] {
   protected def recordFromResultSet(rs: ResultSet): R = fn(f1.getValue(rs, 1))
 }
 

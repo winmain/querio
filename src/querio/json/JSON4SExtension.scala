@@ -1,7 +1,7 @@
 package querio.json
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
-trait JSON4SExtension {this: OrmDbTrait =>
+trait JSON4SExtension {this: Vendor =>
   addTypeExtension(JSON4SFieldTypeExtension)
   addTableTraitExtension(JSON4STableTraitExtension)
 }

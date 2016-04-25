@@ -4,12 +4,12 @@ import java.util.regex.Pattern
 
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.Splitted
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class TableReader(db: OrmDbTrait, lines: List[String]) {
+class TableReader(db: Vendor, lines: List[String]) {
 
   import TableReader._
 
@@ -116,7 +116,7 @@ class TableReader(db: OrmDbTrait, lines: List[String]) {
       case tableNewRecordR(constructorParams) =>
         constructorVarNames = tableNewRecordGetValueR.findAllMatchIn(constructorParams).map(_.group(1)).toVector
 
-      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() | tableNewMutableRecordR() | tableOrmDbTraitFieldR() => ()
+      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() | tableNewMutableRecordR() | tableVendorFieldR() => ()
       case s => userTableLines += line
     }
     userTableLines = userTableLines.dropWhile(StringUtils.isBlank)
@@ -214,7 +214,7 @@ object TableReader {
     $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
-  val tableOrmDbTraitFieldR = """def +_ormDbTrait *=.*""".r
+  val tableVendorFieldR = """def +_vendor *=.*""".r
   val tablePrimaryKeyR = """def +_primaryKey[: =].*""".r
   val tableNewMutableRecordR = """def +_newMutableRecord[: =].*""".r
   val tableNewRecordR = """def +_newRecordFromResultSet\([^)]+\):.*?new [^\(]+\((.*)\)""".r

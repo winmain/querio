@@ -5,14 +5,14 @@ import java.io.File
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.wrapIterable
 import querio.codegen.patch.OrmPatches
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
 import scala.collection.mutable
 import scala.io.Source
 import scalax.file.Path
 
 
-class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
+class TableGenerator(vendor: Vendor, dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
                      primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
                      isDefaultDatabase: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
@@ -38,13 +38,13 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
 
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
 
-  class Generator(source: String) extends TableGeneratorData{
-    val ormPatches: OrmPatches = new OrmPatches(db)
-    val reader: TableReader = if (source == null) new TableReader(db, Nil)
+  class Generator(source: String) extends TableGeneratorData {
+    val ormPatches: OrmPatches = new OrmPatches(vendor)
+    val reader: TableReader = if (source == null) new TableReader(vendor, Nil)
     else {
       val original: List[String] = StringUtils.splitPreserveAllTokens(source, '\n').toList
       val patched: List[String] = ormPatches.autoPatchChopVersion(original)
-      new TableReader(db, patched)
+      new TableReader(vendor, patched)
     }
 
     val columns: Vector[InnerCol] = columnsRs.map {crs =>
@@ -73,8 +73,8 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       def classField(p: SourcePrinter): Unit
       def mutableClassField(p: SourcePrinter): Unit
 
-      def maybeUnescapeName: String = db.maybeUnescapeName(rs.name)
-      def escaped: Boolean = db.isReservedWord(rs.name)
+      def maybeUnescapeName: String = vendor.maybeUnescapeName(rs.name)
+      def escaped: Boolean = vendor.isReservedWord(rs.name)
 
       protected def withComment: String = rs.remarks match {
         case s if StringUtils.isEmpty(s) => ""
@@ -103,7 +103,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     case class NamedCol(rs: ColumnRS) extends InnerCol {
       val varName = GeneratorConfig.columnNameToVar(rs.name)
       val ft: FieldType =
-        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, db.getTypeExtensions)
+        try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, vendor.getTypeExtensions)
         catch {
           case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
         }
@@ -161,9 +161,9 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
-      p imp db.getClassImport
+      p imp vendor.getClassImport
       p imp GeneratorConfig.importTable
-      val escaped = db.isReservedWord(table.name)
+      val escaped = vendor.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
       val tableDefinition = reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
       val (fullTableDefinition, imports) = withAdditionTraitsForTable(tableDefinition)
@@ -174,8 +174,8 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
         p ++ "_fields_registered()" n()
         p n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
-        // TODO fix it. wrong definition of _ormDbTrait
-        p ++ "def _ormDbTrait = " ++ StringUtils.removeEnd(db.getClass.getSimpleName, "$") n()
+        // TODO fix it. wrong definition of _vendor
+        p ++ "def _vendor = " ++ StringUtils.removeEnd(vendor.getClass.getSimpleName, "$") n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
 
@@ -193,7 +193,7 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
     def withAdditionTraitsForTable(tableDefinition: String): (String, Seq[String]) = {
       def normalize(s: String): String = s.replace(" ", "").replace("\t", "")
       val tableDefinitionTemplate = normalize(tableDefinition)
-      val (traits, imports) = db.getTableTraitsExtensions
+      val (traits, imports) = vendor.getTableTraitsExtensions
         .flatMap(_.recognize(this))
         .filter {
           case (traitDef, _) =>
@@ -323,19 +323,12 @@ class TableGenerator(db: OrmDbTrait, dbName: String, table: TableRS, columnsRs: 
 
 trait Col {
   def rs: ColumnRS
-
   def varName: String
-
   def shortScalaType: String
-
   def objectField(p: SourcePrinter): Unit
-
   def classField(p: SourcePrinter): Unit
-
   def mutableClassField(p: SourcePrinter): Unit
-
   def maybeUnescapeName: String
-
   def escaped: Boolean
 }
 

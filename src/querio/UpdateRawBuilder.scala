@@ -1,5 +1,5 @@
 package querio
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
 // ------------------------------- Update traits -------------------------------
 
@@ -24,12 +24,12 @@ trait UpdateRawLimitStep extends UpdateRawFinalStep {
 
 trait UpdateRawFinalStep extends SqlQuery {
   /**
-   * Execute update and return affected row count
-   */
+    * Execute update and return affected row count
+    */
   def execute(): Int
 }
 
-class UpdateRawBuilder(implicit val ormDbTrait:OrmDbTrait, implicit val buf: SqlBuffer)
+class UpdateRawBuilder(implicit val vendor: Vendor, implicit val buf: SqlBuffer)
   extends UpdateRawSetStep with UpdateRawSetNextStep with UpdateRawConditionStep {
 
   private var firstSet = true
@@ -47,14 +47,14 @@ class UpdateRawBuilder(implicit val ormDbTrait:OrmDbTrait, implicit val buf: Sql
     else {clauses.foreach(set); this}
   }
 
-  override def &&(cond: Condition): this.type = { buf ++ " and (" ++ cond ++ ")"; this }
-  override def ||(cond: Condition): this.type = { buf ++ " or (" ++ cond ++ ")"; this }
+  override def &&(cond: Condition): this.type = {buf ++ " and (" ++ cond ++ ")"; this}
+  override def ||(cond: Condition): this.type = {buf ++ " or (" ++ cond ++ ")"; this}
 
   override def where(cond: Condition): UpdateRawConditionStep
-  = { buf ++ "\nwhere (" ++ cond ++ ")"; this }
+  = {buf ++ "\nwhere (" ++ cond ++ ")"; this}
 
   override def limit(numberOfRows: Int): UpdateRawFinalStep
-  = { buf ++ "\nlimit " ++ numberOfRows; this }
+  = {buf ++ "\nlimit " ++ numberOfRows; this}
 
   // ------------------------------- Execute statements -------------------------------
 

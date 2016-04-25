@@ -2,14 +2,14 @@ package querio.codegen
 
 import java.sql.{Connection, DatabaseMetaData, ResultSet}
 
-import querio.db.OrmDbTrait
+import querio.vendor.Vendor
 
 import scala.collection.mutable
 import scalax.file.Path
 
 /**
   *
-  * @param db                database specific behaviour
+  * @param vendor            database specific behaviour
   * @param connection        database connection
   * @param catalog           database name for mysql
   * @param schema            null for mysql
@@ -22,7 +22,7 @@ import scalax.file.Path
   * @param toTempFile        generate classes to temporary file (for testing purposes).
   *                          Better use with tableNamePattern set.
   */
-class DatabaseGenerator(db: OrmDbTrait,
+class DatabaseGenerator(vendor: Vendor,
                         connection: Connection,
                         catalog: String,
                         schema: String = null,
@@ -48,7 +48,7 @@ class DatabaseGenerator(db: OrmDbTrait,
       val columns = columnsBuilder.result()
 
       try {
-        val generator: TableGenerator = new TableGenerator(db, catalog, trs, columns, primaryKeyNames, pkg,
+        val generator: TableGenerator = new TableGenerator(vendor, catalog, trs, columns, primaryKeyNames, pkg,
           dir, tableNamePrefix, isDefaultDatabase)
         tableObjectNames += {
           val gen: TableGenerator#Generator =

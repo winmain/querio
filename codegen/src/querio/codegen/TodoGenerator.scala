@@ -1,7 +1,7 @@
 package querio.codegen
 
 import java.sql.DriverManager
-import querio.db.{Mysql}
+import querio.vendor.{Mysql}
 
 import scalax.file.Path
 import java.io.File
