@@ -12,7 +12,8 @@ import scala.io.Source
 import scalax.file.Path
 
 
-class TableGenerator(vendor: Vendor, dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
+class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
+                     dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
                      primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
                      isDefaultDatabase: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
@@ -161,7 +162,6 @@ class TableGenerator(vendor: Vendor, dbName: String, table: TableRS, columnsRs: 
       * Создать класс таблицы, наследующий Table с описанием полей
       */
     def genTableClass(p: SourcePrinter) {
-      p imp vendor.getClassImport
       p imp GeneratorConfig.importTable
       val escaped = vendor.isReservedWord(table.name)
       val needPrefix = !isDefaultDatabase
@@ -174,8 +174,8 @@ class TableGenerator(vendor: Vendor, dbName: String, table: TableRS, columnsRs: 
         p ++ "_fields_registered()" n()
         p n()
         if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
-        // TODO fix it. wrong definition of _vendor
-        p ++ "def _vendor = " ++ StringUtils.removeEnd(vendor.getClass.getSimpleName, "$") n()
+        vendorClassName.imp(p)
+        p ++ "def _vendor = " ++ vendorClassName.shortName n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
         p ++ "def _newMutableRecord = new " ++ tableMutableName ++ "()" n()
 

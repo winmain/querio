@@ -2,6 +2,7 @@ package querio.codegen
 
 import java.sql.{Connection, DatabaseMetaData, ResultSet}
 
+import org.apache.commons.lang3.StringUtils
 import querio.vendor.Vendor
 
 import scala.collection.mutable
@@ -9,7 +10,7 @@ import scalax.file.Path
 
 /**
   *
-  * @param vendor            database specific behaviour
+  * @param vendor            database vendor-specific behaviour
   * @param connection        database connection
   * @param catalog           database name for mysql
   * @param schema            null for mysql
@@ -19,6 +20,7 @@ import scalax.file.Path
   * @param dir               base directory for classes
   * @param tableNamePrefix   table name prefix prepending class names
   * @param isDefaultDatabase in default database table names without database prefixes for clarity
+  * @param vendorClassName   define custom vendor ClassName, otherwise it will be created from `vendor` parameter
   * @param toTempFile        generate classes to temporary file (for testing purposes).
   *                          Better use with tableNamePattern set.
   */
@@ -32,9 +34,14 @@ class DatabaseGenerator(vendor: Vendor,
                         dir: Path,
                         tableNamePrefix: String = "",
                         isDefaultDatabase: Boolean = false,
+                        vendorClassName: ClassName = null,
                         toTempFile: Boolean = false) {
 
   def generateDb() {
+    val vendClassName: ClassName = vendorClassName match {
+      case null => ClassName(StringUtils.removeEnd(vendor.getClass.getName, "$"))
+      case cn => cn
+    }
     val metaData: DatabaseMetaData = connection.getMetaData
     val tablesRS: ResultSet = metaData.getTables(catalog, schema, tableNamePattern, Array("TABLE"))
     val tableObjectNames = mutable.Buffer[String]()
@@ -48,7 +55,8 @@ class DatabaseGenerator(vendor: Vendor,
       val columns = columnsBuilder.result()
 
       try {
-        val generator: TableGenerator = new TableGenerator(vendor, catalog, trs, columns, primaryKeyNames, pkg,
+        val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
+          catalog, trs, columns, primaryKeyNames, pkg,
           dir, tableNamePrefix, isDefaultDatabase)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
