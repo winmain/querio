@@ -1,5 +1,4 @@
 package querio
-import querio.vendor.Vendor
 
 // ------------------------------- Update traits -------------------------------
 
@@ -20,7 +19,7 @@ trait UpdateFinalStep extends SqlQuery {
   def execute(): Unit
 }
 
-class UpdateBuilder(table: AnyTable, id: Int)(implicit val vendor: Vendor, implicit val buf: SqlBuffer)
+class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
   extends UpdateSetStep with UpdateSetNextStep {
 
   private var firstSet = true

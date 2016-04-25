@@ -1,5 +1,4 @@
 package querio
-import querio.vendor.Vendor
 
 
 trait DeleteWhereStep {
@@ -16,7 +15,7 @@ trait DeleteFinalStep extends SqlQuery {
 }
 
 
-protected class DeleteBuilder(implicit val vendor: Vendor, implicit val buf: SqlBuffer)
+protected class DeleteBuilder(implicit val buf: SqlBuffer)
   extends DeleteWhereStep with DeleteConditionStep {
 
   override def &&(cond: Condition): this.type = {buf ++ " and (" ++ cond ++ ")"; this}

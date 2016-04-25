@@ -2,7 +2,7 @@ package querio
 import java.sql.{PreparedStatement, ResultSet}
 
 import org.scalatest.FlatSpec
-import querio.vendor.{Mysql, Vendor}
+import querio.vendor.{DefaultMysql, Mysql, Vendor}
 
 class SelectTraitTest extends FlatSpec {
   class ElStub[T, V](renderFn: SqlBuffer => Any) extends El[T, V] {
@@ -59,8 +59,8 @@ class SelectTraitTest extends FlatSpec {
   // ------------------------------- Query Context -------------------------------
 
   class QueryContext {
-    val buf: DefaultSqlBuffer = new DefaultSqlBuffer(null)
-    val query: DefaultQuery = new DefaultQuery(new Mysql,buf)
+    val buf: DefaultSqlBuffer = new DefaultSqlBuffer(DefaultMysql, null)
+    val query: DefaultQuery = new DefaultQuery(buf)
   }
 
   "SelectTrait" should "select one field" in new QueryContext {

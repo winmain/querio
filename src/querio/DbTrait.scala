@@ -379,7 +379,7 @@ abstract class BaseDb(override val vendor: Vendor) extends DbTrait {
   override type TR = DefaultTransaction
   override type DT = DefaultDataTr
 
-  override protected def newQuery(conn: Conn): Q = new DefaultQuery(vendor, new DefaultSqlBuffer(conn))
+  override protected def newQuery(conn: Conn): Q = new DefaultQuery(new DefaultSqlBuffer(vendor, conn))
   override protected def newConn(connection: Connection): Conn = new DefaultConn(connection)
   override protected def newTransactionObject(connection: Connection, isolationLevel: Int, parent: Option[Transaction]): TR =
     new DefaultTransaction(connection, isolationLevel, parent)

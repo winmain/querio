@@ -168,7 +168,7 @@ trait EnumStringEl[E <: ScalaDbEnumCls[E]] extends El[E, E] with BaseStringEnumR
 
 trait BaseBigDecimalRender {self: Field[BigDecimal, _] =>
   def renderEscapedT(value: BigDecimal)(implicit buf: SqlBuffer) = {
-    if (value == null) sys.error("Cannot render null field: " + self.renderToString)
+    if (value == null) sys.error("Cannot render null field: " + self.renderToString(buf.vendor))
     buf renderBigDecimalValue value
   }
   def newExpression(r: (SqlBuffer) => Unit): El[BigDecimal, BigDecimal] = new BigDecimalField {
@@ -235,7 +235,7 @@ class CustomDoubleField(val sql: String) extends DoubleField {
 
 trait BaseTemporalRender {self: Field[Temporal, _] =>
   def renderEscapedT(value: Temporal)(implicit buf: SqlBuffer): Unit = {
-    if (value == null) sys.error("Cannot render null field: " + self.renderToString)
+    if (value == null) sys.error("Cannot render null field: " + self.renderToString(buf.vendor))
     buf renderTemporalValue value
   }
   def newExpression(r: (SqlBuffer) => Unit): El[Temporal, Temporal] = new Field[Temporal, Temporal] with BaseTemporalRender {

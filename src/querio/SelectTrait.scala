@@ -1,5 +1,4 @@
 package querio
-import querio.vendor.Vendor
 
 trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {
   def selectFrom[TR <: TableRecord](table: TrTable[TR]): SelectJoinStep[TR] = select(table).from(table)
@@ -44,4 +43,4 @@ protected trait SelectSqlUtils extends SqlQuery {
   }
 }
 
-class SelectBuilder(implicit val vendor: Vendor, implicit val buf: SqlBuffer) extends SelectFlagStep with SelectFlagOfStep
+class SelectBuilder(implicit val buf: SqlBuffer) extends SelectFlagStep with SelectFlagOfStep

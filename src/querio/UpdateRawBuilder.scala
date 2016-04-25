@@ -1,5 +1,4 @@
 package querio
-import querio.vendor.Vendor
 
 // ------------------------------- Update traits -------------------------------
 
@@ -29,7 +28,7 @@ trait UpdateRawFinalStep extends SqlQuery {
   def execute(): Int
 }
 
-class UpdateRawBuilder(implicit val vendor: Vendor, implicit val buf: SqlBuffer)
+class UpdateRawBuilder(implicit val buf: SqlBuffer)
   extends UpdateRawSetStep with UpdateRawSetNextStep with UpdateRawConditionStep {
 
   private var firstSet = true

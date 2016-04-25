@@ -2,14 +2,17 @@ package querio
 
 import java.lang.StringBuilder
 import java.sql.{SQLException, Statement}
-import java.time.{LocalDateTime, LocalDate}
 import java.time.temporal.Temporal
+import java.time.{LocalDate, LocalDateTime}
 
 import org.apache.commons.lang3.StringUtils
 import querio.utils.SqlEscapeUtils
+import querio.vendor.Vendor
 
 trait SqlBuffer {
   implicit def self: SqlBuffer = this
+
+  def vendor: Vendor
 
   val sb = new StringBuilder(128)
 
@@ -107,9 +110,10 @@ object SqlBuffer {
   /**
    * Создать пустой SqlBuffer без соединения с БД. Обычно, он нужен для создания строки SQL.
    */
-  def stub = new SqlBuffer {
+  def stub(vend: Vendor) = new SqlBuffer {
     def conn: Conn = throw new UnsupportedOperationException
+    override def vendor: Vendor = vend
   }
 }
 
-class DefaultSqlBuffer(val conn: Conn) extends SqlBuffer
+class DefaultSqlBuffer(val vendor: Vendor, val conn: Conn) extends SqlBuffer

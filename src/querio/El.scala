@@ -2,6 +2,8 @@ package querio
 
 import java.sql.{PreparedStatement, ResultSet}
 
+import querio.vendor.Vendor
+
 trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V] {self =>
   override def _fieldNum: Int = 1
   override final def _renderFields(implicit buf: SqlBuffer): Unit = render
@@ -93,7 +95,7 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
   // ------------------------------- Abstract methods -------------------------------
 
   def render(implicit buf: SqlBuffer): Unit
-  def renderToString: String = (SqlBuffer.stub ++ self).toString
+  def renderToString(vendor: Vendor): String = (SqlBuffer.stub(vendor) ++ self).toString
   def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit
   def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit
 
