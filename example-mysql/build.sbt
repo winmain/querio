@@ -36,7 +36,7 @@ lazy val codegen: Project = Project("codegen", base = file("modules/codegen"),
   ))
 
 
-lazy val example = (project in file(".")).settings(
+lazy val querio_example_mysql = (project in file(".")).settings(
   name := "querio-example-mysql",
   version := "0.1",
   scalaVersion := "2.11.7",

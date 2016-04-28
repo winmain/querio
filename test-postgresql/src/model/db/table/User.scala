@@ -6,7 +6,7 @@ import java.sql.ResultSet
 import model.db.Db
 import org.json4s.JsonAST.JValue
 import querio._
-import querio.vendor.{DefaultPostgreSQL, Vendor}
+import querio.vendor.{DefaultMysql, DefaultPostgreSQL, Vendor}
 import querio.json.JSON4SJsonFields
 
 class UserTable(alias: String) extends Table[User, MutableUser]("example", "user", alias, false, true) with JSON4SJsonFields[User, MutableUser] {
@@ -22,10 +22,10 @@ class UserTable(alias: String) extends Table[User, MutableUser]("example", "user
 
 
   override val _comment = "null"
+  def _vendor = DefaultPostgreSQL
   def _primaryKey = Some(id)
   def _newMutableRecord = new MutableUser()
   def _newRecordFromResultSet($rs: ResultSet, $i: Int): User = new User(id.getTableValue($rs, $i), email.getTableValue($rs, $i), passwordHash.getTableValue($rs, $i), active.getTableValue($rs, $i), rating.getTableValue($rs, $i), verbose.getTableValue($rs, $i), jsB.getTableValue($rs, $i), js.getTableValue($rs, $i))
-  override def _vendor: Vendor = DefaultPostgreSQL
 }
 object User extends UserTable(null)
 
