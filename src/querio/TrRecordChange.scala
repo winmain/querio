@@ -33,12 +33,21 @@ case class TrDeleteChange(maybeMtr: Option[AnyMutableTableRecord]) extends TrRec
   * @param mtr Changed record
   */
 case class TrSomeChange(mtr: AnyMutableTableRecord) extends TrRecordChange {
+  require(mtr != null)
   override def mtrOpt[MTR <: AnyMutableTableRecord]: Option[MTR] = Some(mtr.asInstanceOf[MTR])
   override def validate(table: AnyTable, id: Int): Unit = require(mtr._table == table && mtr._primaryKey == id)
 }
 
 
 object TrRecordChange {
+  /**
+    * Make [[TrSomeChange]] or [[TrUnknownChange]] for insert/update
+    */
+  def apply(maybeMtr: Option[AnyMutableTableRecord]): TrRecordChange = maybeMtr match {
+    case Some(mtr) => TrSomeChange(mtr)
+    case None => TrUnknownChange
+  }
+
   /**
     * Extractor to help combine handling [[TrSomeChange]] and [[TrDeleteChange]] with
     * defined [[AnyMutableTableRecord]].
