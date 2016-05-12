@@ -30,6 +30,8 @@ lazy val querio_test_postgresql = (project in file(".")).settings(
   libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
 
     //  libraryDependencies += "ru.yandex.qatools.embed" % "postgresql-embedded" % "1.12",
+  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0",
+
 
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
   scalaSource in Compile := baseDirectory.value / "src",

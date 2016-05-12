@@ -1,5 +1,5 @@
 package test
-import org.specs2.Specification
+import org.specs2.mutable.Specification
 import org.specs2.specification.core.Fragments
 
 trait BeforeAllAfterAll extends Specification {
