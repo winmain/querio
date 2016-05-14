@@ -3,6 +3,7 @@ import java.io.File
 import javax.sql.DataSource
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
+import model.db.{ PostgresSQLVendor}
 import querio.codegen.DatabaseGenerator
 import querio.json.JSON4SExtension
 import querio.vendor.PostgreSQL
@@ -19,11 +20,12 @@ object SourcesGenerator extends SQLUtil {
       stmt.executeUpdate(BaseScheme.sql)
     }
     inConnection(dataSource) {connection =>
-      new DatabaseGenerator(new PostgreSQL with JSON4SExtension, connection, null,
+      new DatabaseGenerator(PostgresSQLVendor, connection, "postgres",
         pkg = "model.db.table",
         tableListClass = "model.db.Tables",
         dir = dir,
         isDefaultDatabase = true).generateDb()
     }
+    pg.close()
   }
 }

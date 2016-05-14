@@ -1,26 +1,25 @@
 package test
-import java.sql.{Connection, SQLException, Statement}
+import java.sql.{Connection, ResultSet}
 import javax.sql.DataSource
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
+import model.db.PostgresSQLVendor
+//import model.db.table.MutableUser
 import org.specs2.mutable.Specification
 import querio.BaseDb
-import querio.json.JSON4SExtension
-import querio.vendor.PostgreSQL
+import querio.vendor.Vendor
 
 
-abstract class DbTestBase extends Specification with BeforeAllAfterAll with SQLUtil{
+abstract class DbTestBase(val schemaSql: String) extends Specification with BeforeAllAfterAll with SQLUtil {
+
+//  sequential
 
   private var pg: EmbeddedPostgres = _
 
   private var dataSource: DataSource = _
 
-  //  def dbName(): String
-
-  def schemaSql(): String
-
   val db =
-    new BaseDb(new PostgreSQL with JSON4SExtension) {
+    new BaseDb(PostgresSQLVendor) {
       override protected def getConnection: Connection = {
         dataSource.getConnection
       }
@@ -32,9 +31,8 @@ abstract class DbTestBase extends Specification with BeforeAllAfterAll with SQLU
     inStatement(dataSource) {stmt =>
       //      stmt.executeUpdate(s"DROP DATABASE IF EXISTS ${dbName()}")
       //      stmt.executeUpdate(s"CREATE DATABASE ${dbName()}")
-      stmt.executeUpdate(schemaSql())
+      stmt.executeUpdate(schemaSql)
     }
-
   }
   //
   override protected def afterAll() {
