@@ -75,7 +75,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       def mutableClassField(p: SourcePrinter): Unit
 
       def maybeUnescapeName: String = vendor.maybeUnescapeName(rs.name)
-      def escaped: Boolean = vendor.isReservedWord(rs.name)
+      def escaped: Boolean = vendor.isNeedEscape(rs.name)
 
       protected def withComment: String = rs.remarks match {
         case s if StringUtils.isEmpty(s) => ""
@@ -163,7 +163,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       */
     def genTableClass(p: SourcePrinter) {
       p imp GeneratorConfig.importTable
-      val escaped = vendor.isReservedWord(table.name)
+      val escaped = vendor.isNeedEscape(table.name)
       val needPrefix = !isDefaultDatabase
       val tableDefinition = reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
       val (fullTableDefinition, imports) = withAdditionTraitsForTable(tableDefinition)

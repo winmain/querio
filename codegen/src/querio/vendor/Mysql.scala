@@ -79,6 +79,8 @@ class Mysql extends Vendor {
     "DAY_HOUR", "YEAR_MONTH")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
+  override def isNeedEscape(word: String): Boolean = isReservedWord(word)
+
   override def escapeName(name: String): String = '`' + name + '`'
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped

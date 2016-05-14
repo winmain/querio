@@ -17,11 +17,13 @@ trait Vendor {
   def getClassImport: String
 
   def isReservedWord(word: String): Boolean
+  def isNeedEscape(word: String): Boolean
+
   def escapeName(name: String): String
   def unescapeName(escaped: String): String
 
-  def maybeEscapeName(name: String): String = if (isReservedWord(name)) escapeName(name) else name
-  def maybeUnescapeName(name: String): String = if (isReservedWord(name)) unescapeName(name) else name
+  def maybeEscapeName(name: String): String = if (isNeedEscape(name)) escapeName(name) else name
+  def maybeUnescapeName(name: String): String = if (isNeedEscape(name)) unescapeName(name) else name
 
   def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T
 

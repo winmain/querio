@@ -57,6 +57,8 @@ class PostgreSQL extends Vendor {
     "LEFT", "LIKE", "NATURAL", "NOTNULL", "OUTER", "OVERLAPS", "RIGHT", "SIMILAR", "VERBOSE")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
+  override def isNeedEscape(word: String): Boolean = isReservedWord(word) || isHaveUpperCase(word)
+
   override def escapeName(name: String): String = '\"' + name + '\"'
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
@@ -65,6 +67,8 @@ class PostgreSQL extends Vendor {
   override def lockWaitWrapper[T](maxAttempts: Int)(block: () => T): T = ???
   override def selectFoundRows: String = ???
   override def sqlCalcFoundRows: String = ???
+
+  def isHaveUpperCase(word: String) = word.toLowerCase != word
 
 }
 
