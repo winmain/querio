@@ -4,15 +4,25 @@ import javax.sql.DataSource
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import model.db.PostgresSQLVendor
-//import model.db.table.MutableUser
+import org.specs2.mutable.BeforeAfter
 import org.specs2.mutable.Specification
 import querio.BaseDb
-import querio.vendor.Vendor
 
 
-abstract class DbTestBase(val schemaSql: String) extends Specification with BeforeAllAfterAll with SQLUtil {
+abstract class DbTestBase(val crateSchemaSql: String,
+                          val truncateSql: String) extends Specification
+  with BeforeAllAfterAll with SQLUtil {
 
-//  sequential
+  sequential
+
+  trait FreshDB extends BeforeAfter {
+    def before = {
+      inStatement(dataSource) {stmt =>
+        val set: ResultSet = stmt.executeQuery(truncateSql)
+      }
+    }
+    def after = {}
+  }
 
   private var pg: EmbeddedPostgres = _
 
@@ -31,10 +41,10 @@ abstract class DbTestBase(val schemaSql: String) extends Specification with Befo
     inStatement(dataSource) {stmt =>
       //      stmt.executeUpdate(s"DROP DATABASE IF EXISTS ${dbName()}")
       //      stmt.executeUpdate(s"CREATE DATABASE ${dbName()}")
-      stmt.executeUpdate(schemaSql)
+      stmt.executeUpdate(crateSchemaSql)
     }
   }
-  //
+
   override protected def afterAll() {
     //    inStatement(dataSource) {stmt =>
     //      stmt.executeUpdate(s"DROP DATABASE ${dbName()}")

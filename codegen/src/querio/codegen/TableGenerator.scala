@@ -15,26 +15,33 @@ import scalax.file.Path
 class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
                      dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
                      primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
-                     isDefaultDatabase: Boolean = false) {
+                     isDefaultDatabase: Boolean = false,
+                     noRead: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
   val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
 
   def generateToFile(): Generator = {
-    val gen: Generator = new Generator(readSource(filePath))
+    val gen: Generator = makeGenerator
     gen.generate().saveToFile(filePath)
     gen
   }
 
   def generateToTempFile(): Generator = {
-    val gen: Generator = new Generator(readSource(filePath))
+    val gen: Generator = makeGenerator
     gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
     gen
   }
 
   def generateDoubleTest(): Unit = {
-    val result1 = new Generator(readSource(filePath)).generate().getSource
+    val result1 = makeGenerator.generate().getSource
     val result2 = new Generator(result1).generate().getSource
     Path(new File("/tmp/tt.scala")).write(result2)
+  }
+
+
+  private def makeGenerator: Generator = {
+    if (noRead) new Generator(null)
+    else new Generator(readSource(filePath))
   }
 
   private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null

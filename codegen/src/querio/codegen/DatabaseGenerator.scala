@@ -35,7 +35,8 @@ class DatabaseGenerator(vendor: Vendor,
                         tableNamePrefix: String = "",
                         isDefaultDatabase: Boolean = false,
                         vendorClassName: ClassName = null,
-                        toTempFile: Boolean = false) {
+                        toTempFile: Boolean = false,
+                        noRead: Boolean = false) {
 
   def generateDb() {
     val vendClassName: ClassName = vendorClassName match {
@@ -57,7 +58,7 @@ class DatabaseGenerator(vendor: Vendor,
       try {
         val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
           catalog, trs, columns, primaryKeyNames, pkg,
-          dir, tableNamePrefix, isDefaultDatabase)
+          dir, tableNamePrefix, isDefaultDatabase, noRead = noRead)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
             if (toTempFile) generator.generateToTempFile()

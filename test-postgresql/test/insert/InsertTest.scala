@@ -5,14 +5,16 @@ import model.db.table.{MutableUser, User}
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
 
-class InsertTest extends DbTestBase(BaseScheme.sql) {
+class InsertTest extends DbTestBase(
+  crateSchemaSql = BaseScheme.crateSql,
+  truncateSql = BaseScheme.truncateSql) {
 
   val mddt = new ModifyData {
     override def dateTime: LocalDateTime = LocalDateTime.now()
   }
 
   "Table \"user\"" should {
-    "support access when  empty" in {
+    "support access when  empty" in new FreshDB {
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
@@ -20,7 +22,8 @@ class InsertTest extends DbTestBase(BaseScheme.sql) {
       result1 must beEmpty
     }
 
-    "support simple insert" in {
+
+    "support simple insert" in new FreshDB{
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
@@ -42,7 +45,7 @@ class InsertTest extends DbTestBase(BaseScheme.sql) {
       result2 must_== Vector(mail)
     }
 
-    "support insert of many rows" in {
+    "support insert of many rows" in new FreshDB{
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
@@ -69,6 +72,5 @@ class InsertTest extends DbTestBase(BaseScheme.sql) {
         fetch())
       result2 must_== mails
     }
-
   }
 }

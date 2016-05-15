@@ -17,13 +17,14 @@ object SourcesGenerator extends SQLUtil {
     val pg: EmbeddedPostgres = EmbeddedPostgres.start()
     val dataSource: DataSource = pg.getPostgresDatabase()
     inStatement(dataSource) {stmt =>
-      stmt.executeUpdate(BaseScheme.sql)
+      stmt.executeUpdate(BaseScheme.crateSql)
     }
     inConnection(dataSource) {connection =>
       new DatabaseGenerator(PostgresSQLVendor, connection, "postgres",
         pkg = "model.db.table",
         tableListClass = "model.db.Tables",
         dir = dir,
+        noRead = true,
         isDefaultDatabase = true).generateDb()
     }
     pg.close()

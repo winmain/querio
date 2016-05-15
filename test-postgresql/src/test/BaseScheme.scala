@@ -1,10 +1,10 @@
 package test
 
 object BaseScheme {
-  def sql: String = """
+  def crateSql: String = """
     CREATE TABLE "user"
     (
-      id BIGSERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
       email character varying(128) NOT NULL,
       "password_hash" character varying(32) NOT NULL,
       "active" boolean NOT NULL,
@@ -20,7 +20,7 @@ object BaseScheme {
 
     CREATE TABLE "level"
     (
-      id BIGSERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
       "userId" bigint NOT NULL,
       "level" int NOT NULL,
       "score" int NOT NULL DEFAULT 0,
@@ -33,7 +33,7 @@ object BaseScheme {
 
     CREATE TABLE "purchase"
     (
-      id BIGSERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
       "userId" bigint NOT NULL,
       "purchaseCode" int NOT NULL,
       "price" int NOT NULL,
@@ -44,4 +44,8 @@ object BaseScheme {
     );
 
                     """
+
+  def truncateSql: String = """
+    TRUNCATE "user","level","purchase";
+                         """
 }

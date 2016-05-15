@@ -10,7 +10,7 @@ import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
 import querio.json.JSON4SJsonFields
 
 class UserTable(alias: String) extends Table[User, MutableUser]("postgres", "user", alias, false, true) with JSON4SJsonFields[User, MutableUser] {
-  val id = new Long_TF(TFD("id", _.id, _.id, _.id = _))
+  val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
   val email = new String_TF(TFD("email", _.email, _.email, _.email = _))
   val passwordHash = new String_TF(TFD("password_hash", _.passwordHash, _.passwordHash, _.passwordHash = _))
   val active = new Boolean_TF(TFD("active", _.active, _.active, _.active = _))
@@ -23,13 +23,13 @@ class UserTable(alias: String) extends Table[User, MutableUser]("postgres", "use
 
   override val _comment = "null"
   def _vendor = PostgresSQLVendor
-  def _primaryKey = None
+  def _primaryKey = Some(id)
   def _newMutableRecord = new MutableUser()
   def _newRecordFromResultSet($rs: ResultSet, $i: Int): User = new User(id.getTableValue($rs, $i), email.getTableValue($rs, $i), passwordHash.getTableValue($rs, $i), active.getTableValue($rs, $i), rating.getTableValue($rs, $i), verbose.getTableValue($rs, $i), jsB.getTableValue($rs, $i), js.getTableValue($rs, $i), lastlogin.getTableValue($rs, $i))
 }
 object User extends UserTable(null)
 
-class User(val id: Long,
+class User(val id: Int,
            val email: String,
            val passwordHash: String,
            val active: Boolean,
@@ -39,13 +39,13 @@ class User(val id: Long,
            val js: JValue,
            val lastlogin: LocalDateTime) extends TableRecord {
   def _table = User
-  def _primaryKey: Int = 0
+  def _primaryKey: Int = id
   def toMutable: MutableUser = { val m = new MutableUser; m.id = id; m.email = email; m.passwordHash = passwordHash; m.active = active; m.rating = rating; m.verbose = verbose; m.jsB = jsB; m.js = js; m.lastlogin = lastlogin; m }
 }
 
 
 class MutableUser extends MutableTableRecord[User] {
-  var id: Long = _
+  var id: Int = _
   var email: String = _
   var passwordHash: String = _
   var active: Boolean = _
@@ -56,8 +56,8 @@ class MutableUser extends MutableTableRecord[User] {
   var lastlogin: LocalDateTime = _
 
   def _table = User
-  def _primaryKey: Int = 0
-  def _setPrimaryKey($: Int): Unit = {}
+  def _primaryKey: Int = id
+  def _setPrimaryKey($: Int): Unit = id = $
   def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = { if (withPrimaryKey) {User.id.renderEscapedValue(id); buf ++ ", "}; User.email.renderEscapedValue(email); buf ++ ", "; User.passwordHash.renderEscapedValue(passwordHash); buf ++ ", "; User.active.renderEscapedValue(active); buf ++ ", "; User.rating.renderEscapedValue(rating); buf ++ ", "; User.verbose.renderEscapedValue(verbose); buf ++ ", "; User.jsB.renderEscapedValue(jsB); buf ++ ", "; User.js.renderEscapedValue(js); buf ++ ", "; User.lastlogin.renderEscapedValue(lastlogin); buf ++ ", "; buf del 2 }
   def _renderChangedUpdate($: User, $u: UpdateSetStep): Unit = { if (id != $.id) $u.set(User.id := id); if (email != $.email) $u.set(User.email := email); if (passwordHash != $.passwordHash) $u.set(User.passwordHash := passwordHash); if (active != $.active) $u.set(User.active := active); if (rating != $.rating) $u.set(User.rating := rating); if (verbose != $.verbose) $u.set(User.verbose := verbose); if (jsB != $.jsB) $u.set(User.jsB := jsB); if (js != $.js) $u.set(User.js := js); if (lastlogin != $.lastlogin) $u.set(User.lastlogin := lastlogin); }
   def toRecord: User = new User(id, email, passwordHash, active, rating, verbose, jsB, js, lastlogin)
