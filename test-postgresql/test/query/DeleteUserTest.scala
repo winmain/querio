@@ -6,7 +6,7 @@ import model.db.table.{MutableUser, User}
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
 
-class DeleteTest extends DbTestBase(
+class DeleteUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
   truncateSql = BaseScheme.truncateSql) {
 

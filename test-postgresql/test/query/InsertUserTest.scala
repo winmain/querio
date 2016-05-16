@@ -6,7 +6,7 @@ import model.db.table.{MutableUser, User}
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
 
-class InsertTest extends DbTestBase(
+class InsertUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
   truncateSql = BaseScheme.truncateSql) {
 
@@ -15,14 +15,6 @@ class InsertTest extends DbTestBase(
   }
 
   "Table \"user\"" should {
-    "support access when  empty" in new FreshDB {
-      val result1 = db.query(_.select(User.email)
-        from User
-        limit 10
-        fetch())
-      result1 must beEmpty
-    }
-
 
     "support simple insert" in new FreshDB{
       val result1 = db.query(_.select(User.email)
