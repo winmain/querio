@@ -1,4 +1,4 @@
-package insert
+package query
 
 import java.time.LocalDateTime
 
@@ -6,7 +6,7 @@ import model.db.table.{MutableUser, User}
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
 
-class DeleteTest extends DbTestBase(
+class InsertTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
   truncateSql = BaseScheme.truncateSql) {
 
@@ -15,8 +15,16 @@ class DeleteTest extends DbTestBase(
   }
 
   "Table \"user\"" should {
+    "support access when  empty" in new FreshDB {
+      val result1 = db.query(_.select(User.email)
+        from User
+        limit 10
+        fetch())
+      result1 must beEmpty
+    }
 
-    "show no effect if data is absent" in new FreshDB{
+
+    "support simple insert" in new FreshDB{
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
@@ -26,13 +34,19 @@ class DeleteTest extends DbTestBase(
       val user: MutableUser = DBUtil.dummyUser()
       val mail: String = "main@user.com"
       user.email = mail
-      val result2 = db.dataTrReadCommittedNoLog {implicit dt =>
-        db.delete(User, 0)
+      db.dataTrReadCommittedNoLog {implicit dt =>
+        db.insert(user)
       }
-      result2 must_== 0
+
+      //
+      val result2 = db.query(_.select(User.email)
+        from User
+        limit 10
+        fetch())
+      result2 must_== Vector(mail)
     }
 
-    "remove only requested data" in new FreshDB{
+    "support insert of multiple rows" in new FreshDB{
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
@@ -52,23 +66,12 @@ class DeleteTest extends DbTestBase(
           db.insert(user)
         }
       }
-
       //
-      val result2 = db.query(_.select(User.email,User.id)
+      val result2 = db.query(_.select(User.email)
         from User
         limit 10
         fetch())
-      result2.map(_._1) sameElements mails
-
-      db.dataTrReadCommitted(mddt) {implicit dt =>
-        db.delete(User, result2.head._2)
-      } must_== 1
-
-      val result3 = db.query(_.select(User.email,User.id)
-        from User
-        limit 10
-        fetch())
-      result3 sameElements result2.tail
+      result2 sameElements mails
     }
   }
 }

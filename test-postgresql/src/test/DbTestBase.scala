@@ -18,7 +18,7 @@ abstract class DbTestBase(val crateSchemaSql: String,
   trait FreshDB extends BeforeAfter {
     def before = {
       inStatement(dataSource) {stmt =>
-        val set: ResultSet = stmt.executeQuery(truncateSql)
+        stmt.executeUpdate(truncateSql)
       }
     }
     def after = {}
