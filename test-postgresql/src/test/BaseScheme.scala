@@ -21,6 +21,8 @@ object BaseScheme {
     CREATE TABLE "level"
     (
       id SERIAL PRIMARY KEY,
+      "js_b" jsonb NOT NULL DEFAULT '{}',
+      "js" json NOT NULL DEFAULT '{}',
       "userId" bigint NOT NULL,
       "level" int NOT NULL,
       "score" int NOT NULL DEFAULT 0,

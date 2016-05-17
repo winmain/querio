@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import model.db.table.{MutableUser, User}
+import org.json4s.jackson.JsonMethods
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
 
@@ -13,7 +14,8 @@ class AccessUserTest extends DbTestBase(
 
   "Table \"user\"" should {
 
-    "support access when  empty" in {
+    "support access when  empty" in new FreshDB{
+
       val result1 = db.query(_.select(User.email)
         from User
         limit 10
