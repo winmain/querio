@@ -19,18 +19,17 @@ def runScala(classPath: Seq[File], className: String, arguments: Seq[String]) {
   if (ret != 0) sys.error("Trouble with code generator")
 }
 
-lazy val querio_test_postgresql = (project in file(".")).settings(
-  name := "querio-test-postgresql",
+lazy val querio_test_h2 = (project in file(".")).settings(
+  name := "querio-test-h2",
   version := "0.1",
   scalaVersion := "2.11.7",
 //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
   libraryDependencies += querio,
-  libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
+
+//  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
+  libraryDependencies += "com.h2database" % "h2" % "1.3.175",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
   libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
-
-    //  libraryDependencies += "ru.yandex.qatools.embed" % "postgresql-embedded" % "1.12",
-  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0",
 
 
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
