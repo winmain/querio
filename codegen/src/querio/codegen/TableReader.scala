@@ -33,6 +33,7 @@ class TableReader(db: Vendor, lines: List[String]) {
   val userColumnsByVarName = mutable.Map[String, UserCol]()
   var constructorVarNames: Vector[String] = null
 
+  var tableRecognized = false
   var tableName: Option[String] = None
   var tableDefinition: Option[TableDef] = None
   var userTableLines = mutable.Buffer[String]()
@@ -62,6 +63,7 @@ class TableReader(db: Vendor, lines: List[String]) {
       val sp: Splitted = Utils.splitClassHeader(bodyAndAfter)
       sp.head match {
         case tableR(name, tr, mtr, moreExtends) =>
+          tableRecognized = true
           tableName = Some(name)
           preTableLines = pre
           tableDefinition = Some(TableDef(tr, mtr, moreExtends))
@@ -130,7 +132,8 @@ class TableReader(db: Vendor, lines: List[String]) {
 
   // read class
   def readClass(head: String, classBody: List[String]) {
-    require(constructorVarNames != null, "constructorVarNames is null for " + head)
+    require(tableRecognized, "Table class not recognized, " + head)
+    require(constructorVarNames != null)
     classExtends = head match {
       case extendsR(ext) => Some(ext)
       case _ => None
@@ -198,7 +201,7 @@ object TableReader {
     \(alias:\ *String\)     # (alias: String)
     \s+extends\ +Table      # extends Table
     \[                      # [
-    ([^,]+) ,\s* ([^\]+])   # param2: TR, param3: MTR
+    ([^,]+) ,\s* ([^\]]+)   # param2: TR, param3: MTR
     \]                      # ]
     \("[^"]+"\,             # (_fullTableName,
     \ *"[^"]+"\,            # _tableName,
