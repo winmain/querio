@@ -173,12 +173,16 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p imp GeneratorConfig.importTable
       val escaped = vendor.isNeedEscape(table.name)
       val needPrefix = !isDefaultDatabase
-      //val tableDefinition = reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
       val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
       // TODO: пока выключил поддержку метода withAdditionTraitsForTable
 //      val (fullTableDef, imports) = withAdditionTraitsForTable(tableDef)
 //      imports.foreach(x => p imp x)
-      p ++ s"""class $tableTableName(alias: String) extends Table[${tableDef.tr}, ${tableDef.mtr}]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""" ++ tableDef.moreExtends
+      p ++ "class "++tableTableName++"(alias: String) extends Table["++tableDef.tr++", "++tableDef.mtr++"]"
+      p ++ s"""("$dbName", "${table.name}", alias"""
+      if (needPrefix) p ++ ", _needDbPrefix = true"
+      if (escaped) p ++ ", _escapeName = true"
+      p ++ ")"
+      if (tableDef.moreExtends.nonEmpty) p ++ ' ' ++ tableDef.moreExtends
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()

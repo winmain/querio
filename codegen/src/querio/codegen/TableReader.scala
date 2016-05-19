@@ -66,7 +66,7 @@ class TableReader(db: Vendor, lines: List[String]) {
           tableRecognized = true
           tableName = Some(name)
           preTableLines = pre
-          tableDefinition = Some(TableDef(tr, mtr, moreExtends))
+          tableDefinition = Some(TableDef(tr, mtr, moreExtends.trim))
           readTable(sp.body)
           resolveBlocks(sp.after, Nil)
 
@@ -206,7 +206,7 @@ object TableReader {
     \("[^"]+"\,             # (_fullTableName,
     \ *"[^"]+"\,            # _tableName,
     \ *alias                # _alias
-    .*\)(.*)\s*\{[^{]*      # ) param4: optional with {
+    .*\)\s*(.*)\s*\{[^{]*   # ) param4: optional with {
     """.r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
   val tableFieldR = """(?x)
