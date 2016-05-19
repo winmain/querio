@@ -112,9 +112,9 @@ trait ModifyTrait extends EssentialModifyTrait {
 
   override protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep =
     new UpdateBuilder(table, id) {
-      override protected def afterExecute(sql: String, mtr: AnyMutableTableRecord): Unit = {
+      override protected def afterExecute(sql: String, mtrOpt: Option[AnyMutableTableRecord]): Unit = {
         if (dt.logSql) logSql(table, Some(id), dt.md, sql)
-        dt.querioAddUpdateDeleteChange(table, id, TrSomeChange(mtr))
+        dt.querioAddUpdateDeleteChange(table, id, TrRecordChange(mtrOpt))
       }
     }
 

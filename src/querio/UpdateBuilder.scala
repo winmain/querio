@@ -46,11 +46,11 @@ class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
   protected def doExecute(buf: SqlBuffer): Unit = {
     buf.statement {(st, sql) =>
       st.executeUpdate(sql)
-      afterExecute(sql, mtr)
+      afterExecute(sql, Option(mtr))
     }
   }
 
-  protected def afterExecute(sql: String, mtr: AnyMutableTableRecord): Unit = {}
+  protected def afterExecute(sql: String, mtrOpt: Option[AnyMutableTableRecord]): Unit = {}
 
   // ------------------------------- Execute statements -------------------------------
 

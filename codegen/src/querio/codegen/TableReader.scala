@@ -139,17 +139,21 @@ class TableReader(db: Vendor, lines: List[String]) {
     locally {
       val splitted = StringUtils.splitByWholeSeparator(head, "(val", 2)
       if (splitted.length == 2) {
-        for ((line, idx) <- StringUtils.split("val" + splitted(1), '\n').zipWithIndex) line.trim match {
-          case classHeaderFieldR(_, scalaType) =>
-            val name: String = constructorVarNames(idx)
-            userColumnsByVarName.get(name).foreach { col => col.scalaType = scalaType.trim}
-          case classHeaderPrivateFieldR(_, scalaType) =>
-            val name: String = constructorVarNames(idx)
-            userColumnsByVarName.get(name).foreach { col =>
-              col.isPrivate = true
-              col.scalaType = scalaType.trim
+        for ((line, idx) <- StringUtils.split("val" + splitted(1), '\n').zipWithIndex) {
+          if (constructorVarNames.isDefinedAt(idx)) {
+            line.trim match {
+              case classHeaderFieldR(_, scalaType) =>
+                val name: String = constructorVarNames(idx)
+                userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
+              case classHeaderPrivateFieldR(_, scalaType) =>
+                val name: String = constructorVarNames(idx)
+                userColumnsByVarName.get(name).foreach {col =>
+                  col.isPrivate = true
+                  col.scalaType = scalaType.trim
+                }
+              case l => sys.error(s"Invalid definition for class ${className.getOrElse("[None]")}: $l")
             }
-          case l => sys.error(s"Invalid definition for class ${className.getOrElse("[None]")}: $l")
+          }
         }
       }
     }
