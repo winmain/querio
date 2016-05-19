@@ -90,11 +90,6 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         case s => ", comment = \"" + GeneratorUtils.prepareComment(s) + "\""
       }
 
-      protected def escapedArg: String = {
-        val escapedArg = if (escaped) ", escaped=true" else ""
-        escapedArg
-      }
-
       /**
         * ВАЖНО! Изменяя этот метод, нужно не забыть подправить регулярку TableReader.mutableFieldR
         */
@@ -122,7 +117,9 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       def objectField(p: SourcePrinter) {
         ft.scalaType.imp(p)
         className.imp(p)
-        p ++ s"""val $varName = new ${className.shortName}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _$escapedArg$withComment))""" n()
+        p ++ s"""val $varName = new ${className.shortName}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _"""
+        if (escaped) p ++ ", escaped = true"
+        p ++ withComment ++ "))" n()
       }
 
       def classField(p: SourcePrinter) {
@@ -146,7 +143,9 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
       def objectField(p: SourcePrinter) {
         val varName = this.varName
-        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _$escapedArg$withComment)${uc.otherParams}"""
+        p ++ s"""val $varName = new ${uc.className}${uc.prependParams}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _"""
+        if (escaped) p ++ ", escaped = true"
+        p ++ withComment ++ ")" ++ uc.otherParams
         if (uc.scalaComment != null) p ++ uc.scalaComment
         p n()
       }
