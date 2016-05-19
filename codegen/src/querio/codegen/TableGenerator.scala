@@ -3,6 +3,7 @@ package querio.codegen
 import java.io.File
 
 import org.apache.commons.lang3.StringUtils
+import querio.codegen.TableReader.TableDef
 import querio.codegen.Utils.wrapIterable
 import querio.codegen.patch.OrmPatches
 import querio.vendor.Vendor
@@ -172,10 +173,12 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p imp GeneratorConfig.importTable
       val escaped = vendor.isNeedEscape(table.name)
       val needPrefix = !isDefaultDatabase
-      val tableDefinition = reader.tableDefinition.getOrElse( s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
-      val (fullTableDefinition, imports) = withAdditionTraitsForTable(tableDefinition)
-      imports.foreach(x => p imp x)
-      p ++ fullTableDefinition
+      //val tableDefinition = reader.tableDefinition.getOrElse(s"""class $tableTableName(alias: String) extends Table[$tableClassName, $tableMutableName]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""")
+      val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
+      // TODO: пока выключил поддержку метода withAdditionTraitsForTable
+//      val (fullTableDef, imports) = withAdditionTraitsForTable(tableDef)
+//      imports.foreach(x => p imp x)
+      p ++ s"""class $tableTableName(alias: String) extends Table[${tableDef.tr}, ${tableDef.mtr}]("$dbName", "${table.name}", alias, $needPrefix, $escaped)""" ++ tableDef.moreExtends
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()

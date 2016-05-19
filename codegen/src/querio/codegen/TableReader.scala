@@ -34,7 +34,7 @@ class TableReader(db: Vendor, lines: List[String]) {
   var constructorVarNames: Vector[String] = null
 
   var tableName: Option[String] = None
-  var tableDefinition: Option[String] = None
+  var tableDefinition: Option[TableDef] = None
   var userTableLines = mutable.Buffer[String]()
 
   var objectName: Option[String] = None
@@ -49,7 +49,7 @@ class TableReader(db: Vendor, lines: List[String]) {
   var mutableDefinition: Option[String] = None
   var userMutableLines = mutable.Buffer[String]()
 
-  private def makeDefinition(s: String) = {
+  private def makeDefinition(s: String): Some[String] = {
     val line = s.trim
     Some(if (line.endsWith("{")) line.substring(0, line.length - 1).trim else line)
   }
@@ -61,10 +61,11 @@ class TableReader(db: Vendor, lines: List[String]) {
     if (bodyAndAfter.nonEmpty) {
       val sp: Splitted = Utils.splitClassHeader(bodyAndAfter)
       sp.head match {
-        case tableR(name) =>
+        case tableR(name, tr, mtr, moreExtends) =>
           tableName = Some(name)
           preTableLines = pre
-          readTable(sp.head, sp.body)
+          tableDefinition = Some(TableDef(tr, mtr, moreExtends))
+          readTable(sp.body)
           resolveBlocks(sp.after, Nil)
 
         case classR(name) =>
@@ -103,10 +104,9 @@ class TableReader(db: Vendor, lines: List[String]) {
   afterMutableLines = trimEmptyLines(afterMutableLines)
 
   // read table class
-  def readTable(head: String, classBody: List[String]) {
-    tableDefinition = makeDefinition(head)
+  def readTable(classBody: List[String]) {
     for (line <- classBody) line.trim match {
-      case tableFieldR(varName, className, prependParams, escapedColName,escapedFlStr, otherParams, scalaComment) =>
+      case tableFieldR(varName, className, prependParams, escapedColName, escapedFlStr, otherParams, scalaComment) =>
         val colName = db.unescapeName(escapedColName)
         val escapedFl = if (escapedFlStr.isEmpty) false else escapedFlStr.toBoolean
         val uc = UserCol(varName.trim, colName, escapedFl,className.trim, prependParams, otherParams, scalaComment)
@@ -185,17 +185,22 @@ class TableReader(db: Vendor, lines: List[String]) {
 }
 
 object TableReader {
+  case class TableDef(tr: String, mtr: String, moreExtends: String = "")
+
   val extendsR = """(?s).*\) *(extends .*) *\{""".r
 
   val tableR = """(?xs)
-    class\ +([^\ \[]+Table) # param: name
+    class\ +([^\ \[]+Table) # param1: name
     \(alias:\ *String\)     # (alias: String)
     \s+extends\ +Table      # extends Table
-    \[[^\]]+\]              # [TR, MTR]
+    \[                      # [
+    ([^,]+) ,\s* ([^\]+])   # param2: TR, param3: MTR
+    \]                      # ]
     \("[^"]+"\,             # (_fullTableName,
     \ *"[^"]+"\,            # _tableName,
     \ *alias                # _alias
-    .*\).*""".r
+    .*\)(.*)\s*\{[^{]*      # ) param4: optional with {
+    """.r
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
   val tableFieldR = """(?x)
     val\ +([^\ ]+)                 # param: varName
@@ -210,7 +215,6 @@ object TableReader {
     \)                             # )
     (.*\).*)                       # param: otherParams, contains second closing bracket )
     (\ *//.*|)                     # param: scalaComment (optional)
-    $
     $""".r
   val tableFieldsRegisteredR = """_fields_registered\(\)""".r
   val tableCommentFieldR = """override +val +_comment *= *".*"""".r
