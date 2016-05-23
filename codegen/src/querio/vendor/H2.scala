@@ -39,7 +39,7 @@ class H2 extends Vendor {
     "SYSTIMESTAMP", "TODAY", "TRUE", "UNION", "UNIQUE", "WHERE")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
-  override def isNeedEscape(word: String): Boolean = isReservedWord(word) || isHaveUpperCase(word)
+  override def isNeedEscape(word: String): Boolean = isReservedWord(word) || isNotAllUpperCaseCase(word)
 
   override def escapeName(name: String): String = '\"' + name + '\"'
   override def unescapeName(escaped: String): String =
@@ -50,7 +50,7 @@ class H2 extends Vendor {
   override def selectFoundRows: String = ???
   override def sqlCalcFoundRows: String = ???
 
-  def isHaveUpperCase(word: String) = word.toLowerCase != word
+  def isNotAllUpperCaseCase(word: String) = word.toUpperCase != word
 }
 
 object DefaultH2 extends H2
