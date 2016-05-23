@@ -94,7 +94,7 @@ object ProjectBuild extends sbt.Build {
     base = file("test-h2"),
     settings = testH2Settings).settings(
     name := "test-h2"
-    )
+    ).dependsOn(main)
 
   lazy val test_postgresql= Project(id = "test-postgresql",
     base = file("test-postgresql"),
