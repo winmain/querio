@@ -5,6 +5,8 @@ object ProjectBuild extends sbt.Build {
   val buildScalaVersion = "2.11.7"
   val module = "querio"
 
+  ///////////////////////  Settings ///////////////////////////
+
   val commonSettings = Seq(
     organization := "com.github.winmain",
     version := "0.4.99-SNAPSHOT",
@@ -36,17 +38,100 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0" % "optional"
   )
 
-  val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(
+  val testH2Settings = Seq(
+    name := "querio-test-h2",
+    version := "0.1",
+    scalaVersion := "2.11.7",
+    //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
+
+    //  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
+    libraryDependencies += "com.h2database" % "h2" % "1.3.175",
+    libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
+    libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
+
+
+    sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
+    scalaSource in Compile := baseDirectory.value / "src",
+    javaSource in Compile := baseDirectory.value / "src",
+
+    scalaSource in Test := baseDirectory.value / "test",
+    javaSource in Test := baseDirectory.value / "test"
+  )
+
+  val testPostgreSQLSettings = Seq(
+    name := "querio-test-postgresql",
+    version := "0.1",
+    scalaVersion := "2.11.7",
+    //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
+    libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
+    libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
+    libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
+    libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0",
+
+    sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
+    scalaSource in Compile := baseDirectory.value / "src",
+    javaSource in Compile := baseDirectory.value / "src",
+
+    scalaSource in Test := baseDirectory.value / "test",
+    javaSource in Test := baseDirectory.value / "test"
+  )
+
+  ///////////////////////  projects ///////////////////////////
+
+  lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
+    name := "querio",
+    genQuerioLibSourcesTask
+  ).dependsOn(querioCodegen).aggregate(querioCodegen)
+
+  lazy val querioCodegen = Project("querio-codegen",
+    base = file("codegen"),
+    settings = commonSettings).settings(
     name := "querio-codegen"
   )
 
 
+  lazy val test_h2 = Project(id = "test-h2",
+    base = file("test-h2"),
+    settings = testH2Settings).settings(
+    name := "test-h2"
+    )
+
+  lazy val test_postgresql= Project(id = "test-postgresql",
+    base = file("test-postgresql"),
+    settings = testPostgreSQLSettings).settings(
+    name := "test-postgresql"
+    ).dependsOn(main)
+
+  ///////////////////////  Tasks ///////////////////////////
+
   // Task: Generate some querio lib sources
   val genQuerioLibSources = TaskKey[Unit]("gen-querio-lib-sources")
   lazy val genQuerioLibSourcesTask = genQuerioLibSources <<=
-    (scalaSource in Compile, dependencyClasspath in Compile, baseDirectory in Compile, classDirectory in Runtime) map {
+    (scalaSource in Compile, dependencyClasspath in Compile,
+      baseDirectory in Compile, classDirectory in Runtime) map {
       (scalaSource, classPath, baseDir, classesDir) => {
-        runScala(classPath.files :+ baseDir :+ classesDir, "querio.codegen.SelfClassesGenerator", Seq(scalaSource.absolutePath))
+        runScala(classPath.files :+ baseDir :+ classesDir, "querio.codegen.SelfClassesGenerator",
+          Seq(scalaSource.absolutePath))
+      }
+    }
+
+  val genTestH2DbSources = TaskKey[Unit]("gen-test-h2-db-sources")
+  lazy val genTestH2DbSourcesTask = genTestH2DbSources <<=
+    (scalaSource in Compile, dependencyClasspath in Compile,
+      baseDirectory in Compile, classDirectory in Runtime) map {
+      (scalaSource, classPath, baseDir, classesDir) => {
+        runScala(classPath.files :+ baseDir :+ classesDir, "test.SourcesGenerator",
+          Seq(scalaSource.absolutePath))
+      }
+    }
+
+  val genTestPostgreSqlDbSources = TaskKey[Unit]("gen-test-postgresql-db-sources")
+  lazy val genTestPostgreSqlDbSourcesTask = genTestPostgreSqlDbSources <<=
+    (scalaSource in Compile, dependencyClasspath in Compile,
+      baseDirectory in Compile, classDirectory in Runtime) map {
+      (scalaSource, classPath, baseDir, classesDir) => {
+        runScala(classPath.files :+ baseDir :+ classesDir, "test.SourcesGenerator",
+          Seq(scalaSource.absolutePath))
       }
     }
 
@@ -70,9 +155,4 @@ object ProjectBuild extends sbt.Build {
     if (ret != 0) sys.error("Trouble with code generator")
   }
 
-
-  lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
-    name := "querio",
-    genQuerioLibSourcesTask
-  ).dependsOn(querioCodegen).aggregate(querioCodegen)
 }
