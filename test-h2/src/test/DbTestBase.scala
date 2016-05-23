@@ -1,12 +1,14 @@
 package test
-import java.sql.{Connection, ResultSet}
+import java.sql.{Connection, DriverManager, ResultSet}
 import javax.sql.DataSource
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
-import model.db.PostgresSQLVendor
+import model.db.{H2Vendor, PostgresSQLVendor}
 import org.specs2.mutable.BeforeAfter
 import org.specs2.mutable.Specification
 import querio.BaseDb
+
+import scala.util.Random
 
 
 abstract class DbTestBase(val crateSchemaSql: String,
@@ -17,39 +19,32 @@ abstract class DbTestBase(val crateSchemaSql: String,
 
   trait FreshDB extends BeforeAfter {
     def before = {
-      inStatement(dataSource) {stmt =>
+      inStatement(connection) {stmt =>
         stmt.executeUpdate(truncateSql)
       }
     }
     def after = {}
   }
 
-  private var pg: EmbeddedPostgres = _
-
-  private var dataSource: DataSource = _
+  private var connection: Connection = _
 
   val db =
-    new BaseDb(PostgresSQLVendor) {
+    new BaseDb(H2Vendor) {
       override protected def getConnection: Connection = {
-        dataSource.getConnection
+        connection
       }
     }
 
   override protected def beforeAll() {
-    pg = EmbeddedPostgres.start()
-    dataSource = pg.getPostgresDatabase()
-    inStatement(dataSource) {stmt =>
-      //      stmt.executeUpdate(s"DROP DATABASE IF EXISTS ${dbName()}")
-      //      stmt.executeUpdate(s"CREATE DATABASE ${dbName()}")
-      stmt.executeUpdate(crateSchemaSql)
-    }
+    Class.forName("org.h2.Driver").newInstance()
+    connection = DriverManager.getConnection("jdbc:h2:test_"+Math.abs(Random.nextLong()),"sa", "")
   }
 
   override protected def afterAll() {
     //    inStatement(dataSource) {stmt =>
     //      stmt.executeUpdate(s"DROP DATABASE ${dbName()}")
     //    }
-    pg.close()
+    closeConnection(connection)
   }
 
 }

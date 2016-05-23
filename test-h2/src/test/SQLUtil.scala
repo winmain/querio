@@ -4,11 +4,9 @@ import javax.sql.DataSource
 
 trait SQLUtil {
 
-  def inStatement(dataSource: DataSource)(f: Statement => Any) {
-    var connection: Connection = null
+  def inStatement(connection: Connection)(f: Statement => Any) {
     var statement: Statement = null
     try {
-      connection = dataSource.getConnection()
       statement = connection.createStatement()
       f(statement)
     } catch {
@@ -21,31 +19,26 @@ trait SQLUtil {
       } catch {
         case se: SQLException => se.printStackTrace()
       }
-      try {
-        if (connection != null)
-          connection.close()
-      } catch {
-        case se: SQLException => se.printStackTrace()
-      }
     }
   }
 
-  def inConnection(dataSource: DataSource)(f: Connection => Any) {
-    var connection: Connection = null
+  def inConnection(connection: Connection)(f: Connection => Any) {
     try {
-      connection = dataSource.getConnection()
-      f(dataSource.getConnection())
+      f(connection)
     } catch {
       case se: SQLException => se.printStackTrace()
       case e: Exception => e.printStackTrace()
     } finally {
-      try {
-        if (connection != null)
-          connection.close()
-      } catch {
-        case se: SQLException => se.printStackTrace()
-      }
+      closeConnection(connection)
     }
   }
 
+  def closeConnection(connection: Connection): Unit = {
+    try {
+      if (connection != null)
+        connection.close()
+    } catch {
+      case se: SQLException => se.printStackTrace()
+    }
+  }
 }
