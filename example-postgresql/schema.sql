@@ -1,4 +1,4 @@
--- CREATE DATABASE "example";
+CREATE DATABASE "example";
 
 CREATE TABLE "user"
 (
