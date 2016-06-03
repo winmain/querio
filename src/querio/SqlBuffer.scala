@@ -47,8 +47,8 @@ trait SqlBuffer {
   // ------------------------------- Render value methods -------------------------------
 
   def renderNull = this ++ "null"
-  def renderFalseCondition = this ++ "0"
-  def renderTrueCondition = this ++ "1"
+  def renderFalseCondition = this ++ "false"
+  def renderTrueCondition = this ++ "true"
 
   def renderBooleanValue(value: Boolean) {
     this ++ (if (value) "true" else "false")
