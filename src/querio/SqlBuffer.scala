@@ -42,7 +42,6 @@ trait SqlBuffer {
   def conn: Conn
 
   def onQueryFinished(sql: String, timeMs: Long) {}
-  def onSqlException(e: SQLException, sql: String) {}
 
   // ------------------------------- Render value methods -------------------------------
 
@@ -89,8 +88,7 @@ trait SqlBuffer {
     try body(st, sql)
     catch {
       case e: SQLException =>
-        onSqlException(e, sql)
-        throw e
+        throw makeQuerioSQLException(e, sql)
     } finally {
       val time = System.currentTimeMillis() - t0
       onQueryFinished(sql, time)
@@ -99,6 +97,10 @@ trait SqlBuffer {
   }
 
   // ------------------------------- Private & protected methods -------------------------------
+
+  protected def makeQuerioSQLException(e: SQLException, sql: String): Throwable = {
+    new QuerioSQLException(e.getSQLState + ": " + e.getMessage + "\n" + sql, e, sql)
+  }
 
   private def zpad(value: Int, zeroes: Int): String =
     StringUtils.leftPad(String.valueOf(value), zeroes, '0')

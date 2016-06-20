@@ -127,23 +127,31 @@ trait DbTrait {
           tr.querioAfterCommit()
           r
         } catch {
-          // TODO: Здесь нужно матчить не тип ошибок, ошибки в разных бд имеют плавающие определения,
-          // TODO: а нужно проверять какое общее поведение необходиомо при разных ошибках.
-          case vendor.errorMatcher.ConnectionClosed(e) =>
-            // Соединение с БД закрылось. Перезапустим всю транзакцию через случайный промежуток времени.
-            log("connection closed")
-            conn.close()
-            restartTransaction("Connection closed", e)
+          case qe: QuerioSQLException =>
+            // TODO: Здесь нужно матчить не тип ошибок, ошибки в разных бд имеют плавающие определения,
+            // TODO: а нужно проверять какое общее поведение необходиомо при разных ошибках.
+            qe.getCause match {
+              case vendor.errorMatcher.ConnectionClosed(e) =>
+                // Соединение с БД закрылось. Перезапустим всю транзакцию через случайный промежуток времени.
+                log("connection closed")
+                conn.close()
+                restartTransaction("Connection closed", e)
 
-          case vendor.errorMatcher.Deadlock(e) =>
-            // Случился transaction deadlock. Перезапустим всю транзакцию через случайный промежуток времени.
-            log("deadlock")
-            conn.rollback()
-            conn.close()
-            restartTransaction("Deadlock", e)
+              case vendor.errorMatcher.Deadlock(e) =>
+                // Случился transaction deadlock. Перезапустим всю транзакцию через случайный промежуток времени.
+                LoggerFactory.getLogger(getClass).info("Deadlock found, restarting transaction. Sql: " + qe.sql)
+                log("deadlock")
+                conn.rollback()
+                conn.close()
+                restartTransaction("Deadlock", e)
+
+              case e: Throwable =>
+                log("exception", e.toString)
+                conn.rollback()
+                throw e
+            }
 
           case e: SQLException =>
-            LoggerFactory.getLogger(getClass).error("SQLException code " + e.getErrorCode)
             log("exception", "code " + e.getErrorCode)
             conn.rollback()
             throw e
