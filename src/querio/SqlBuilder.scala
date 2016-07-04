@@ -4,7 +4,6 @@ import java.sql.{ResultSet, Statement}
 
 import querio.utils.IterableTools.wrapIterable
 import querio.utils.{Pager, TypeEquality}
-import querio.vendor.Vendor
 
 // ------------------------------- Select traits -------------------------------
 
@@ -318,9 +317,13 @@ trait SqlResult[+R] {
   */
 class CountedResult[+R](val rows: Vector[R], val count: Int) extends SqlResult[R] {
   def ++[S >: R](add: SqlResult[S]): CountedResult[S] = new CountedResult[S](rows ++ add.rows, count + add.count)
+
+  def map[S >: R](fn: R => S): CountedResult[S] = new CountedResult[S](rows.map(fn), count)
 }
 
-class CountedLazyResult[+R](val rows: Iterator[R], val count: Int) extends SqlResult[R]
+class CountedLazyResult[+R](val rows: Iterator[R], val count: Int) extends SqlResult[R] {
+  def map[S >: R](fn: R => S): CountedLazyResult[S] = new CountedLazyResult[S](rows.map(fn), count)
+}
 
 /**
   * Возвращает результат запроса (записи), вызвав fetch, либо их количество, вызвав count.
