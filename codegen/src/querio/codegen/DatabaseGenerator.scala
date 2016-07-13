@@ -1,12 +1,12 @@
 package querio.codegen
 
+import java.nio.file.Path
 import java.sql.{Connection, DatabaseMetaData, ResultSet}
 
 import org.apache.commons.lang3.StringUtils
 import querio.vendor.Vendor
 
 import scala.collection.mutable
-import scalax.file.Path
 
 /**
   *

@@ -1,6 +1,7 @@
 package querio.codegen
 
 import java.io.File
+import java.nio.file.{Files, Path, Paths}
 
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.TableReader.TableDef
@@ -9,8 +10,6 @@ import querio.codegen.patch.OrmPatches
 import querio.vendor.Vendor
 
 import scala.collection.mutable
-import scala.io.Source
-import scalax.file.Path
 
 
 class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
@@ -19,7 +18,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
                      isDefaultDatabase: Boolean = false,
                      noRead: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
-  val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (originalTableClassName + ".scala")
+  val filePath: Path = dir.resolve(pkg.replace('.', File.separatorChar)).resolve(originalTableClassName + ".scala")
 
   def generateToFile(): Generator = {
     val gen: Generator = makeGenerator
@@ -29,14 +28,14 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
   def generateToTempFile(): Generator = {
     val gen: Generator = makeGenerator
-    gen.generate().saveToFile(Path(new File("/tmp/tt.scala")))
+    gen.generate().saveToFile(Paths.get("/tmp/tt.scala"))
     gen
   }
 
   def generateDoubleTest(): Unit = {
     val result1 = makeGenerator.generate().getSource
     val result2 = new Generator(result1).generate().getSource
-    Path(new File("/tmp/tt.scala")).write(result2)
+    Files.write(Paths.get("/tmp/tt.scala"), result2.getBytes)
   }
 
 
@@ -45,7 +44,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
     else new Generator(readSource(filePath))
   }
 
-  private def readSource(filePath: Path): String = if (filePath.exists) Source.fromFile(filePath.toURI).mkString else null
+  private def readSource(filePath: Path): String = if (Files.exists(filePath)) new String(Files.readAllBytes(filePath)) else null
 
   class Generator(source: String) extends TableGeneratorData {
     val ormPatches: OrmPatches = new OrmPatches(vendor)
@@ -174,9 +173,9 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       val needPrefix = !isDefaultDatabase
       val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
       // TODO: пока выключил поддержку метода withAdditionTraitsForTable
-//      val (fullTableDef, imports) = withAdditionTraitsForTable(tableDef)
-//      imports.foreach(x => p imp x)
-      p ++ "class "++tableTableName++"(alias: String) extends Table["++tableDef.tr++", "++tableDef.mtr++"]"
+      //      val (fullTableDef, imports) = withAdditionTraitsForTable(tableDef)
+      //      imports.foreach(x => p imp x)
+      p ++ "class " ++ tableTableName ++ "(alias: String) extends Table[" ++ tableDef.tr ++ ", " ++ tableDef.mtr ++ "]"
       p ++ s"""("$dbName", "${table.name}", alias"""
       if (needPrefix) p ++ ", _needDbPrefix = true"
       if (escaped) p ++ ", _escapeName = true"

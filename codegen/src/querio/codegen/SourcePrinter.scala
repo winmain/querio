@@ -1,11 +1,11 @@
 package querio.codegen
 
-import java.io.{File, FileOutputStream}
+import java.io.File
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
-import scalax.file.Path
 
 class SourcePrinter(groupImports: Boolean = true) {
   private val sb = new java.lang.StringBuilder()
@@ -70,12 +70,8 @@ class SourcePrinter(groupImports: Boolean = true) {
     src.toString
   }
 
-  def saveToFile(file: File) {
-    val stream: FileOutputStream = new FileOutputStream(file)
-    stream.write(getSource.getBytes)
-    stream.close()
-  }
-  def saveToFile(path: Path) = path.write(getSource)
+  def saveToFile(file: File): Unit = saveToFile(file.toPath)
+  def saveToFile(path: Path): Unit = Files.write(path, getSource.getBytes)
 
   def ++(sql: String): this.type = { sb append sql; this }
   def ++(sql: Char): this.type = { sb append sql; this }

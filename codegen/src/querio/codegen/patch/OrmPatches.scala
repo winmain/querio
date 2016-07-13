@@ -1,9 +1,7 @@
 package querio.codegen.patch
-import java.io.File
+import java.nio.file.{Files, Paths}
 
 import querio.vendor.Vendor
-
-import scalax.file.Path
 
 class OrmPatches(val vendor: Vendor) {
   val currentVersion = 2
@@ -29,9 +27,9 @@ class OrmPatches(val vendor: Vendor) {
       patched = patch(patched, version)
       version += 1
     }
-//    saveToTemp(patched)
+    //    saveToTemp(patched)
     patched
   }
 
-  private def saveToTemp(lines: List[String]): Unit = Path(new File("/tmp/tt.scala")).write(lines.mkString("\n"))
+  private def saveToTemp(lines: List[String]): Unit = Files.write(Paths.get("/tmp/tt.scala"), lines.mkString("\n").getBytes)
 }

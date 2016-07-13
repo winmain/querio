@@ -7,7 +7,7 @@ object ProjectBuild extends sbt.Build {
 
   val commonSettings = Seq(
     organization := "com.github.winmain",
-    version := "0.5.0",
+    version := "0.5.1",
     publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else Some("releases" at "http://nexus/content/repositories/releases")),
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
@@ -16,6 +16,7 @@ object ProjectBuild extends sbt.Build {
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
     scalaVersion := buildScalaVersion,
     scalacOptions ++= Seq("-target:jvm-1.8", "-unchecked", "-deprecation", "-feature", "-language:existentials"),
+    mainClass in Compile := None,
 
     sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
     scalaSource in Compile := baseDirectory.value / "src",
@@ -26,14 +27,18 @@ object ProjectBuild extends sbt.Build {
     javaSource in Test := baseDirectory.value / "test",
     resourceDirectory in Test := baseDirectory.value / "test/resources",
 
-    libraryDependencies += "com.google.code.findbugs" % "jsr305" % "2.0.1",
+    // Dependencies
+    libraryDependencies += "com.google.code.findbugs" % "jsr305" % "3.0.1", // @Nonnull, @Nullable annotation support
     libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.4",
     libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.21",
-    libraryDependencies += "com.github.scala-incubator.io" %% "scala-io-file" % "0.4.3-1",
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0-M15" % "test",
-    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+
+    // Optional dependencies
     libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4" % "optional",
-    libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.4.0" % "optional"
+    libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.4.0" % "optional",
+
+      // Test dependencies
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0-M15" % "test",
+    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test"
   )
 
   val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(

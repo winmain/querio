@@ -1,7 +1,7 @@
 package querio.codegen
 
 import java.io.File
-import scalax.file.ImplicitConversions.jfile2path
+import java.nio.file.{Path, Paths}
 
 /**
  * Генератор самих классов библиотеки.
@@ -89,13 +89,13 @@ object SelfClassesGenerator {
     }
   }
 
-  def generate(orm2SourceDir: File) {
+  def generate(orm2SourceDir: Path) {
     val p = new SourcePrinter
     genSelectSelectStep(p)
-    p.saveToFile(orm2SourceDir \ GeneratorConfig.libPackage.replace('.', '/') \ "generated.scala")
+    p.saveToFile(orm2SourceDir.resolve(GeneratorConfig.libPackage.replace('.', File.separatorChar)).resolve("generated.scala"))
   }
 
   def main(args: Array[String]) {
-    generate(new File(args(0)))
+    generate(Paths.get(args(0)))
   }
 }

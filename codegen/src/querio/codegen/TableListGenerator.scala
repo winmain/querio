@@ -1,7 +1,6 @@
 package querio.codegen
 import java.io.File
-
-import scalax.file.Path
+import java.nio.file.{Path, Paths}
 
 class TableListGenerator(tableNamePrefix: String, tablePkg: String, tableObjectNames: Seq[String], tableListClass: String, dir: Path) {
   val version = 1
@@ -12,10 +11,10 @@ class TableListGenerator(tableNamePrefix: String, tablePkg: String, tableObjectN
       case idx => (tableListClass.substring(0, idx), tableListClass.substring(idx + 1))
     }
 
-  val filePath: Path = dir \(pkg.replace('.', '/'), '/') \ (className + ".scala")
+  val filePath: Path = dir.resolve(pkg.replace('.', File.separatorChar)).resolve(className + ".scala")
 
   def generateToFile(): Unit = new Generator().generate().saveToFile(filePath)
-  def generateToTempFile(): Unit = new Generator().generate().saveToFile(Path(new File("/tmp/ttlist.scala")))
+  def generateToTempFile(): Unit = new Generator().generate().saveToFile(Paths.get("/tmp/ttlist.scala"))
 
   class Generator {
     def generate(): SourcePrinter = {
@@ -30,7 +29,7 @@ class TableListGenerator(tableNamePrefix: String, tablePkg: String, tableObjectN
           p ++ "val tables: Vector[AnyTable] = Vector[AnyTable]("
           var notFirst = false
           tableObjectNames.foreach {tblObjectName =>
-            if (notFirst){
+            if (notFirst) {
               p ++ ", "
             }
             notFirst = true
