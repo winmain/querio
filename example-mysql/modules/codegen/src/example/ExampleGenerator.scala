@@ -4,7 +4,7 @@ import java.sql.DriverManager
 import java.util.Properties
 
 import querio.codegen.DatabaseGenerator
-import querio.vendor.DefaultMysql
+import querio.vendor.DefaultMysqlVendor
 
 import scalax.file.Path
 
@@ -23,7 +23,7 @@ object ExampleGenerator {
     val connection = DriverManager.getConnection(jdbcurl, props)
 
     val dir = Path(new File(args(0)))
-    new DatabaseGenerator(DefaultMysql, connection, "example",
+    new DatabaseGenerator(DefaultMysqlVendor, connection, "example",
       pkg = "model.db.table",
       tableListClass = "model.db.Tables",
       dir = dir,

@@ -1,5 +1,5 @@
 package model.db
 import querio.json.JSON4SExtension
-import querio.vendor.PostgreSQL
+import querio.vendor.PostgreSQLVendor
 
-object PostgresSQLVendor extends PostgreSQL with JSON4SExtension
+object PostgresSQLVendor extends PostgreSQLVendor with JSON4SExtension

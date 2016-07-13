@@ -5,7 +5,7 @@ import java.sql.{Connection, ResultSet, SQLException, Statement}
 import org.apache.commons.lang3.StringUtils
 import querio.utils.SQLExceptionCode
 
-class Mysql extends Vendor {
+class MysqlVendor extends Vendor {
 
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error extends ErrorMatcher {
@@ -87,4 +87,4 @@ class Mysql extends Vendor {
 }
 
 
-object DefaultMysql extends Mysql
+object DefaultMysqlVendor extends MysqlVendor

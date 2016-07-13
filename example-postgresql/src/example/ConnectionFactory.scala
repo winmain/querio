@@ -2,7 +2,7 @@ package example
 import java.sql.{Connection, DriverManager}
 import java.util.Properties
 
-import querio.vendor.{PostgreSQL}
+import querio.vendor.{PostgreSQLVendor}
 
 object ConnectionFactory {
 

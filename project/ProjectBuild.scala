@@ -7,7 +7,7 @@ object ProjectBuild extends sbt.Build {
 
   val commonSettings = Seq(
     organization := "com.github.winmain",
-    version := "0.5.1",
+    version := "0.5.2",
     publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else Some("releases" at "http://nexus/content/repositories/releases")),
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 

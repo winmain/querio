@@ -6,7 +6,7 @@ import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import model.db.{ PostgresSQLVendor}
 import querio.codegen.DatabaseGenerator
 import querio.json.JSON4SExtension
-import querio.vendor.PostgreSQL
+import querio.vendor.PostgreSQLVendor
 
 import scalax.file.Path
 

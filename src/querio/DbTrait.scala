@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 import org.slf4j.{Logger, LoggerFactory}
-import querio.vendor.{Mysql, Vendor, PostgreSQL}
+import querio.vendor.{MysqlVendor, Vendor, PostgreSQLVendor}
 
 import scala.util.Random
 
@@ -397,10 +397,10 @@ abstract class BaseDb(override val vendor: Vendor) extends DbTrait {
     new DefaultDataTr(connection, isolationLevel, parent, md, logSql)
 }
 
-class DefaultSql(connectionFactory: => Connection) extends BaseDb(new Mysql) {
+class DefaultMysqlDb(connectionFactory: => Connection) extends BaseDb(new MysqlVendor) {
   override protected def getConnection: Connection = connectionFactory
 }
 
-class DefaultPostgres(connectionFactory: => Connection) extends BaseDb(new PostgreSQL) {
+class DefaultPostgresDb(connectionFactory: => Connection) extends BaseDb(new PostgreSQLVendor) {
   override protected def getConnection: Connection = connectionFactory
 }

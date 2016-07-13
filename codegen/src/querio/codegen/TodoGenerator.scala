@@ -4,7 +4,7 @@ import java.nio.file.Paths
 import java.sql.DriverManager
 import java.util.Properties
 
-import querio.vendor.Mysql
+import querio.vendor.DefaultMysqlVendor
 
 object TodoGenerator {
   def main(args: Array[String]) {
@@ -21,9 +21,9 @@ object TodoGenerator {
     val connection = DriverManager.getConnection(jdbcurl, props)
 
     val dir = Paths.get(args(0))
-    new DatabaseGenerator(new Mysql, connection, "ros", pkg = "models.db.ros", tableListClass = "models.db.RosDb", dir = dir, isDefaultDatabase = true).generateDb()
-    new DatabaseGenerator(new Mysql, connection, "ros_bill", pkg = "models.db.bill", tableListClass = "models.db.RosBillDb", dir = dir).generateDb()
-    new DatabaseGenerator(new Mysql, connection, "ros_adm", pkg = "models.db.adm", tableListClass = "models.db.RosAdmDb", dir = dir).generateDb()
-    new DatabaseGenerator(new Mysql, connection, "ros_stat", pkg = "models.db.stat", tableListClass = "models.db.RosStatDb", dir = dir, tableNamePrefix = "Stat").generateDb()
+    new DatabaseGenerator(DefaultMysqlVendor, connection, "ros", pkg = "models.db.ros", tableListClass = "models.db.RosDb", dir = dir, isDefaultDatabase = true).generateDb()
+    new DatabaseGenerator(DefaultMysqlVendor, connection, "ros_bill", pkg = "models.db.bill", tableListClass = "models.db.RosBillDb", dir = dir).generateDb()
+    new DatabaseGenerator(DefaultMysqlVendor, connection, "ros_adm", pkg = "models.db.adm", tableListClass = "models.db.RosAdmDb", dir = dir).generateDb()
+    new DatabaseGenerator(DefaultMysqlVendor, connection, "ros_stat", pkg = "models.db.stat", tableListClass = "models.db.RosStatDb", dir = dir, tableNamePrefix = "Stat").generateDb()
   }
 }

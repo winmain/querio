@@ -4,7 +4,7 @@ package model.db.table
 import java.sql.ResultSet
 
 import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
-import querio.vendor.DefaultMysql
+import querio.vendor.DefaultMysqlVendor
 
 class UserTable(alias: String) extends Table[User, MutableUser]("example", "user", alias, false, false) {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
@@ -15,7 +15,7 @@ class UserTable(alias: String) extends Table[User, MutableUser]("example", "user
   _fields_registered()
 
   override val _comment = "Common user"
-  def _vendor = DefaultMysql
+  def _vendor = DefaultMysqlVendor
   def _primaryKey = Some(id)
   def _newMutableRecord = new MutableUser()
   def _newRecordFromResultSet($rs: ResultSet, $i: Int): User = new User(id.getTableValue($rs, $i), email.getTableValue($rs, $i), passwordHash.getTableValue($rs, $i), active.getTableValue($rs, $i), rating.getTableValue($rs, $i))
