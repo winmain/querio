@@ -3,7 +3,7 @@ import java.sql.Connection
 
 import querio.utils.{SQLExceptionCode, SQLExceptionMatcherList}
 
-class H2 extends Vendor {
+class H2Vendor extends Vendor {
   object Error extends ErrorMatcher {
     // http://www.h2database.com/javadoc/org/h2/api/ErrorCode.html#c90018
     // Connection is closed
@@ -30,7 +30,7 @@ class H2 extends Vendor {
   }
   override def errorMatcher: ErrorMatcher = Error
 
-  def getClassImport:String = "querio.db.H2"
+  def getClassImport: String = "querio.db.H2"
 
   val reservedWordsUppercased: Set[String] = Set("CROSS", "CURRENT_DATE", "CURRENT_TIME",
     "CURRENT_TIMESTAMP", "DISTINCT", "EXCEPT", "EXISTS", "FALSE", "FETCH", "FOR", "FROM", "FULL",
@@ -53,4 +53,4 @@ class H2 extends Vendor {
   def isNotAllUpperCaseCase(word: String) = word.toUpperCase != word
 }
 
-object DefaultH2 extends H2
+object DefaultH2Vendor extends H2Vendor
