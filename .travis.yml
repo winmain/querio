@@ -19,4 +19,4 @@ deploy:
   provider: script
   script: travis-deploy.sh
   on:
-    branch: production
+    tags: true
