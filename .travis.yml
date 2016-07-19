@@ -1,0 +1,20 @@
+language: scala
+scala:
+- 2.11.8
+jdk:
+- oraclejdk8
+cache:
+  directories:
+  - "$HOME/.sbt"
+  - "$HOME/.ivy2"
+deploy:
+  provider: script
+  script: ./travis-deploy.sh
+  skip_cleanup: true
+  on:
+    tags: true
+    all_branches: true
+env:
+  global:
+  - secure: Q42QPvQRHERP5AOK+9Wlbaow1Mjo11EX+d9GAGiraPdL8hlFu1dgnUzdNybfF8XftQ/2RMkrZ3uOs4ivc9Pm6pVcoxXEFE6QUz3r1huvem7+414mQboNPszBsKnVV54T3O6JMHNJPKJDTmdby8Ds/WMt5aUXjm+0FoemV69mFtg=
+  - secure: X5CChTj+fma+6J2eHeVI4Vo675XoC0/UClRZBWHrZxsTPhyX0a9dcTyOrblo4JvaDHQKz0Ok4NgEapsFjSciJYAAsOyboSsw1mzCcuCXA2zNuANHK/m6X06YySe5e2Hb+nCsoG7c4qEU3HTbplHJsnaUHPvjXdqdzTND6m6eicM=

@@ -12,9 +12,9 @@ lazy val genDbSourcesTask = genDbSources <<=
     }
   }
 
-val querioVersion = "0.4.99-SNAPSHOT"
-val querio = "com.github.winmain" %% "querio" % querioVersion
-val querioCodegen = "com.github.winmain" %% "querio-querio.codegen" % querioVersion
+val querioVersion = "0.5.2"
+val querio = "com.github.citrum.querio" %% "querio" % querioVersion
+val querioCodegen = "com.github.citrum.querio" %% "querio-codegen" % querioVersion
 val mysql = "mysql" % "mysql-connector-java" % "5.1.36"
 
 /**

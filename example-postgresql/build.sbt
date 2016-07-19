@@ -8,7 +8,7 @@ lazy val genDbSourcesTask = genDbSources <<=
     }
   }
 
-val querio = "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT" // querio orm
+val querio = "com.github.citrum.querio" %% "querio" % "0.5.2" // querio orm
 
 lazy val QuerioProject: RootProject = RootProject(file("../"))
 /**
@@ -23,7 +23,6 @@ lazy val querio_example_postgresql = (project in file(".")).settings(
   name := "querio-example-postgresql",
   version := "0.1",
   scalaVersion := "2.11.7",
-//  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
   libraryDependencies += querio,
   libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
