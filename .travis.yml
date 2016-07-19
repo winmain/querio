@@ -1,9 +1,6 @@
 language: scala
 scala:
 - 2.11.8
-branches:
-  only:
-  - master
 jdk:
 - oraclejdk8
 cache:
@@ -18,5 +15,7 @@ env:
 deploy:
   provider: script
   script: travis-deploy.sh
+  skip_cleanup: true
   on:
     tags: true
+    all_branches: true
