@@ -26,7 +26,7 @@ def runScala(classPath: Seq[File], className: String, arguments: Seq[String]) {
 }
 
 
-lazy val codegen: Project = Project("codegen", base = file("modules/querio.codegen"),
+lazy val codegen: Project = Project("codegen", base = file("modules/codegen"),
   settings = Seq(
     scalaVersion := "2.11.7",
     sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
