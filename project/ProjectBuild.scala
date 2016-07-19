@@ -1,3 +1,4 @@
+import bintray.BintrayKeys._
 import sbt.Keys._
 import sbt._
 
@@ -5,16 +6,15 @@ object ProjectBuild extends sbt.Build {
   val buildScalaVersion = "2.11.8"
   val module = "querio"
 
-  ///////////////////////  Settings ///////////////////////////
+  // ------------------------------- Main projects -------------------------------
 
-  val commonSettings = Seq(
-    organization := "com.github.winmain",
+  val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
+    organization := "com.github.winmain.querio",
     version := "0.5.2",
-    publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else Some("releases" at "http://nexus/content/repositories/releases")),
-    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
+//    publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else Some("releases" at "http://nexus/content/repositories/releases")),
+//    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
-    resolvers ++= Seq("Typesafe releases" at "http://repo.typesafe.com/typesafe/releases"),
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
     scalaVersion := buildScalaVersion,
     scalacOptions ++= Seq("-target:jvm-1.8", "-unchecked", "-deprecation", "-feature", "-language:existentials"),
@@ -38,10 +38,35 @@ object ProjectBuild extends sbt.Build {
     libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4" % "optional",
     libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.4.0" % "optional",
 
-      // Test dependencies
+    // Test dependencies
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0-M15" % "test",
-    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test"
+    libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+
+    // Deploy settings
+    startYear := Some(2015),
+    homepage := Some(url("https://github.com/winmain/querio")),
+    licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayOrganization := Some("citrum"),
+    // No Javadoc
+    publishArtifact in(Compile, packageDoc) := false,
+    publishArtifact in packageDoc := false,
+    sources in(Compile, doc) := Seq.empty
   )
+
+  lazy val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(
+    name := "querio-codegen",
+    description := "Codegen library for Querio - Scala ORM"
+  )
+
+  lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
+    name := "querio",
+    description := "Scala ORM, DSL, and code generator for database queries",
+    genQuerioLibSourcesTask,
+    // Наводим красоту в командной строке sbt
+    shellPrompt := {state: State => "[" + scala.Console.GREEN + "querio" + scala.Console.RESET + "] "}
+  ).dependsOn(querioCodegen).aggregate(querioCodegen)
+
+  // ------------------------------- Test projects -------------------------------
 
   val testH2Settings = Seq(
     name := "querio-test-h2",
@@ -80,20 +105,6 @@ object ProjectBuild extends sbt.Build {
     scalaSource in Test := baseDirectory.value / "test",
     javaSource in Test := baseDirectory.value / "test"
   )
-
-  ///////////////////////  projects ///////////////////////////
-
-  lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
-    name := "querio",
-    genQuerioLibSourcesTask
-  ).dependsOn(querioCodegen).aggregate(querioCodegen)
-
-  lazy val querioCodegen = Project("querio-codegen",
-    base = file("codegen"),
-    settings = commonSettings).settings(
-    name := "querio-codegen"
-  )
-
 
   lazy val test_h2 = Project(id = "test-h2",
     base = file("test-h2"),
