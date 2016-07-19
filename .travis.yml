@@ -5,10 +5,11 @@ branches:
   only:
   - master
 jdk:
-- openjdk8
+- oraclejdk8
 cache:
   directories:
   - "$HOME/.sbt"
+  - "$HOME/.ivy2"
 env:
   global:
   - secure: Q42QPvQRHERP5AOK+9Wlbaow1Mjo11EX+d9GAGiraPdL8hlFu1dgnUzdNybfF8XftQ/2RMkrZ3uOs4ivc9Pm6pVcoxXEFE6QUz3r1huvem7+414mQboNPszBsKnVV54T3O6JMHNJPKJDTmdby8Ds/WMt5aUXjm+0FoemV69mFtg=
