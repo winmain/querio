@@ -1,14 +1,21 @@
 language: scala
 scala:
- - 2.11.8
-
+- 2.11.8
 branches:
   only:
-    - master
-
+  - master
 jdk:
-  - oraclejdk8
-
+- openjdk8
 cache:
   directories:
-    - $HOME/.sbt
+  - "$HOME/.sbt"
+env:
+  global:
+  - secure: Q42QPvQRHERP5AOK+9Wlbaow1Mjo11EX+d9GAGiraPdL8hlFu1dgnUzdNybfF8XftQ/2RMkrZ3uOs4ivc9Pm6pVcoxXEFE6QUz3r1huvem7+414mQboNPszBsKnVV54T3O6JMHNJPKJDTmdby8Ds/WMt5aUXjm+0FoemV69mFtg=
+  - secure: X5CChTj+fma+6J2eHeVI4Vo675XoC0/UClRZBWHrZxsTPhyX0a9dcTyOrblo4JvaDHQKz0Ok4NgEapsFjSciJYAAsOyboSsw1mzCcuCXA2zNuANHK/m6X06YySe5e2Hb+nCsoG7c4qEU3HTbplHJsnaUHPvjXdqdzTND6m6eicM=
+
+deploy:
+  provider: script
+  script: travis-deploy.sh
+  on:
+    branch: production
