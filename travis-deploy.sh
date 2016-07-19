@@ -16,8 +16,5 @@ EOF
   echo "Created ~/.bintray/.credentials file for $BINTRAY_USER"
 }
 
-
-if [ "$TRAVIS_BRANCH" == "production" ]; then
-  make-bintray-credentials
-  sbt publish
-fi
+make-bintray-credentials
+sbt publish
