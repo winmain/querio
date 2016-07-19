@@ -6,10 +6,10 @@ import java.sql.ResultSet
 import model.db.PostgresSQLVendor
 import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
 
-class PurchaseTable(alias: String) extends Table[Purchase, MutablePurchase]("postgres", "purchase", alias, false, false) {
+class PurchaseTable(alias: String) extends Table[Purchase, MutablePurchase]("postgres", "purchase", alias) {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
-  val userid = new Long_TF(TFD("userId", _.userid, _.userid, _.userid = _, escaped=true))
-  val purchasecode = new Int_TF(TFD("purchaseCode", _.purchasecode, _.purchasecode, _.purchasecode = _, escaped=true))
+  val userid = new Long_TF(TFD("userId", _.userid, _.userid, _.userid = _, escaped = true))
+  val purchasecode = new Int_TF(TFD("purchaseCode", _.purchasecode, _.purchasecode, _.purchasecode = _, escaped = true))
   val price = new Int_TF(TFD("price", _.price, _.price, _.price = _))
   val level = new OptionInt_TF(TFD("level", _.level, _.level, _.level = _))
   _fields_registered()

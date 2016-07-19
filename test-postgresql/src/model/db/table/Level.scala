@@ -6,16 +6,17 @@ import java.time.LocalDateTime
 
 import model.db.PostgresSQLVendor
 import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+import querio.json.JSON4SJsonFields
 
-class LevelTable(alias: String) extends Table[Level, MutableLevel]("postgres", "level", alias, false, false) {
+class LevelTable(alias: String) extends Table[Level, MutableLevel]("postgres", "level", alias) with JSON4SJsonFields[Level, MutableLevel] {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
   val jsB = new String_TF(TFD("js_b", _.jsB, _.jsB, _.jsB = _))
   val js = new String_TF(TFD("js", _.js, _.js, _.js = _))
-  val userid = new Long_TF(TFD("userId", _.userid, _.userid, _.userid = _, escaped=true))
+  val userid = new Long_TF(TFD("userId", _.userid, _.userid, _.userid = _, escaped = true))
   val level = new Int_TF(TFD("level", _.level, _.level, _.level = _))
   val score = new Int_TF(TFD("score", _.score, _.score, _.score = _))
   val complete = new Boolean_TF(TFD("complete", _.complete, _.complete, _.complete = _))
-  val createdat = new LocalDateTime_TF(TFD("createdAt", _.createdat, _.createdat, _.createdat = _, escaped=true))
+  val createdat = new LocalDateTime_TF(TFD("createdAt", _.createdat, _.createdat, _.createdat = _, escaped = true))
   _fields_registered()
 
   override val _comment = "null"

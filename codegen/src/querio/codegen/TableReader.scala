@@ -13,7 +13,7 @@ class TableReader(db: Vendor, lines: List[String]) {
 
   import TableReader._
 
-  case class UserCol(varName: String, colName: String, escapedFl:Boolean, className: String, prependParams: String, otherParams: String, scalaComment: String) {
+  case class UserCol(varName: String, colName: String, escapedFl: Boolean, className: String, prependParams: String, otherParams: String, scalaComment: String) {
     var scalaType: String = null
     var isPrivate: Boolean = false
   }
@@ -83,7 +83,7 @@ class TableReader(db: Vendor, lines: List[String]) {
           resolveBlocks(sp.after, Nil)
 
         case head =>
-          tableName.flatMap{tn => objectR(tn).findFirstMatchIn(head)} match {
+          tableName.flatMap { tn => objectR(tn).findFirstMatchIn(head) } match {
             case Some(objectRMatch) =>
               objectName = Some(objectRMatch.group(1))
               preObjectLines = pre
@@ -98,6 +98,7 @@ class TableReader(db: Vendor, lines: List[String]) {
       afterMutableLines = pre
     }
   }
+
   resolveBlocks(lines, Nil)
   preTableLines = trimEmptyLines(preTableLines.filterNot(s => s.startsWith("import ") || s.startsWith("package ")))
   preObjectLines = trimEmptyLines(preObjectLines)
@@ -111,7 +112,7 @@ class TableReader(db: Vendor, lines: List[String]) {
       case tableFieldR(varName, className, prependParams, escapedColName, escapedFlStr, otherParams, scalaComment) =>
         val colName = db.unescapeName(escapedColName)
         val escapedFl = if (escapedFlStr.isEmpty) false else escapedFlStr.toBoolean
-        val uc = UserCol(varName.trim, colName, escapedFl,className.trim, prependParams, otherParams, scalaComment)
+        val uc = UserCol(varName.trim, colName, escapedFl, className.trim, prependParams, otherParams, scalaComment)
         userColumnsByColName(colName) = uc
         userColumnsByVarName(varName) = uc
 
@@ -147,10 +148,10 @@ class TableReader(db: Vendor, lines: List[String]) {
             line.trim match {
               case classHeaderFieldR(_, scalaType) =>
                 val name: String = constructorVarNames(idx)
-                userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
+                userColumnsByVarName.get(name).foreach { col => col.scalaType = scalaType.trim }
               case classHeaderPrivateFieldR(_, scalaType) =>
                 val name: String = constructorVarNames(idx)
-                userColumnsByVarName.get(name).foreach {col =>
+                userColumnsByVarName.get(name).foreach { col =>
                   col.isPrivate = true
                   col.scalaType = scalaType.trim
                 }
@@ -192,11 +193,11 @@ class TableReader(db: Vendor, lines: List[String]) {
 }
 
 object TableReader {
-  case class TableDef(tr: String, mtr: String, moreExtends: String = "")
 
   val extendsR = """(?s).*\) *(extends .*) *\{""".r
 
-  val tableR = """(?xs)
+  val tableR =
+    """(?xs)
     class\ +([^\ \[]+Table) # param1: name
     \(alias:\ *String\)     # (alias: String)
     \s+extends\ +Table      # extends Table
@@ -208,8 +209,11 @@ object TableReader {
     \ *alias                # _alias
     .*\)\s*(.*)\s*\{[^{]*   # ) param4: optional with {
     """.r
+
   def objectR(tableClassName: String) = ("""(?s)object +([^ \[]+)\s+extends +""" + Pattern.quote(tableClassName) + """\(null\).*""").r
-  val tableFieldR = """(?x)
+
+  val tableFieldR =
+    """(?x)
     val\ +([^\ ]+)                 # param: varName
     \ *=\ *new\ +([^\ (]+)         # param: className
     (\([^)]+\)|)                   # param: prependParams
@@ -234,13 +238,14 @@ object TableReader {
   val classR = """(?s)class +([^ \[\(]+).*(?:extends|with) +TableRecord.*""".r
   val classHeaderFieldR = """val +([^:]+): *(.+?)(?:,|\) +extends.*)""".r
   val classHeaderPrivateFieldR = """_([^:]+): *(.+?)(?:,|\) +extends.*)""".r
-  val classFieldR = """(?x)
+  val classFieldR =
+    """(?x)
     val\ +([^:]+)       # ignore val name
     :\ *(.+?)           # param: scalaType
     \ *=\ *[^\ \.]+\.
     ([^\ \.]+)          # param: varName
     \.getValue\(rs\)
-                    """.r
+    """.r
   val classTableR = "def +_table *=.*".r
   val classPrimaryKeyR = """def +_primaryKey *: *Int *=.*""".r
   val classToMutableString = "def toMutable:"

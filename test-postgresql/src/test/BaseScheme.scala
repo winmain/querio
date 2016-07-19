@@ -12,7 +12,11 @@ object BaseScheme {
       "verbose" boolean NULL,
       "js_b" jsonb NOT NULL DEFAULT '{}',
       "js" json NOT NULL DEFAULT '{}',
-      "lastLogin" timestamp without time zone NOT NULL
+      "js_b_nullable" jsonb NULL,
+      "js_nullable" json NULL,
+      "lastLogin" timestamp without time zone NOT NULL,
+      "byteArray" bytea not null,
+      "byteArrayNullable" bytea NULL
     )
     WITH (
       OIDS=FALSE

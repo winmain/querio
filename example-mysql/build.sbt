@@ -14,7 +14,7 @@ lazy val genDbSourcesTask = genDbSources <<=
 
 val querioVersion = "0.4.99-SNAPSHOT"
 val querio = "com.github.winmain" %% "querio" % querioVersion
-val querioCodegen = "com.github.winmain" %% "querio-codegen" % querioVersion
+val querioCodegen = "com.github.winmain" %% "querio-querio.codegen" % querioVersion
 val mysql = "mysql" % "mysql-connector-java" % "5.1.36"
 
 /**
@@ -26,7 +26,7 @@ def runScala(classPath: Seq[File], className: String, arguments: Seq[String]) {
 }
 
 
-lazy val codegen: Project = Project("codegen", base = file("modules/codegen"),
+lazy val codegen: Project = Project("codegen", base = file("modules/querio.codegen"),
   settings = Seq(
     scalaVersion := "2.11.7",
     sourceDirectories in Compile := Seq(baseDirectory.value / "src"),

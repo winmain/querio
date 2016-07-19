@@ -1,9 +1,11 @@
 package querio.json
 
-import querio.codegen.{TableGeneratorData, TableTraitExtension}
+import querio.codegen.{ExtendDef, TableExtensionInfo, TableGeneratorData, TableTraitExtension}
 
 object JSONAsStringTableTraitExtension extends TableTraitExtension {
-  override def recognize(data: TableGeneratorData): Option[(TraitDefinition, TraitImport)] = {
+  override def recognize(data: TableGeneratorData): Option[TableExtensionInfo] = {
     None
   }
+
+  override def getPossibleExtendDef(data: TableGeneratorData): Set[ExtendDef] = Set.empty
 }

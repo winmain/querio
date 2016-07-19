@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.apache.commons.lang3.StringUtils
-import querio.codegen.TableReader.TableDef
 import querio.codegen.Utils.wrapIterable
 import querio.codegen.patch.OrmPatches
 import querio.vendor.Vendor
@@ -55,7 +54,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       new TableReader(vendor, patched)
     }
 
-    val columns: Vector[InnerCol] = columnsRs.map {crs =>
+    val columns: Vector[InnerCol] = columnsRs.map { crs =>
       reader.userColumnsByColName.get(crs.name) match {
         case Some(uc) => UserCol(uc, crs)
         case None => NamedCol(crs)
@@ -75,13 +74,19 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
     trait InnerCol extends Col {
       def rs: ColumnRS
+
       def varName: String
+
       def shortScalaType: String
+
       def objectField(p: SourcePrinter): Unit
+
       def classField(p: SourcePrinter): Unit
+
       def mutableClassField(p: SourcePrinter): Unit
 
       def maybeUnescapeName: String = vendor.maybeUnescapeName(rs.name)
+
       def escaped: Boolean = vendor.isNeedEscape(rs.name)
 
       protected def withComment: String = rs.remarks match {
@@ -138,6 +143,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       if (uc.scalaType == null) sys.error(s"Cannot find field ${table.cat}.${table.name}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
 
       def varName = uc.varName
+
       def shortScalaType: String = uc.scalaType
 
       def objectField(p: SourcePrinter) {
@@ -172,15 +178,15 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       val escaped = vendor.isNeedEscape(table.name)
       val needPrefix = !isDefaultDatabase
       val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
-      // TODO: пока выключил поддержку метода withAdditionTraitsForTable
-      //      val (fullTableDef, imports) = withAdditionTraitsForTable(tableDef)
-      //      imports.foreach(x => p imp x)
-      p ++ "class " ++ tableTableName ++ "(alias: String) extends Table[" ++ tableDef.tr ++ ", " ++ tableDef.mtr ++ "]"
+      val extensions: Seq[TableTraitExtension] = vendor.getTableTraitsExtensions
+      val (newTableDef, imports) = TableGenerator.withAdditionTraitsForTable(this,extensions,tableDef)
+      imports.foreach(x => p imp x)
+      p ++ "class " ++ tableTableName ++ "(alias: String) extends Table[" ++ tableDef.tableName ++ ", " ++ tableDef.mutableTableName ++ "]"
       p ++ s"""("$dbName", "${table.name}", alias"""
       if (needPrefix) p ++ ", _needDbPrefix = true"
       if (escaped) p ++ ", _escapeName = true"
       p ++ ")"
-      if (tableDef.moreExtends.nonEmpty) p ++ ' ' ++ tableDef.moreExtends
+      if (newTableDef.moreExtends.nonEmpty) p ++ ' ' ++ newTableDef.moreExtends
       p block {
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
@@ -200,21 +206,6 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
         printUserLines(p, reader.userTableLines)
       }
-    }
-
-    def withAdditionTraitsForTable(tableDefinition: String): (String, Seq[String]) = {
-      def normalize(s: String): String = s.replace(" ", "").replace("\t", "")
-      val tableDefinitionTemplate = normalize(tableDefinition)
-      val (traits, imports) = vendor.getTableTraitsExtensions
-        .flatMap(_.recognize(this))
-        .filter {
-          case (traitDef, _) =>
-            tableDefinitionTemplate.indexOf(normalize(traitDef)) < 0
-        }.unzip
-      val concatenatedTraits = traits.foldLeft(new StringBuilder) {
-        case (sb, traitDef) => sb.append(" with ").append(traitDef)
-      }.result()
-      (tableDefinition + concatenatedTraits, imports)
     }
 
     /**
@@ -240,7 +231,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         val firstLine: String = s"class $tableClassName("
         val headerIndents = StringUtils.repeat(' ', firstLine.length)
         p ++ firstLine
-        columns.init.foreach {c => c.classField(p); p ++ ",\n" ++ headerIndents}
+        columns.init.foreach { c => c.classField(p); p ++ ",\n" ++ headerIndents }
         columns.last.classField(p)
         p ++ ") " ++ clsExtends
       }
@@ -331,17 +322,54 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p
     }
   }
+
 }
 
 trait Col {
   def rs: ColumnRS
+
   def varName: String
+
   def shortScalaType: String
+
   def objectField(p: SourcePrinter): Unit
+
   def classField(p: SourcePrinter): Unit
+
   def mutableClassField(p: SourcePrinter): Unit
+
   def maybeUnescapeName: String
+
   def escaped: Boolean
+}
+
+object TableGenerator {
+
+  def withAdditionTraitsForTable(data: TableGeneratorData,
+                                 traitsExtensions: Seq[TableTraitExtension],
+                                 tableDefinition: TableDef): (TableDef, Seq[String]) = {
+    // Looking for required extensions for table
+    val foundExtensionInfos: Seq[TableExtensionInfo] = traitsExtensions.flatMap(_.recognize(data))
+    // looking for existing and useless extensions for table
+    val allExtendDef = traitsExtensions.foldLeft(new mutable.HashSet[ExtendDef]()) {
+      case (set, te) => set ++= te.getPossibleExtendDef(data)
+    }
+    val uselessExtendDef = allExtendDef -- foundExtensionInfos.map(_.extensionDef)
+    // Remove useless extensions
+    val extendDefs: Seq[ExtendDef] = tableDefinition.extendDefs
+    val cleanedExtendDefs: Seq[ExtendDef] = extendDefs.filterNot(uselessExtendDef.contains)
+    // Creates new sequence of ExtendDef
+    val currentSet: mutable.LinkedHashSet[ExtendDef] = mutable.LinkedHashSet() ++= cleanedExtendDefs
+    val newExtendDefSet = foundExtensionInfos.foldLeft(currentSet) {
+      case (set, tableExtension) => set += tableExtension.extensionDef
+    }
+    val extendStr: String = TableDef.defsToExtendStr(newExtendDefSet.toSeq)
+    val imports: Seq[String] = foundExtensionInfos.flatMap(_.imports)
+    (new TableDef(
+      tableName = tableDefinition.tableName,
+      mutableTableName = tableDefinition.mutableTableName,
+      moreExtends = extendStr), imports)
+  }
 }
 
 trait TableGeneratorData {

@@ -88,10 +88,10 @@ object ProjectBuild extends sbt.Build {
     genQuerioLibSourcesTask
   ).dependsOn(querioCodegen).aggregate(querioCodegen)
 
-  lazy val querioCodegen = Project("querio-codegen",
-    base = file("codegen"),
+  lazy val querioCodegen = Project("querio-querio.codegen",
+    base = file("querio.codegen"),
     settings = commonSettings).settings(
-    name := "querio-codegen"
+    name := "querio-querio.codegen"
   )
 
 
@@ -146,7 +146,7 @@ object ProjectBuild extends sbt.Build {
       lazy val genDbSourcesTask = genDbSources <<=
         (scalaSource in Compile in main, dependencyClasspath in Compile, baseDirectory in Compile, classDirectory in Runtime) map {
           (scalaSource, classPath, baseDir, classesDir) => {
-            runScala(classPath.files :+ baseDir :+ classesDir, "orm.codegen.TodoGenerator", Seq(scalaSource.absolutePath))
+            runScala(classPath.files :+ baseDir :+ classesDir, "orm.querio.codegen.TodoGenerator", Seq(scalaSource.absolutePath))
           }
         }
     */
