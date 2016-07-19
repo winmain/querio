@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/winmain/querio.svg?branch=master)](https://travis-ci.org/winmain/querio)
+[![Build Status](https://travis-ci.org/citrum/querio.svg?branch=master)](https://travis-ci.org/citrum/querio)
 [![Download](https://api.bintray.com/packages/citrum/maven/querio/images/download.svg)](https://bintray.com/citrum/maven/querio/_latestVersion)
 
 _querio_ is a scala ORM, DSL, and code generator for database queries.

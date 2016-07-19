@@ -9,10 +9,8 @@ object ProjectBuild extends sbt.Build {
   // ------------------------------- Main projects -------------------------------
 
   val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
-    organization := "com.github.winmain.querio",
+    organization := "com.github.citrum.querio",
     version := "0.5.2",
-//    publishTo := (if (isSnapshot.value) Some("snapshots" at "http://nexus/content/repositories/snapshots") else Some("releases" at "http://nexus/content/repositories/releases")),
-//    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -44,8 +42,9 @@ object ProjectBuild extends sbt.Build {
 
     // Deploy settings
     startYear := Some(2015),
-    homepage := Some(url("https://github.com/winmain/querio")),
+    homepage := Some(url("https://github.com/citrum/querio")),
     licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayVcsUrl := Some("https://github.com/citrum/querio"),
     bintrayOrganization := Some("citrum"),
     // No Javadoc
     publishArtifact in(Compile, packageDoc) := false,
@@ -72,8 +71,6 @@ object ProjectBuild extends sbt.Build {
     name := "querio-test-h2",
     version := "0.1",
     scalaVersion := "2.11.7",
-    //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
-
     //  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
     libraryDependencies += "com.h2database" % "h2" % "1.3.175",
     libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
@@ -92,7 +89,6 @@ object ProjectBuild extends sbt.Build {
     name := "querio-test-postgresql",
     version := "0.1",
     scalaVersion := "2.11.7",
-    //  libraryDependencies += "com.github.winmain" %% "querio" % "0.4.3-SNAPSHOT",
     libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
     libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
     libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
