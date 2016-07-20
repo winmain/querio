@@ -24,6 +24,7 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
   trait OptionByteaField extends OptionField[Array[Byte]] with BaseByteaRender {
     override def getValue(rs: ResultSet, index: Int): Option[Array[Byte]] = rs.getBytes(index) match {
       case null => None
+      case ba if ba.isEmpty=> None
       case ba => Some(ba)
     }
 
@@ -36,7 +37,10 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
   trait BaseByteaRender {
     selfRender: BaseByteaRender =>
 
-    def renderEscapedT(value: Array[Byte])(implicit buf: SqlBuffer) = buf renderStringValue toString(value)
+    def renderEscapedT(value: Array[Byte])(implicit buf: SqlBuffer):Unit = {
+      if (value == null) buf ++ "null"
+      else buf renderAsIsStringValue toString(value)
+    }
 
     def newExpression(r: (SqlBuffer) => Unit): El[Array[Byte], Array[Byte]] = new ByteaField {
       override def render(implicit sql: SqlBuffer) = r(sql)
@@ -44,7 +48,7 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
 
     def fromStringSimple(s: String): Array[Byte] = throw new UnsupportedOperationException
 
-    def toString(v: Array[Byte]): String = if (v == null) "null" else PGbytea.toPGString(v)
+    def toString(v: Array[Byte]): String = PGUtils.toPGHexString(v)
   }
 
 }

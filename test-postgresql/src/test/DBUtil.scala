@@ -16,6 +16,8 @@ object DBUtil {
     user.jsB = JObject(List.empty)
     user.js = JObject(List.empty)
     user.lastlogin = LocalDateTime.now()
+    user.bytearray = new Array[Byte](0)
+    user.bytearraynullable = None
     user
   }
 

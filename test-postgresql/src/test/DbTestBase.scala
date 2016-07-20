@@ -24,7 +24,7 @@ abstract class DbTestBase(val crateSchemaSql: String,
     def after = {}
   }
 
-  private var pg: EmbeddedPostgres = _
+  protected var pg: EmbeddedPostgres = _
 
   private var dataSource: DataSource = _
 

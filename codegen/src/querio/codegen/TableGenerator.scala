@@ -54,7 +54,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       new TableReader(vendor, patched)
     }
 
-    val columns: Vector[InnerCol] = columnsRs.map { crs =>
+    val columns: Vector[InnerCol] = columnsRs.map {crs =>
       reader.userColumnsByColName.get(crs.name) match {
         case Some(uc) => UserCol(uc, crs)
         case None => NamedCol(crs)
@@ -179,7 +179,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       val needPrefix = !isDefaultDatabase
       val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
       val extensions: Seq[TableTraitExtension] = vendor.getTableTraitsExtensions
-      val (newTableDef, imports) = TableGenerator.withAdditionTraitsForTable(this,extensions,tableDef)
+      val (newTableDef, imports) = TableGenerator.withAdditionTraitsForTable(this, extensions, tableDef)
       imports.foreach(x => p imp x)
       p ++ "class " ++ tableTableName ++ "(alias: String) extends Table[" ++ tableDef.tableName ++ ", " ++ tableDef.mutableTableName ++ "]"
       p ++ s"""("$dbName", "${table.name}", alias"""
@@ -231,7 +231,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         val firstLine: String = s"class $tableClassName("
         val headerIndents = StringUtils.repeat(' ', firstLine.length)
         p ++ firstLine
-        columns.init.foreach { c => c.classField(p); p ++ ",\n" ++ headerIndents }
+        columns.init.foreach {c => c.classField(p); p ++ ",\n" ++ headerIndents}
         columns.last.classField(p)
         p ++ ") " ++ clsExtends
       }
@@ -327,19 +327,12 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
 trait Col {
   def rs: ColumnRS
-
   def varName: String
-
   def shortScalaType: String
-
   def objectField(p: SourcePrinter): Unit
-
   def classField(p: SourcePrinter): Unit
-
   def mutableClassField(p: SourcePrinter): Unit
-
   def maybeUnescapeName: String
-
   def escaped: Boolean
 }
 

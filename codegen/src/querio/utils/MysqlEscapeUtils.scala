@@ -2,7 +2,7 @@ package querio.utils
 
 import org.apache.commons.lang3.text.translate.{CharSequenceTranslator, LookupTranslator}
 
-object SqlEscapeUtils {
+object MysqlEscapeUtils {
 
   /**
    * Translator object for escaping Sql queries.

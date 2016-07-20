@@ -3,7 +3,7 @@ package querio.vendor
 import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import org.apache.commons.lang3.StringUtils
-import querio.utils.SQLExceptionCode
+import querio.utils.{MysqlEscapeUtils, SQLExceptionCode}
 
 class MysqlVendor extends Vendor {
 
@@ -84,6 +84,7 @@ class MysqlVendor extends Vendor {
   override def escapeName(name: String): String = '`' + name + '`'
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
+  override def escapeSql(value: String): String = MysqlEscapeUtils.escapeSql(value)
 }
 
 

@@ -6,7 +6,6 @@ import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 
 import org.apache.commons.lang3.StringUtils
-import querio.utils.SqlEscapeUtils
 import querio.vendor.Vendor
 
 trait SqlBuffer {
@@ -53,9 +52,14 @@ trait SqlBuffer {
     this ++ (if (value) "true" else "false")
   }
 
+  def renderAsIsStringValue(value: String) {
+    if (value == null) throw new NullPointerException("Cannot write null string")
+    this ++ '\'' ++ value ++ '\''
+  }
+
   def renderStringValue(value: String) {
     if (value == null) throw new NullPointerException("Cannot write null string")
-    this ++ '\'' ++ SqlEscapeUtils.escapeSql(value) ++ '\''
+    this ++ '\'' ++ vendor.escapeSql(value) ++ '\''
   }
 
   def renderBigDecimalValue(value: BigDecimal) {

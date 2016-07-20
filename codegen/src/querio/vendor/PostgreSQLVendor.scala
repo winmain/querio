@@ -63,6 +63,8 @@ class PostgreSQLVendor extends Vendor {
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
 
+  override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in postgres
+
   override def getAllProcessList(connection: Connection): String = ???
   override def lockWaitWrapper[T](maxAttempts: Int)(block: () => T): T = ???
   override def selectFoundRows: String = ???
