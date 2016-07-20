@@ -83,7 +83,7 @@ class TableReader(db: Vendor, lines: List[String]) {
           resolveBlocks(sp.after, Nil)
 
         case head =>
-          tableName.flatMap { tn => objectR(tn).findFirstMatchIn(head) } match {
+          tableName.flatMap {tn => objectR(tn).findFirstMatchIn(head)} match {
             case Some(objectRMatch) =>
               objectName = Some(objectRMatch.group(1))
               preObjectLines = pre
@@ -148,10 +148,10 @@ class TableReader(db: Vendor, lines: List[String]) {
             line.trim match {
               case classHeaderFieldR(_, scalaType) =>
                 val name: String = constructorVarNames(idx)
-                userColumnsByVarName.get(name).foreach { col => col.scalaType = scalaType.trim }
+                userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
               case classHeaderPrivateFieldR(_, scalaType) =>
                 val name: String = constructorVarNames(idx)
-                userColumnsByVarName.get(name).foreach { col =>
+                userColumnsByVarName.get(name).foreach {col =>
                   col.isPrivate = true
                   col.scalaType = scalaType.trim
                 }

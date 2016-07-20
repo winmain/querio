@@ -11,13 +11,13 @@ object SQLExceptionMatcherList {
   def apply(matchers: SQLExceptionMatcher*) = new SQLExceptionMatcherList(matchers)
 }
 
-case object SQLExceptionNoneMatcher extends SQLExceptionMatcher{
+case object SQLExceptionNoneMatcher extends SQLExceptionMatcher {
   override def unapply(t: Throwable): Option[SQLException] = None
 }
 
 sealed class SQLExceptionMatcherList(val matchers: Seq[SQLExceptionMatcher]) extends SQLExceptionMatcher {
   override def unapply(t: Throwable): Option[SQLException] = {
-    matchers.toStream.map(_.unapply(t)).collectFirst { case Some(x) => x }
+    matchers.toStream.map(_.unapply(t)).collectFirst {case Some(x) => x}
   }
 }
 

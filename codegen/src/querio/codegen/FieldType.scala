@@ -38,10 +38,10 @@ object FieldType {
     case Types.TIMESTAMP | Types.TIME => dateTime
     case Types.DATE => date
     case _ =>
-      val types = extensions.flatMap(_.recognize(colType,typeName))
-      if(types.size == 1){
+      val types = extensions.flatMap(_.recognize(colType, typeName))
+      if (types.size == 1) {
         types.head
-      } else if(types.isEmpty){
+      } else if (types.isEmpty) {
         sys.error(errStrUnresolved + colType + " " + typeName)
       } else {
         sys.error(errStrManyCandidates + colType + " " + typeName)

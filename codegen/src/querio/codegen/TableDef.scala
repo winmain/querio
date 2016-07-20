@@ -11,7 +11,7 @@ object TableDef {
   def defsToExtendStr(defs: Seq[ExtendDef]): String = {
     var first = true
     val sb: StringBuilder = new StringBuilder
-    defs.foreach { d =>
+    defs.foreach {d =>
       if (first) {
         first = false
       } else {
@@ -23,7 +23,7 @@ object TableDef {
   }
 
   def extendStrToDefs(moreExtends: String): Seq[ExtendDef] = {
-    moreExtends.split("with").map(_.trim).filter(_.nonEmpty).map { str =>
+    moreExtends.split("with").map(_.trim).filter(_.nonEmpty).map {str =>
       str.indexOf("[") match {
         case -1 => new ExtendDef(str, "")
         case 0 => throw new RuntimeException("Unexpected string format.")

@@ -10,4 +10,4 @@ class TableRS(rs: ResultSet) {
   /** Typical types are "TABLE", "VIEW", "SYSTEM TABLE", "GLOBAL TEMPORARY", "LOCAL TEMPORARY", "ALIAS", "SYNONYM". */
   val tpe: String = rs.getString(4)
   @Nullable val remarks: String = rs.getString(5)
-  }
+}

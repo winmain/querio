@@ -25,7 +25,7 @@ trait Vendor {
   def maybeEscapeName(name: String): String = if (isNeedEscape(name)) escapeName(name) else name
   def maybeUnescapeName(name: String): String = if (isNeedEscape(name)) unescapeName(name) else name
 
-  def escapeSql(value: String):String
+  def escapeSql(value: String): String
 
   def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T
 
