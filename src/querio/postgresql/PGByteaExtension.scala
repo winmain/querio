@@ -3,8 +3,7 @@ package querio.postgresql
 import querio.codegen._
 import querio.vendor.Vendor
 
-trait PGByteaExtension {
-  this: Vendor =>
+trait PGByteaExtension {this: Vendor =>
   addTypeExtension(new FieldTypeExtension {
     override def recognize(colType: Int, typeName: String): Option[FieldType] = {
       if (PGByteaTableTraitExtension.isBytea(colType, typeName)) {
@@ -21,7 +20,6 @@ trait PGByteaExtension {
 
 object PGByteaTableTraitExtension extends TableTraitExtension {
 
-
   def isBytea(colType: Int, typeName: String): Boolean = {
     colType == -2 && typeName == "bytea"
   }
@@ -32,7 +30,7 @@ object PGByteaTableTraitExtension extends TableTraitExtension {
 
 
   def isByteaExists(columns: Vector[Col]): Boolean = {
-    columns.exists { col => isBytea(col.rs.dataType, col.rs.typeName) }
+    columns.exists {col => isBytea(col.rs.dataType, col.rs.typeName)}
   }
 
   override def recognize(data: TableGeneratorData): Option[TableExtensionInfo] = {

@@ -2,12 +2,10 @@ package querio.postgresql
 
 import java.sql.{PreparedStatement, ResultSet}
 
-import org.postgresql.util.PGbytea
-import querio.{Table, _}
+import querio._
 
 
-trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
-  self: Table[TR, MTR] =>
+trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
 
   class MyCustom_TF(tfd: TFD[Int]) extends SimpleTableField[Int](tfd) with IntField
 
@@ -24,7 +22,7 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
   trait OptionByteaField extends OptionField[Array[Byte]] with BaseByteaRender {
     override def getValue(rs: ResultSet, index: Int): Option[Array[Byte]] = rs.getBytes(index) match {
       case null => None
-      case ba if ba.isEmpty=> None
+      case ba if ba.isEmpty => None
       case ba => Some(ba)
     }
 
@@ -35,11 +33,14 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
   }
 
   trait BaseByteaRender {
-    selfRender: BaseByteaRender =>
-
-    def renderEscapedT(value: Array[Byte])(implicit buf: SqlBuffer):Unit = {
+    def renderEscapedT(value: Array[Byte])(implicit buf: SqlBuffer): Unit = {
       if (value == null) buf ++ "null"
-      else buf renderAsIsStringValue toString(value)
+      else {
+        buf.sb.ensureCapacity(buf.sb.length() + value.length * 2 + 128)
+        buf ++ '\''
+        PGByteUtils.writePGHex(value, buf.sb)
+        buf ++ '\''
+      }
     }
 
     def newExpression(r: (SqlBuffer) => Unit): El[Array[Byte], Array[Byte]] = new ByteaField {
@@ -47,8 +48,5 @@ trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {
     }
 
     def fromStringSimple(s: String): Array[Byte] = throw new UnsupportedOperationException
-
-    def toString(v: Array[Byte]): String = PGUtils.toPGHexString(v)
   }
-
 }
