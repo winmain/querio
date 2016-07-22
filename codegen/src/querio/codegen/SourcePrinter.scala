@@ -71,7 +71,10 @@ class SourcePrinter(groupImports: Boolean = true) {
   }
 
   def saveToFile(file: File): Unit = saveToFile(file.toPath)
-  def saveToFile(path: Path): Unit = Files.write(path, getSource.getBytes)
+  def saveToFile(path: Path): Unit = {
+    Files.createDirectories(path.getParent())
+    Files.write(path, getSource.getBytes)
+  }
 
   def ++(sql: String): this.type = { sb append sql; this }
   def ++(sql: Char): this.type = { sb append sql; this }
