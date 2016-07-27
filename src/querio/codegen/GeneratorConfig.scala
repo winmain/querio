@@ -3,9 +3,6 @@ package querio.codegen
 import org.apache.commons.lang3.StringUtils
 
 object GeneratorConfig {
-  val libPackage = "querio"
-  val maxArity = 22
-
   val importJavaResultSet = "java.sql.ResultSet"
   val importTable = "querio.Table"
   val importTableRecord = "querio.TableRecord"

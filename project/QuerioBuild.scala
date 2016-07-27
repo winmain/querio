@@ -2,7 +2,7 @@ import bintray.BintrayKeys._
 import sbt.Keys._
 import sbt._
 
-object ProjectBuild extends sbt.Build {
+object QuerioBuild extends sbt.Build {
   val buildScalaVersion = "2.11.8"
   val module = "querio"
 
@@ -10,7 +10,7 @@ object ProjectBuild extends sbt.Build {
 
   val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
     organization := "com.github.citrum.querio",
-    version := "0.5.3",
+    version := "0.6.0-rc.1",
 
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -52,9 +52,14 @@ object ProjectBuild extends sbt.Build {
     sources in(Compile, doc) := Seq.empty
   )
 
-  lazy val querioCodegen = Project("querio-codegen", base = file("codegen"), settings = commonSettings).settings(
-    name := "querio-codegen",
-    description := "Codegen library for Querio - Scala ORM"
+  lazy val querioSelfCodegen = Project("querio-selfcodegen", base = file("selfcodegen"), settings = commonSettings).settings(
+    name := "querio-selfcodegen",
+    // Disable packaging & publishing artifact
+    Keys.`package` := file(""),
+    publishArtifact := false,
+    publishLocal := {},
+    publish := {},
+    bintrayUnpublish := {}
   )
 
   lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
@@ -63,7 +68,7 @@ object ProjectBuild extends sbt.Build {
     genQuerioLibSourcesTask,
     // Наводим красоту в командной строке sbt
     shellPrompt := {state: State => "[" + scala.Console.GREEN + "querio" + scala.Console.RESET + "] "}
-  ).dependsOn(querioCodegen).aggregate(querioCodegen)
+  )
 
   // ------------------------------- Test projects -------------------------------
 
@@ -117,15 +122,15 @@ object ProjectBuild extends sbt.Build {
   ///////////////////////  Tasks ///////////////////////////
 
   // Task: Generate some querio lib sources
-  val genQuerioLibSources = TaskKey[Unit]("gen-querio-lib-sources")
-  lazy val genQuerioLibSourcesTask = genQuerioLibSources <<=
-    (scalaSource in Compile, dependencyClasspath in Compile,
-      baseDirectory in Compile, classDirectory in Runtime) map {
-      (scalaSource, classPath, baseDir, classesDir) => {
-        runScala(classPath.files :+ baseDir :+ classesDir, "querio.codegen.SelfClassesGenerator",
-          Seq(scalaSource.absolutePath))
-      }
-    }
+  val genQuerioLibSources = taskKey[Unit]("gen-querio-lib-sources")
+  lazy val genQuerioLibSourcesTask = genQuerioLibSources := {
+    (compile in Compile in querioSelfCodegen).value // Run codegen compile task
+    val classPath: Seq[File] =
+      (dependencyClasspath in Compile in querioSelfCodegen).value.files :+
+      (classDirectory in Runtime in querioSelfCodegen).value
+    runScala(classPath, "querio.selfcodegen.SelfClassesGenerator",
+      Seq((scalaSource in Compile).value.absolutePath))
+  }
 
   val genTestH2DbSources = TaskKey[Unit]("gen-test-h2-db-sources")
   lazy val genTestH2DbSourcesTask = genTestH2DbSources <<=

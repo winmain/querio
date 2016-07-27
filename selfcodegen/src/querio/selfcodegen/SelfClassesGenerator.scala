@@ -1,15 +1,15 @@
-package querio.codegen
+package querio.selfcodegen
 
 import java.io.File
 import java.nio.file.{Path, Paths}
 
 /**
- * Генератор самих классов библиотеки.
- */
+  * Генератор самих классов библиотеки.
+  */
 object SelfClassesGenerator {
 
-  def genSelectSelectStep(p: SourcePrinter) {
-    p pkg GeneratorConfig.libPackage
+  def genSelectSelectStep(p: SelfSourcePrinter) {
+    p pkg SelfGenConfig.libPackage
     p imp "java.sql.ResultSet"
 
     p ++ "//" n()
@@ -20,13 +20,13 @@ object SelfClassesGenerator {
     def selects(traitName: String, defName: String, sqlPrefix: String) = {
       p ++ "trait " ++ traitName ++ " extends SqlQuery" block {
         // select methods
-        for (arity <- 2 to GeneratorConfig.maxArity) {
+        for (arity <- 2 to SelfGenConfig.maxArity) {
           val vs = (1 to arity).map(a => "V" + a).mkString(", ")
           p ++ "def " ++ defName ++ "[" ++ vs ++ "]"
           p ++ "(" ++ (1 to arity).map(i => s"field$i: ElTable[V$i]").mkString(", ") ++ ")"
           p ++ ": SelectFromStep[(" ++ vs ++ ")] =" block {
             p ++ "buf ++ \"" ++ sqlPrefix ++ "\"; field1._renderFields" n()
-            (2 to arity).foreach { i => p ++ "buf ++ \", \"; field" ++ i ++ "._renderFields" n()}
+            (2 to arity).foreach {i => p ++ "buf ++ \", \"; field" ++ i ++ "._renderFields" n()}
             p ++ "new SqlBuilder" ++ arity ++ "[" ++ vs ++ "](buf, " ++ (1 to arity).map("field" + _).mkString(", ") ++ ")"
           }
 
@@ -34,7 +34,7 @@ object SelfClassesGenerator {
           p ++ "(fn: (" ++ vs ++ ") => R, " ++ (1 to arity).map(i => s"field$i: ElTable[V$i]").mkString(", ") ++ ")"
           p ++ ": SelectFromStep[R] =" block {
             p ++ "buf ++ \"" ++ sqlPrefix ++ "\"; field1._renderFields" n()
-            (2 to arity).foreach { i => p ++ "buf ++ \", \"; field" ++ i ++ "._renderFields" n()}
+            (2 to arity).foreach {i => p ++ "buf ++ \", \"; field" ++ i ++ "._renderFields" n()}
             p ++ "new SqlBuilderCase" ++ arity ++ "[R, " ++ vs ++ "](buf, fn, " ++ (1 to arity).map("field" + _).mkString(", ") ++ ")"
           }
         }
@@ -47,14 +47,14 @@ object SelfClassesGenerator {
 
 
     // protected class SqlBuilder$i
-    for (arity <- 2 to GeneratorConfig.maxArity) {
+    for (arity <- 2 to SelfGenConfig.maxArity) {
       def body(fnName: String): Unit = {
         p block {
           p ++ s"val v1: V1 = f1._getValue(rs, 1)" n()
           if (arity != 2) {
             // arity > 2
             p ++ "var idx = f1._fieldNum + 1" n()
-            (2 to arity).foreach { i =>
+            (2 to arity).foreach {i =>
               p ++ s"val v$i: V$i = f$i._getValue(rs, " ++ (if (i == 1) "1" else "idx") ++ ")"
               if (i < arity) p ++ s"; idx += f$i._fieldNum"
               p n()
@@ -69,20 +69,20 @@ object SelfClassesGenerator {
 
       val vs = (1 to arity).map(a => "V" + a).mkString(", ")
       p ++ s"protected class SqlBuilder$arity[$vs](val buf: SqlBuffer, "
-      p ++ (1 to arity).map { i => s"f$i: ElTable[V$i]"}.mkString(", ")
+      p ++ (1 to arity).map {i => s"f$i: ElTable[V$i]"}.mkString(", ")
       p ++ s") extends SqlBuilder[($vs)]" block {
         p ++ s"protected def recordFromResultSet(rs: ResultSet): ($vs) ="
         body("")
-//        p ++ "  (" ++ (1 to arity).map { i => s"f$i._getValue(rs, $i)"}.mkString(", ") ++ ")"
+        //        p ++ "  (" ++ (1 to arity).map { i => s"f$i._getValue(rs, $i)"}.mkString(", ") ++ ")"
       }
       p n()
 
       p ++ s"protected class SqlBuilderCase$arity[R, $vs](val buf: SqlBuffer, "
       p ++ s"fn: ($vs) => R, "
-      p ++ (1 to arity).map { i => s"f$i: ElTable[V$i]"}.mkString(", ")
+      p ++ (1 to arity).map {i => s"f$i: ElTable[V$i]"}.mkString(", ")
       p ++ s") extends SqlBuilder[R]" block {
         p ++ s"protected def recordFromResultSet(rs: ResultSet): (R) ="
-//        p ++ "  fn(" ++ (1 to arity).map { i => s"f$i._getValue(rs, $i)"}.mkString(", ") ++ ")"
+        //        p ++ "  fn(" ++ (1 to arity).map { i => s"f$i._getValue(rs, $i)"}.mkString(", ") ++ ")"
         body("fn")
       }
       p n()
@@ -90,9 +90,9 @@ object SelfClassesGenerator {
   }
 
   def generate(orm2SourceDir: Path) {
-    val p = new SourcePrinter
+    val p = new SelfSourcePrinter
     genSelectSelectStep(p)
-    p.saveToFile(orm2SourceDir.resolve(GeneratorConfig.libPackage.replace('.', File.separatorChar)).resolve("generated.scala"))
+    p.saveToFile(orm2SourceDir.resolve(SelfGenConfig.libPackage.replace('.', File.separatorChar)).resolve("generated.scala"))
   }
 
   def main(args: Array[String]) {

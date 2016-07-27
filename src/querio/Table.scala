@@ -6,8 +6,8 @@ import java.time.{LocalDate, LocalDateTime}
 import javax.annotation.Nullable
 
 import org.apache.commons.lang3.StringUtils
-import querio.vendor.Vendor
 import querio.utils.IterableTools.{wrapArray, wrapIterable}
+import querio.vendor.Vendor
 
 import scala.collection.immutable.IntMap
 import scala.collection.mutable

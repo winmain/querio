@@ -22,7 +22,7 @@ object FieldType {
 
 
   private val errStrUnresolved: String = "Unresolved classes for column type "
-  private val errStrManyCandidates: String = "To many candidates found  for column type "
+  private val errStrManyCandidates: String = "To many candidates found for column type "
   /**
     * Вернуть тип поля по типу столбца в БД.
     */

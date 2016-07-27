@@ -1,4 +1,4 @@
-package querio.codegen
+package querio.selfcodegen
 
 import java.io.File
 import java.nio.file.{Files, Path}
@@ -7,7 +7,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
 
-class SourcePrinter(groupImports: Boolean = true) {
+class SelfSourcePrinter(groupImports: Boolean = true) {
   private val sb = new java.lang.StringBuilder()
 
   private var _package: String = null
@@ -72,7 +72,7 @@ class SourcePrinter(groupImports: Boolean = true) {
 
   def saveToFile(file: File): Unit = saveToFile(file.toPath)
   def saveToFile(path: Path): Unit = {
-    Files.createDirectories(path.getParent())
+    Files.createDirectories(path.getParent)
     Files.write(path, getSource.getBytes)
   }
 
