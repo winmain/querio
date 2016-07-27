@@ -18,11 +18,11 @@ class TableReader(db: Vendor, lines: List[String]) {
     var isPrivate: Boolean = false
   }
 
-  var preTableLines: List[String] = List.empty
-  var preObjectLines: List[String] = List.empty
-  var preClassLines: List[String] = List.empty
-  var preMutableLines: List[String] = List.empty
-  var afterMutableLines: List[String] = List.empty
+  var preTableLines: List[String] = Nil
+  var preObjectLines: List[String] = Nil
+  var preClassLines: List[String] = Nil
+  var preMutableLines: List[String] = Nil
+  var afterMutableLines: List[String] = Nil
 
   // read imports
   val imports: List[String] =

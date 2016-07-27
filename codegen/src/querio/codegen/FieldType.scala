@@ -27,7 +27,6 @@ object FieldType {
     * Вернуть тип поля по типу столбца в БД.
     */
   def columnTypeClassNames(colType: Int, typeName: String, extensions: Seq[FieldTypeExtension]): FieldType = colType match {
-
     case Types.BIT | Types.BOOLEAN | Types.TINYINT => boolean
     case Types.INTEGER | Types.SMALLINT => int
     case Types.BIGINT => long

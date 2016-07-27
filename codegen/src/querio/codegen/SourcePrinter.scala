@@ -76,10 +76,10 @@ class SourcePrinter(groupImports: Boolean = true) {
     Files.write(path, getSource.getBytes)
   }
 
-  def ++(sql: String): this.type = { sb append sql; this }
-  def ++(sql: Char): this.type = { sb append sql; this }
-  def ++(sql: Int): this.type = { sb append sql; this }
-  def ++(sql: Long): this.type = { sb append sql; this }
+  def ++(sql: String): this.type = {sb append sql; this}
+  def ++(sql: Char): this.type = {sb append sql; this}
+  def ++(sql: Int): this.type = {sb append sql; this}
+  def ++(sql: Long): this.type = {sb append sql; this}
   def nl: this.type = {
     if (isEmptyLastLine) del(_indent * 2) // Удалить предыдущую строку, целиком состоящую из пробелов
     sb append '\n'
@@ -88,11 +88,11 @@ class SourcePrinter(groupImports: Boolean = true) {
   }
   def n(): this.type = nl
 
-  def del(chars: Int): this.type = { sb.delete(sb.length() - chars, sb.length()); this }
+  def del(chars: Int): this.type = {sb.delete(sb.length() - chars, sb.length()); this}
   def delIndent: this.type = del(_indent * 2)
 
-  def indent: this.type = { _indent += 1; this }
-  def dedent: this.type = { _indent -= 1; this }
+  def indent: this.type = {_indent += 1; this}
+  def dedent: this.type = {_indent -= 1; this}
 
   def block(body: => Any): this.type = {
     (this ++ " {").indent.nl

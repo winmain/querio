@@ -67,7 +67,7 @@ class DatabaseGenerator(vendor: Vendor,
         }
       } catch {
         case e: Exception =>
-          throw new RuntimeException("Error generating file for table " + trs.cat + "." + trs.name, e)
+          throw new RuntimeException("Error generating file for table " + trs.fullName, e)
       }
     }
     val generator: TableListGenerator = new TableListGenerator(tableNamePrefix, pkg,

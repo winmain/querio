@@ -64,5 +64,5 @@ object GeneratorConfig {
     * Вернуть тип поля по типу столбца в БД.
     */
   def columnTypeClassNames(colType: Int, typeName: String, extensions: Seq[FieldTypeExtension]): FieldType =
-    FieldType.columnTypeClassNames(colType,typeName,extensions)
+    FieldType.columnTypeClassNames(colType, typeName, extensions)
 }

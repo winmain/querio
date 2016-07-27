@@ -68,25 +68,18 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
     val primaryKey: Option[InnerCol] = if (primaryKeyNames.nonEmpty) {
       val pkName = primaryKeyNames.head
-      val pk = columns.find(_.rs.name == pkName).getOrElse(sys.error(s"Field for primary key not found in ${table.cat}.${table.name}"))
+      val pk = columns.find(_.rs.name == pkName).getOrElse(sys.error(s"Field for primary key not found in ${table.fullName}"))
       if (pk.shortScalaType == "Int") Some(pk) else None
     } else None
 
     trait InnerCol extends Col {
       def rs: ColumnRS
-
       def varName: String
-
       def shortScalaType: String
-
       def objectField(p: SourcePrinter): Unit
-
       def classField(p: SourcePrinter): Unit
-
       def mutableClassField(p: SourcePrinter): Unit
-
       def maybeUnescapeName: String = vendor.maybeUnescapeName(rs.name)
-
       def escaped: Boolean = vendor.isNeedEscape(rs.name)
 
       protected def withComment: String = rs.remarks match {
@@ -113,7 +106,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       val ft: FieldType =
         try GeneratorConfig.columnTypeClassNames(rs.dataType, rs.typeName, vendor.getTypeExtensions)
         catch {
-          case e: Exception => throw new RuntimeException(s"Error in ${table.cat}.${table.name}.${rs.name} as $varName", e)
+          case e: Exception => throw new RuntimeException(s"Error in ${table.fullName}.${rs.name} as $varName", e)
         }
       val className = ft.className(rs.nullable)
       val shortScalaType = ft.shortScalaType(rs.nullable)
@@ -140,7 +133,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       * и задавать дополнительные параметры для инициализации класса.
       */
     case class UserCol(uc: TableReader#UserCol, rs: ColumnRS) extends InnerCol {
-      if (uc.scalaType == null) sys.error(s"Cannot find field ${table.cat}.${table.name}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
+      if (uc.scalaType == null) sys.error(s"Cannot find field ${table.fullName}.${rs.name} (val $varName) in immutable class (trying to get scalaType for this field).")
 
       def varName = uc.varName
 
@@ -191,7 +184,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
-        if (table.remarks != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.remarks) ++ "\"" n()
+        if (table.comment != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.comment) ++ "\"" n()
         vendorClassName.imp(p)
         p ++ "def _vendor = " ++ vendorClassName.shortName n()
         p ++ "def _primaryKey = " ++ primaryKey.fold("None")("Some(" + _.varName + ")") n()
