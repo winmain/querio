@@ -1,4 +1,4 @@
 package model.db
-import querio.vendor.H2
+import querio.vendor.H2Vendor
 
-object H2Vendor extends H2
+object H2Vendor extends H2Vendor

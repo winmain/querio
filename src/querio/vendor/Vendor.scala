@@ -27,11 +27,8 @@ trait Vendor {
 
   def escapeSql(value: String): String
 
-  def lockWaitWrapper[T](maxAttempts: Int = 3)(block: () => T): T
-
   def sqlCalcFoundRows: String
   def selectFoundRows: String
-  def getAllProcessList(connection: Connection): String
 
   def getTypeExtensions: Seq[FieldTypeExtension] = typeExtensions
   def getTableTraitsExtensions: Seq[TableTraitExtension] = tableTraitExtensions

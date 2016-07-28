@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 import org.slf4j.{Logger, LoggerFactory}
-import querio.vendor.{MysqlVendor, Vendor, PostgreSQLVendor}
+import querio.vendor.{MysqlVendor, PostgreSQLVendor, Vendor}
 
 import scala.util.Random
 
@@ -355,6 +355,29 @@ trait DbTrait {
   def queryByField[TR <: TableRecord, A](field: TrTable[TR]#Field[A, _], value: A): Vector[TR] =
     queryByCondition(field.table, field == value)
 
+  // ------------------------------- Utility methods -------------------------------
+
+  /**
+    * Try to make some attempts to execute SQL query.
+    * If there were "Lock wait timeout exceeded" exception this method tries again to execute query
+    * no more than #maxAttempts times.
+    */
+  def lockWaitWrapper[T](maxAttempts: Int = 3)(block: => T): T = {
+    val t0 = System.currentTimeMillis()
+    var i = 0
+    var lastError: SQLException = null
+    while (i < maxAttempts) {
+      try {
+        return block
+      } catch {
+        case vendor.errorMatcher.LockWaitTimeoutExceed(e) =>
+          i += 1
+          lastError = e
+      }
+    }
+    val t1 = System.currentTimeMillis()
+    throw new RuntimeException("Cannot execute sql in " + maxAttempts + " attempts for " + (t1 - t0) + " ms", lastError)
+  }
 
   // ------------------------------- Private & protected methods -------------------------------
 

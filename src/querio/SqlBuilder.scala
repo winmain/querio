@@ -192,6 +192,7 @@ abstract class SqlBuilder[R]
   override def fetch(): Vector[R] = executeQuery(vectorFromRs)
 
   override def fetchCounted(): CountedResult[R] = {
+    // TODO: чтобы переписать этот метод и fetchCountedLazy для работы, например, с pg, требуется переделать механизм генерации запроса на AST вместо StringBuilder (https://habrahabr.ru/post/30046/)
     buf.addSelectFlags(buf.vendor.sqlCalcFoundRows)
     executeQuery {rs =>
       new CountedResult(vectorFromRs(rs), executeFoundRows)

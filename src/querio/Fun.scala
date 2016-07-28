@@ -32,6 +32,9 @@ object Fun {
     override def render(implicit buf: SqlBuffer): Unit = { buf ++ "count(distinct " ++ el ++ ")" }
   }
 
+  @support(Postgres)
+  def countOver = new CustomIntField("count(*) over()")
+
   @support(Mysql, Postgres)
   def min[T](el: El[T, _]): El[T, T] = fn1("min", el)
 
