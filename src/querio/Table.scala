@@ -1,12 +1,11 @@
 package querio
 
-import java.sql.{PreparedStatement, ResultSet}
+import java.sql.{PreparedStatement, ResultSet, Array => SqlArray}
 import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 import javax.annotation.Nullable
 
-import org.apache.commons.lang3.StringUtils
-import querio.utils.IterableTools.{wrapArray, wrapIterable}
+import querio.utils.IterableTools.wrapIterable
 import querio.vendor.Vendor
 
 import scala.collection.immutable.IntMap
@@ -28,7 +27,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
                                                                        @Nullable val _alias: String,
                                                                        val _needDbPrefix: Boolean = false,
                                                                        val _escapeName: Boolean = false)
-  extends ElTable[TR] {selfTable =>
+  extends ElTable[TR] with ArrayTableFields[TR, MTR] with EnumTableFields[TR, MTR] {selfTable =>
 
   type ThisField = this.Field[_, _]
 
@@ -182,11 +181,23 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
     def getTableValue(rs: ResultSet, addIndex: Int): V = getValue(rs, index + addIndex)
 
-    def setFromString(mtr: MTR, s: String): Unit = set(mtr, fromString(s))
+    def setFromString(mtr: MTR, s: String): Unit = set(mtr, parser.parse(s))
     def setFromStringAnyMtr(mtr: AnyMutableTableRecord, s: String): Unit = setFromString(mtr.asInstanceOf[MTR], s)
 
     def :=(el: El[T, _]): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit sql: SqlBuffer): Unit = el.render
+    }
+    def :=(value: V): FieldSetClause
+
+    /**
+      * Add new update set step if #original != #value.
+      *
+      * @param step     Sql builder step
+      * @param original Original value to compare
+      * @param value    Maybe changed value
+      */
+    def maybeUpdateSet(step: UpdateSetStep, original: V, value: V): Unit = {
+      if (!valueEquals(original, value)) step.set(this := value)
     }
 
     /**
@@ -194,23 +205,21 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
       */
     def option = new Field[T, Option[V]](new TFD[Option[V]](name, null, null, null)) {
       override protected def registerField: Int = field.index
-      override def renderEscapedT(value: T)(implicit sql: SqlBuffer) = field.renderEscapedT(value)
-      override def renderEscapedValue(value: Option[V])(implicit buf: SqlBuffer) = value match {
-        case Some(v) => field.renderEscapedValue(v)
-        case None => buf ++ "null"
-      }
+      override def tRenderer(vendor: Vendor): TypeRenderer[T] = field.tRenderer(vendor)
+      override def vRenderer(vendor: Vendor): TypeRenderer[Option[V]] = field.vRenderer(vendor).toOptionRenderer
       override def getValue(rs: ResultSet, index: Int): Option[V] = {
         if (rs.getObject(index) == null) None
         else Some(field.getValue(rs, index))
       }
-      override def fromString(s: String): Option[V] = if (s.isEmpty) None else fromStringNotNull(s)
-      override def fromStringSimple(s: String): T = field.fromStringSimple(s)
-      override def fromStringNotNull(s: String): Option[V] = Some(field.fromString(s))
+      override def parser: TypeParser[Option[V]] = field.parser.toOptionParser
       override def setValue(st: PreparedStatement, index: Int, value: Option[V]) = field.setValue(st, index, value.get)
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
 
       def setNull: FieldSetClause = new FieldSetClause(this) {
         override def renderValue(implicit sql: SqlBuffer): Unit = sql.renderNull
+      }
+      override def :=(value: Option[V]): FieldSetClause = new FieldSetClause(this) {
+        override def renderValue(implicit buf: SqlBuffer): Unit = field.vRenderer(buf.vendor).toOptionRenderer.render(value, field)
       }
     }
 
@@ -218,70 +227,70 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
       override def table: Table[TR, MTR] = t
 
       // delegate overrides
-      override def fromString(s: String): V = field.fromString(s)
-      override protected def fromStringSimple(s: String): T = field.fromStringSimple(s)
-      override protected def fromStringNotNull(s: String): V = field.fromStringNotNull(s)
+      override def parser: TypeParser[V] = field.parser
       override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index)
       override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, value)
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
-      override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
-      override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedValue(value)
-    }
-
-    protected def checkNotNull(v: AnyRef) {
-      if (v == null) throw new NullPointerException("Field " + fullName + " cannot be null")
+      override def tRenderer(vendor: Vendor): TypeRenderer[T] = field.tRenderer(vendor)
+      override def vRenderer(vendor: Vendor): TypeRenderer[V] = field.vRenderer(vendor)
+      override def :=(value: V): FieldSetClause = this := value
     }
   }
 
-  trait SimpleFieldSetClause[T] {this: Field[T, _] =>
+  trait SimpleFieldSetClause[T] {clause: Field[T, _] =>
     def :=(value: T): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedT(value)
+      override def renderValue(implicit buf: SqlBuffer): Unit = renderT(value)
     }
   }
   abstract class SimpleTableField[T](tfd: TFD[T]) extends Field[T, T](tfd) with querio.SimpleField[T] with SimpleFieldSetClause[T]
 
+  trait SimpleFieldSetClause2[T, V] {clause: Field[T, V] =>
+    def :=(value: V): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit buf: SqlBuffer): Unit = renderV(value)
+    }
+  }
+
   abstract class BaseOptionTableField[T, V <: T](tfd: TFD[Option[V]]) extends Field[T, Option[V]](tfd) with querio.Field[T, Option[V]] {field =>
-    def :=(value: T): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = if (value == null) sql.renderNull else renderEscapedT(value)
+    def :=(value: Option[V]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit buf: SqlBuffer): Unit = renderV(value)
     }
-    def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = sql.renderNull
-    }
-    def :=(value: Some[T]): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedT(value)
-    }
-    def :=(value: Option[T]): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = value match {
-        case Some(v) => renderEscapedT(v)
-        case None => sql.renderNull
-      }
-    }
+//    def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
+//      override def renderValue(implicit buf: SqlBuffer): Unit = buf.renderNull
+//    }
+//    def :=(value: T): FieldSetClause = new FieldSetClause(this) {
+//      override def renderValue(implicit buf: SqlBuffer): Unit = if (value == null) buf.renderNull else renderT(value)
+//    }
 
     /**
       * De-option field. Make Non-option variant of this field, ex. Option[V] => V
       */
     def flat = new Field[T, V](new TFD[V](name, null, null, null)) {
       override protected def registerField: Int = field.index
-      override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
-      override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = field.renderEscapedT(value)
+      override def tRenderer(vendor: Vendor): TypeRenderer[T] = field.tRenderer(vendor)
+      override def vRenderer(vendor: Vendor): TypeRenderer[V] = field.tRenderer(vendor)
       override def getValue(rs: ResultSet, index: Int): V = field.getValue(rs, index).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
       override def setValue(st: PreparedStatement, index: Int, value: V): Unit = field.setValue(st, index, Option(value))
 
-      override def fromString(s: String): V = field.fromString(s).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
-      override protected def fromStringSimple(s: String): T = field.fromStringSimple(s)
-      override protected def fromStringNotNull(s: String): V = field.fromStringNotNull(s).get
+      override def parser: TypeParser[V] = new TypeParser[V] {
+        override def parse(s: String): V = field.parser.parse(s).getOrElse(sys.error("Value for '" + field.fullName + "' cannot be null"))
+      }
       override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = field.newExpression(render)
+      override def :=(value: V): FieldSetClause = this := value
     }
   }
   abstract class OptionCovariantTableField[T, V <: T](tfd: TFD[Option[V]]) extends BaseOptionTableField[T, V](tfd) with querio.OptionCovariantField[T, V]
   abstract class OptionTableField[T](tfd: TFD[Option[T]]) extends BaseOptionTableField[T, T](tfd) with querio.OptionField[T]
 
-  abstract class SetTableField[T](tfd: TFD[Set[T]]) extends Field[T, Set[T]](tfd) with querio.SetField[T] {
+  abstract class SetTableField[T](tfd: TFD[Set[T]]) extends Field[T, Set[T]](tfd) with querio.SetField[T] {field =>
     def :=(value: Set[T]): FieldSetClause = new FieldSetClause(this) {
-      override def renderValue(implicit sql: SqlBuffer): Unit = renderEscapedValue(value)
+      override def renderValue(implicit buf: SqlBuffer): Unit = renderV(value)
     }
   }
 
+  // ---------------------- Object ----------------------
+
+  /** Stub field. Generator use it as last resort. */
+  class Object_TF(tfd: TFD[AnyRef]) extends Field[AnyRef, AnyRef](tfd) with ObjectField with SimpleFieldSetClause[AnyRef]
 
   // ---------------------- Boolean ----------------------
 
@@ -306,7 +315,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   // ---------------------- String ----------------------
 
   class String_TF(tfd: TFD[String]) extends SimpleTableField[String](tfd) with StringField {
-    override def renderEscapedT(value: String)(implicit buf: SqlBuffer) = {checkNotNull(value); super.renderEscapedT(value)}
+//    override def renderEscapedT(value: String)(implicit buf: SqlBuffer) = {checkNotNull(value); super.renderEscapedT(value)}
   }
   class OptionString_TF(tfd: TFD[Option[String]]) extends OptionTableField[String](tfd) with OptionStringField
 
@@ -320,112 +329,6 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
     * - соответствующие поля в mutable и immutable классах должны иметь тип [[FlagSet]]
     */
   class FlagSet_TF[F <: DbFlag](enum: F)(tfd: TFD[FlagSet[F#V]]) extends SimpleTableField[FlagSet[F#V]](tfd) with FlagSetField[F#V]
-
-  // ---------------------- Int Enum ----------------------
-
-  class EnumInt_TF[E <: DbEnum](val enum: E)(tfd: TFD[E#V]) extends SimpleTableField[E#V](tfd) with EnumIntEl[E] {
-    override def fromStringSimple(s: String): E#V = getEnumValue(s.toInt)
-  }
-
-  class OptionEnumInt_TF[E <: DbEnum](val enum: E)(tfd: TFD[Option[E#V]]) extends OptionTableField[E#V](tfd) with BaseIntEnumRender[E] {
-    override def getValue(rs: ResultSet, index: Int): Option[E#V] = {
-      val v = rs.getInt(index)
-      if (rs.wasNull()) None else Some(getEnumValue(v))
-    }
-    override def setValue(st: PreparedStatement, index: Int, value: Option[E#V]) = {checkNotNull(value); value.foreach(v => st.setInt(index, v.getId))}
-    override def fromStringSimple(s: String): E#V = getEnumValue(s.toInt)
-  }
-
-  /** Это тот же OptionEnumString_TF, только при получении неизвестного значения, он возвращает None, а не бросает exception. */
-  class WeakOptionEnumInt_TF[E <: DbEnum](enum: E)(tfd: TFD[Option[E#V]]) extends OptionEnumInt_TF[E](enum)(tfd) {
-    override def getValue(rs: ResultSet, index: Int): Option[E#V] = {
-      val v = rs.getInt(index)
-      if (rs.wasNull()) None else enum.getValue(v)
-    }
-    /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    override def renderEscapedT(value: Option[E#V])(implicit sql: SqlBuffer) = value match {
-      case Some(v) => renderEscapedT(v)
-      case None => sql ++ "default"
-    }
-    override def fromStringSimple(s: String): E#V = throw new UnsupportedOperationException
-    override def fromStringNotNull(s: String): Option[E#V] = enum.getValue(s.toInt)
-  }
-
-  // ---------------------- String Enum ----------------------
-
-  class EnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[E]) extends SimpleTableField[E](tfd) with EnumStringEl[E] {
-    override def getValue(rs: ResultSet, index: Int): E = fromString(rs.getString(index))
-    override def fromStringSimple(s: String): E = enum.getValue(s).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName"))
-  }
-
-  class OptionEnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[Option[E]]) extends OptionTableField[E](tfd) with BaseStringEnumRender[E] {
-    override def getValue(rs: ResultSet, index: Int): Option[E] = {
-      val v = rs.getString(index)
-      // v.isEmpty здесь нужен только для того, чтобы игнорировать пустые строки в MySQL - там они должны быть null.
-      if (rs.wasNull() || v.isEmpty) None else Some(fromStringSimple(v))
-    }
-    override def setValue(st: PreparedStatement, index: Int, value: Option[E]) = {checkNotNull(value); value.foreach(v => st.setString(index, v.getDbValue))}
-    override def fromStringSimple(s: String): E = enum.getValue(s).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName"))
-  }
-
-  /** Это тот же OptionEnumString_TF, только при получении неизвестного значения, он возвращает None, а не бросает exception. */
-  class WeakOptionEnumString_TF[E <: ScalaDbEnumCls[E]](enum: ScalaDbEnum[E])(tfd: TFD[Option[E]]) extends OptionEnumString_TF[E](enum)(tfd) {
-    override def getValue(rs: ResultSet, index: Int): Option[E] = {
-      val v = rs.getString(index)
-      if (rs.wasNull()) None else fromStringNotNull(v)
-    }
-    /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    override def renderEscapedT(value: Option[E])(implicit sql: SqlBuffer) = value match {
-      case Some(v) => renderEscapedT(v)
-      case None => sql ++ "default"
-    }
-    override def fromStringSimple(s: String): E = throw new UnsupportedOperationException
-    override def fromStringNotNull(s: String): Option[E] = enum.getValue(s)
-  }
-
-  class SetEnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[Set[E]]) extends SetTableField[E](tfd) with BaseStringEnumRender[E] {self =>
-    def contains(el: E): Condition = new Condition {
-      def renderCond(buf: SqlBuffer) {buf ++ "FIND_IN_SET("; renderEscapedT(el)(buf); buf ++ ", " ++ self ++ ")"}
-    }
-
-    override def getValue(rs: ResultSet, index: Int): Set[E] = {
-      val v = rs.getString(index)
-      if (rs.wasNull()) Set.empty[E] else fromStringNotNull(v)
-    }
-    override def setValue(st: PreparedStatement, index: Int, value: Set[E]) = {
-      checkNotNull(value)
-      if (value.nonEmpty) st.setString(index, valueAsString(value))
-    }
-    override def renderEscapedT(value: Set[E])(implicit sql: SqlBuffer) {
-      checkNotNull(value)
-      if (value.nonEmpty) sql renderStringValue valueAsString(value)
-      else sql.renderNull
-    }
-    override protected def fromStringNotNull(s: String): Set[E] =
-      StringUtils.split(s, ',')._mapToSet(enum.getValue(_).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName")))
-
-    protected def valueAsString(value: Set[E]): String = {
-      checkNotNull(value)
-      value._mapMkString({v =>
-        if (v == null) throw new NullPointerException("Field " + fullName + " cannot contain null-item")
-        v.getDbValue
-      }, ",")
-    }
-  }
-
-  /** Это тот же SetEnumString_TF, только при получении неизвестного значения, он его игнорирует, а не выбрасывает exception. */
-  class WeakSetEnumString_TF[E <: ScalaDbEnumCls[E]](enum: ScalaDbEnum[E])(tfd: TFD[Set[E]]) extends SetEnumString_TF[E](enum)(tfd) {
-    override def getValue(rs: ResultSet, index: Int): Set[E] = {
-      val v = rs.getString(index)
-      if (rs.wasNull()) Set.empty[E] else fromStringNotNull(v)
-    }
-    override def fromStringSimple(s: String): E = throw new UnsupportedOperationException
-    override def fromStringNotNull(s: String): Set[E] = {
-      val b = Set.newBuilder[E]
-      for (str <- StringUtils.split(s, ',')) enum.getValue(str).foreach(b.+=)
-      b.result()
-    }
-  }
 
   // ---------------------- BigDecimal ----------------------
 
@@ -444,17 +347,20 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
   // ---------------------- DateTime ----------------------
 
-  class LocalDateTime_TF(tfd: TFD[LocalDateTime]) extends Field[Temporal, LocalDateTime](tfd) with LocalDateTimeField with SimpleFieldSetClause[Temporal]
+  class LocalDateTime_TF(tfd: TFD[LocalDateTime]) extends Field[Temporal, LocalDateTime](tfd) with LocalDateTimeField with SimpleFieldSetClause2[Temporal, LocalDateTime]
   class OptionLocalDateTime_TF(tfd: TFD[Option[LocalDateTime]]) extends OptionCovariantTableField[Temporal, LocalDateTime](tfd) with OptionDateTimeField
 
   // ---------------------- DateMidnight ----------------------
 
-  class LocalDate_TF(tfd: TFD[LocalDate]) extends Field[Temporal, LocalDate](tfd) with LocalDateField with SimpleFieldSetClause[Temporal]
+  class LocalDate_TF(tfd: TFD[LocalDate]) extends Field[Temporal, LocalDate](tfd) with LocalDateField with SimpleFieldSetClause2[Temporal, LocalDate]
   class OptionLocalDate_TF(tfd: TFD[Option[LocalDate]]) extends OptionCovariantTableField[Temporal, LocalDate](tfd) with OptionDateField
 }
 
 
 abstract class FieldSetClause(field: Field[_, _]) {
-  def render(implicit sql: SqlBuffer): Unit = {field.renderName; sql ++ " = "; renderValue}
-  def renderValue(implicit sql: SqlBuffer): Unit
+  def render(implicit buf: SqlBuffer): Unit = {field.renderName; buf ++ " = "; renderValue}
+  def renderValue(implicit buf: SqlBuffer): Unit
+
+  /** Utility method */
+  def renderToString(vendor: Vendor): String = {val buf = SqlBuffer.stub(vendor); render(buf); buf.toString}
 }

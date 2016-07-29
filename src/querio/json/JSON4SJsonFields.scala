@@ -4,6 +4,7 @@ import java.sql.{PreparedStatement, ResultSet}
 import org.json4s.JsonAST.JValue
 import org.json4s.{JsonMethods, _}
 import org.postgresql.util.PGobject
+import querio.vendor.Vendor
 import querio.{Table, _}
 
 
@@ -28,47 +29,43 @@ trait JSON4SJsonFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
   class Json_PG_J4S_TF(tfd: TFD[JValue],
                        override val jsonMethods: JsonMethods[JValue] = org.json4s.jackson.JsonMethods)
     extends SimpleTableField[JValue](tfd) with Json_PG_J4SField {
-    override val isBinary: Boolean = false
+    override def isBinary: Boolean = false
   }
 
   // handle JSON from PostgreSQL with json4s
   class OptionJson_PG_J4S_TF(tfd: TFD[Option[JValue]],
                              override val jsonMethods: JsonMethods[JValue] = org.json4s.jackson.JsonMethods)
     extends OptionTableField[JValue](tfd) with OptionJson_PG_J4SField {
-    override val isBinary: Boolean = false
+    override def isBinary: Boolean = false
   }
 
   // handle JSONB from PostgreSQL with json4s
   class Jsonb_PG_J4S_TF(tfd: TFD[JValue],
                         override val jsonMethods: JsonMethods[JValue] = org.json4s.jackson.JsonMethods)
     extends SimpleTableField[JValue](tfd) with Json_PG_J4SField {
-    override val isBinary: Boolean = true
+    override def isBinary: Boolean = true
   }
 
   // handle JSONB from PostgreSQL with json4s
   class OptionJsonb_PG_J4S_TF(tfd: TFD[Option[JValue]],
                               override val jsonMethods: JsonMethods[JValue] = org.json4s.jackson.JsonMethods)
     extends OptionTableField[JValue](tfd) with OptionJson_PG_J4SField {
-    override val isBinary: Boolean = true
+    override def isBinary: Boolean = true
   }
 
 
-  trait BaseJson_PG_J4SRender { selfRender: BaseJson_PG_J4SRender=>
-    protected val JSONB: String = "jsonb"
-    protected val JSON: String = "json"
+  trait BaseJson_PG_J4SRender {selfRender: BaseJson_PG_J4SRender =>
+    protected def JSONB: String = "jsonb"
+    protected def JSON: String = "json"
 
-    val jsonMethods: JsonMethods[JValue]
-    val isBinary: Boolean
-    def renderEscapedT(value: JValue)(implicit buf: SqlBuffer) = buf renderStringValue toString(value)
+    def jsonMethods: JsonMethods[JValue]
+    def isBinary: Boolean
+    def tRenderer(vendor: Vendor): TypeRenderer[JValue] = new JSON4SJValueRenderer(jsonMethods)
+    def tParser: TypeParser[JValue] = new JSON4SJValueParser(jsonMethods)
     def newExpression(r: (SqlBuffer) => Unit): El[JValue, JValue] = new Json_PG_J4SField {
       override def render(implicit sql: SqlBuffer) = r(sql)
-      override val jsonMethods: JsonMethods[JValue] = selfRender.jsonMethods
-      override val isBinary: Boolean = selfRender.isBinary
-    }
-    def fromStringSimple(s: String): JValue = if (s == null || s.isEmpty) {
-      sys.error("String cannot be empty")
-    } else {
-      jsonMethods.parse(s)
+      override def jsonMethods: JsonMethods[JValue] = selfRender.jsonMethods
+      override def isBinary: Boolean = selfRender.isBinary
     }
 
     def toString(v: JValue): String = jsonMethods.compact(v)
@@ -95,7 +92,7 @@ trait JSON4SJsonFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
     override def getValue(rs: ResultSet, index: Int): Option[JValue] = rs.getString(index) match {
       case null => None
       case "" => None
-      case s => Some(fromStringSimple(s))
+      case s => Some(tParser.parse(s))
     }
     override def setValue(st: PreparedStatement, index: Int, value: Option[JValue]) = value match {
       case Some(v) =>
@@ -111,17 +108,13 @@ trait JSON4SJsonFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
     }
   }
 
-  trait BaseJson_J4SRender { selfRender: BaseJson_J4SRender=>
-    val jsonMethods: JsonMethods[JValue]
-    def renderEscapedT(value: JValue)(implicit buf: SqlBuffer) = buf renderStringValue toString(value)
+  trait BaseJson_J4SRender {selfRender: BaseJson_J4SRender =>
+    def jsonMethods: JsonMethods[JValue]
+    def tRenderer(vendor: Vendor): TypeRenderer[JValue] = new JSON4SJValueRenderer(jsonMethods)
+    def tParser: TypeParser[JValue] = new JSON4SJValueParser(jsonMethods)
     def newExpression(r: (SqlBuffer) => Unit): El[JValue, JValue] = new Json_J4SField {
       override def render(implicit sql: SqlBuffer) = r(sql)
       override val jsonMethods: JsonMethods[JValue] = selfRender.jsonMethods
-    }
-    def fromStringSimple(s: String): JValue = if (s == null || s.isEmpty) {
-      sys.error("String cannot be empty")
-    } else {
-      jsonMethods.parse(s)
     }
 
     def toString(v: JValue): String = jsonMethods.compact(v)
@@ -141,12 +134,25 @@ trait JSON4SJsonFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
     override def getValue(rs: ResultSet, index: Int): Option[JValue] = rs.getString(index) match {
       case null => None
       case "" => None
-      case s => Some(fromStringSimple(s))
+      case s => Some(tParser.parse(s))
     }
     override def setValue(st: PreparedStatement, index: Int, value: Option[JValue]) = value match {
       case Some(v) => st.setString(index, toString(v))
       case None =>
     }
   }
+}
 
+class JSON4SJValueRenderer(jsonMethods: JsonMethods[JValue]) extends TypeRenderer[JValue] {
+  override def render(value: JValue, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf renderStringValue jsonMethods.compact(value)
+  }
+}
+
+class JSON4SJValueParser(jsonMethods: JsonMethods[JValue]) extends TypeParser[JValue] {
+  override def parse(s: String): JValue = {
+    require(s != null && !s.isEmpty, "String cannot be empty")
+    jsonMethods.parse(s)
+  }
 }

@@ -36,7 +36,8 @@ class DatabaseGenerator(vendor: Vendor,
                         isDefaultDatabase: Boolean = false,
                         vendorClassName: ClassName = null,
                         toTempFile: Boolean = false,
-                        noRead: Boolean = false) {
+                        noRead: Boolean = false,
+                        tableDbNameSelector: TableDbNameSelector = CommonTableDbNameSelector) {
 
   def generateDb() {
     val vendClassName: ClassName = vendorClassName match {
@@ -57,7 +58,8 @@ class DatabaseGenerator(vendor: Vendor,
 
       try {
         val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
-          catalog, trs, columns, primaryKeyNames, pkg,
+          tableDbNameSelector.get(Option(catalog), Option(schema)),
+          trs, columns, primaryKeyNames, pkg,
           dir, tableNamePrefix, isDefaultDatabase, noRead = noRead)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
@@ -82,5 +84,18 @@ class DatabaseGenerator(vendor: Vendor,
     val b = Vector.newBuilder[String]
     while (rs.next()) b += rs.getString(fieldIndex)
     b.result()
+  }
+}
+
+
+trait TableDbNameSelector {
+  def get(catalog: Option[String], schema: Option[String]): String
+}
+
+object CommonTableDbNameSelector extends TableDbNameSelector {
+  override def get(catalog: Option[String], schema: Option[String]): String = {
+    if (schema.isDefined) schema.get
+    else if (catalog.isDefined) catalog.get
+    else null
   }
 }

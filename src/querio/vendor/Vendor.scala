@@ -1,8 +1,7 @@
 package querio.vendor
 
-import java.sql.Connection
-
 import querio.codegen.{FieldTypeExtension, TableTraitExtension}
+import querio.utils.MkString
 
 import scala.collection.mutable
 
@@ -27,11 +26,17 @@ trait Vendor {
 
   def escapeSql(value: String): String
 
-  def sqlCalcFoundRows: String
-  def selectFoundRows: String
-
   def getTypeExtensions: Seq[FieldTypeExtension] = typeExtensions
   def getTableTraitsExtensions: Seq[TableTraitExtension] = tableTraitExtensions
+
+  // ------------------------------- Render methods -------------------------------
+
+  def sqlCalcFoundRows: String = unsupported
+  def selectFoundRows: String = unsupported
+
+  def arrayMkString: MkString = unsupported
+
+  // ------------------------------- Inner methods -------------------------------
 
   private var typeExtensions: mutable.Buffer[FieldTypeExtension] = mutable.Buffer.empty
   private var tableTraitExtensions: mutable.Buffer[TableTraitExtension] = mutable.Buffer.empty
@@ -43,4 +48,6 @@ trait Vendor {
   protected def addTableTraitExtension(extension: TableTraitExtension) = {
     tableTraitExtensions += extension
   }
+
+  protected def unsupported = throw new UnsupportedOperationException("Unsupported operation for vendor " + getClass.getSimpleName)
 }

@@ -46,9 +46,6 @@ class H2Vendor extends Vendor {
 
   override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in H2
 
-  override def selectFoundRows: String = ???
-  override def sqlCalcFoundRows: String = ???
-
   def isNotAllUpperCaseCase(word: String) = word.toUpperCase != word
 }
 

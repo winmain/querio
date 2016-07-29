@@ -5,20 +5,75 @@ import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 
 import querio.utils.DateTimeUtils._
+import querio.vendor.Vendor
 
+// ------------------------------- Field -------------------------------
+
+trait Field[T, V] extends El[T, V] {
+  /**
+    * Parser converts user input string to field value V.
+    * Primarily used to fill MutableTableRecord from Map[String, String].
+    */
+  def parser: TypeParser[V]
+
+  def renderName(implicit buf: SqlBuffer) = render
+
+  def valueEquals(a: V, b: V): Boolean = a == b
+}
+
+trait SimpleField[T] extends Field[T, T] {
+  override def vRenderer(vendor: Vendor): TypeRenderer[T] = tRenderer(vendor)
+  override def parser: TypeParser[T] = tParser
+  def tParser: TypeParser[T]
+  //  override def fromString(s: String): T = fromStringT(s)
+  //  override def fromStringNotNull(s: String): T = fromStringT(s)
+}
+trait OptionField[T] extends Field[T, Option[T]] with OptionEl[T, T] {
+  //  override def fromString(s: String): Option[T] = if (s == null) None else fromStringNotNull(s)
+  //  override def fromStringNotNull(s: String): Option[T] = Some(fromStringT(s))
+  override def parser: TypeParser[Option[T]] = tParser.toOptionParser
+  def tParser: TypeParser[T]
+}
+trait OptionCovariantField[T, V <: T] extends Field[T, Option[V]] with OptionEl[T, V] {self =>
+  //  override def fromString(s: String): Option[V] = if (s == null) None else fromStringNotNull(s)
+  //  override def fromStringT(s: String): T = throw new UnsupportedOperationException()
+  override def parser: TypeParser[Option[V]] = new TypeParser[Option[V]] {
+    override def parse(s: String): Option[V] = if (s == null) None else Some(self.tParser.parse(s).asInstanceOf[V])
+  }
+
+  def tParser: TypeParser[T]
+}
+trait SetField[T] extends Field[T, Set[T]] with SetEl[T] {
+  //  override def fromString(s: String): Set[T] = if (s == null) Set.empty else fromStringNotNull(s)
+  //  override def fromStringT(s: String): T = throw new UnsupportedOperationException()
+}
+
+// ---------------------- Object ----------------------
+
+trait ObjectField extends Field[AnyRef, AnyRef] {
+  override def parser: TypeParser[AnyRef] = AsIsParser
+  override def tRenderer(vendor: Vendor): TypeRenderer[AnyRef] = ToStringRenderer
+  override def vRenderer(vendor: Vendor): TypeRenderer[AnyRef] = tRenderer(vendor)
+  override def getValue(rs: ResultSet, index: Int): AnyRef = rs.getObject(index)
+  override def setValue(st: PreparedStatement, index: Int, value: AnyRef): Unit = if (value != null) st.setObject(index, value)
+  override def newExpression(r: (SqlBuffer) => Unit): El[AnyRef, AnyRef] = new ObjectField {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
 
 // ---------------------- Boolean ----------------------
 
 trait BaseBooleanRender {
   def render(implicit buf: SqlBuffer): Unit
-  def renderEscapedT(value: Boolean)(implicit buf: SqlBuffer) { buf renderBooleanValue value }
+  def tRenderer(vendor: Vendor): TypeRenderer[Boolean] = BooleanRenderer
+  def tParser: TypeParser[Boolean] = BooleanParser
+
   def newExpression(r: (SqlBuffer) => Unit): El[Boolean, Boolean] = new BooleanField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): Boolean = s == "1" || s == "t" || s == "true"
 
   def unary_! : Condition = new Condition {
-    override def renderCond(buf: SqlBuffer): Unit = { buf ++ "not "; render(buf) }
+    override def renderCond(buf: SqlBuffer): Unit = {buf ++ "not "; render(buf)}
   }
   def isTrue: Condition = new Condition {
     override def renderCond(buf: SqlBuffer): Unit = render(buf)
@@ -31,18 +86,22 @@ trait BooleanField extends SimpleField[Boolean] with BaseBooleanRender {
 }
 
 trait OptionBooleanField extends OptionField[Boolean] with BaseBooleanRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Boolean] = { val v = rs.getBoolean(index); if (rs.wasNull()) None else Some(v) }
+  override def getValue(rs: ResultSet, index: Int): Option[Boolean] = {val v = rs.getBoolean(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Boolean]) = value.foreach(v => st.setBoolean(index, v))
+}
+
+class CustomBooleanField(val sql: String) extends BooleanField {
+  override def render(implicit buf: SqlBuffer) {buf ++ sql}
 }
 
 // ---------------------- Int ----------------------
 
 trait BaseIntRenderer {
-  def renderEscapedT(value: Int)(implicit buf: SqlBuffer) { buf ++ value }
+  def tRenderer(vendor: Vendor): TypeRenderer[Int] = IntRenderer
+  def tParser: TypeParser[Int] = IntParser
   def newExpression(r: (SqlBuffer) => Unit): El[Int, Int] = new IntField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
-  def fromStringSimple(s: String): Int = s.toInt
 }
 
 trait IntField extends SimpleField[Int] with BaseIntRenderer {
@@ -51,22 +110,22 @@ trait IntField extends SimpleField[Int] with BaseIntRenderer {
 }
 
 trait OptionIntField extends OptionField[Int] with BaseIntRenderer {
-  override def getValue(rs: ResultSet, index: Int): Option[Int] = { val v = rs.getInt(index); if (rs.wasNull()) None else Some(v) }
+  override def getValue(rs: ResultSet, index: Int): Option[Int] = {val v = rs.getInt(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Int]) = value.foreach(v => st.setInt(index, v))
 }
 
 class CustomIntField(val sql: String) extends IntField {
-  override def render(implicit buf: SqlBuffer) { buf ++ sql }
+  override def render(implicit buf: SqlBuffer) {buf ++ sql}
 }
 
 // ---------------------- Long ----------------------
 
 trait BaseLongRender {
-  def renderEscapedT(value: Long)(implicit buf: SqlBuffer) { buf ++ value }
+  def tRenderer(vendor: Vendor): TypeRenderer[Long] = LongRenderer
+  def tParser: TypeParser[Long] = LongParser
   def newExpression(r: (SqlBuffer) => Unit): El[Long, Long] = new LongField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): Long = s.toLong
 }
 
 trait LongField extends SimpleField[Long] with BaseLongRender {
@@ -75,30 +134,18 @@ trait LongField extends SimpleField[Long] with BaseLongRender {
 }
 
 trait OptionLongField extends OptionField[Long] with BaseLongRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Long] = { val v = rs.getLong(index); if (rs.wasNull()) None else Some(v) }
+  override def getValue(rs: ResultSet, index: Int): Option[Long] = {val v = rs.getLong(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Long]) = value.foreach(v => st.setLong(index, v))
-}
-
-// ---------------------- FlagSet ----------------------
-
-trait FlagSetField[V <: DbFlag#Cls] extends SimpleField[FlagSet[V]] {
-  override protected def fromStringSimple(s: String): FlagSet[V] = new FlagSet[V](s.toLong)
-  override def getValue(rs: ResultSet, index: Int): FlagSet[V] = new FlagSet[V](rs.getLong(index))
-  override def setValue(st: PreparedStatement, index: Int, value: FlagSet[V]): Unit = st.setLong(index, value.value)
-  override def renderEscapedT(value: FlagSet[V])(implicit buf: SqlBuffer): Unit = buf ++ value.value
-  override def newExpression(r: (SqlBuffer) => Unit): El[FlagSet[V], FlagSet[V]] = new FlagSetField[V] {
-    override def render(implicit buf: SqlBuffer): Unit = r(buf)
-  }
 }
 
 // ---------------------- String ----------------------
 
 trait BaseStringRender {
-  def renderEscapedT(value: String)(implicit buf: SqlBuffer) = buf renderStringValue value
+  def tRenderer(vendor: Vendor): TypeRenderer[String] = StringRenderer
+  def tParser: TypeParser[String] = StringParser
   def newExpression(r: (SqlBuffer) => Unit): El[String, String] = new StringField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): String = if (s == null || s.isEmpty) sys.error("String cannot be empty") else s
 }
 
 trait StringField extends SimpleField[String] with BaseStringRender with StringEl[String] {
@@ -121,80 +168,50 @@ trait OptionStringField extends OptionField[String] with BaseStringRender with S
   }
 }
 
-// ---------------------- Enum ----------------------
+// ---------------------- FlagSet ----------------------
 
-trait BaseIntEnumRender[E <: DbEnum] {selfEnumRender: El[_, _] =>
-  def enum: E
-  def renderEscapedT(value: E#V)(implicit buf: SqlBuffer): Unit =
-    if (value == null) sys.error(s"Field $fullName cannot be null") else buf ++ value.getId
-  def newExpression(r: (SqlBuffer) => Unit): El[E#V, E#V] = new EnumIntEl[E] {
-    override def enum: E = selfEnumRender.enum
-    override def render(implicit sql: SqlBuffer) = r(sql)
+trait FlagSetField[V <: DbFlag#Cls] extends SimpleField[FlagSet[V]] {
+  override def getValue(rs: ResultSet, index: Int): FlagSet[V] = new FlagSet[V](rs.getLong(index))
+  override def setValue(st: PreparedStatement, index: Int, value: FlagSet[V]): Unit = st.setLong(index, value.value)
+  override def tRenderer(vendor: Vendor): TypeRenderer[FlagSet[V]] = new TypeRenderer[FlagSet[V]] {
+    override def render(value: FlagSet[V], elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf ++ value.value
   }
-
-  def getEnumValue(v: Int): E#V = enum.getValue(v).getOrElse(sys.error(s"Invalid enum value '$v' for field $fullName"))
-}
-
-trait BaseStringEnumRender[E <: ScalaDbEnumCls[E]] {selfEnumRender: El[_, _] =>
-  def enum: ScalaDbEnum[E]
-  def renderEscapedT(value: E)(implicit buf: SqlBuffer) =
-    if (value == null) sys.error(s"Field $fullName cannot be null") else buf renderStringValue value.getDbValue
-  def newExpression(r: (SqlBuffer) => Unit): El[E, E] = new EnumStringEl[E] {
-    override def enum: ScalaDbEnum[E] = selfEnumRender.enum
-    override def render(implicit sql: SqlBuffer) = r(sql)
+  override def tParser: TypeParser[FlagSet[V]] = new TypeParser[FlagSet[V]] {
+    override def parse(s: String): FlagSet[V] = new FlagSet[V](s.toLong)
   }
-}
-
-trait EnumIntEl[E <: DbEnum] extends El[E#V, E#V] with BaseIntEnumRender[E] {
-  def enum: E
-
-  override def renderEscapedValue(value: E#V)(implicit buf: SqlBuffer) = renderEscapedT(value)
-  override def getValue(rs: ResultSet, index: Int): E#V = getEnumValue(rs.getInt(index))
-  override def setValue(st: PreparedStatement, index: Int, value: E#V) = st.setInt(index, value.getId)
-}
-
-trait EnumStringEl[E <: ScalaDbEnumCls[E]] extends El[E, E] with BaseStringEnumRender[E] {
-  def enum: ScalaDbEnum[E]
-
-  override def renderEscapedValue(value: E)(implicit buf: SqlBuffer) = renderEscapedT(value)
-  override def getValue(rs: ResultSet, index: Int): E = {
-    val s: String = rs.getString(index)
-    enum.getValue(s).getOrElse(sys.error(s"Invalid enum value '$s'"))
+  override def newExpression(r: (SqlBuffer) => Unit): El[FlagSet[V], FlagSet[V]] = new FlagSetField[V] {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
   }
-  override def setValue(st: PreparedStatement, index: Int, value: E) = st.setString(index, value.getDbValue)
 }
 
 // ---------------------- BigDecimal ----------------------
 
 trait BaseBigDecimalRender {self: Field[BigDecimal, _] =>
-  def renderEscapedT(value: BigDecimal)(implicit buf: SqlBuffer) = {
-    if (value == null) sys.error("Cannot render null field: " + self.renderToString(buf.vendor))
-    buf renderBigDecimalValue value
-  }
+  def tRenderer(vendor: Vendor): TypeRenderer[BigDecimal] = BigDecimalRenderer
+  def tParser: TypeParser[BigDecimal] = BigDecimalParser
   def newExpression(r: (SqlBuffer) => Unit): El[BigDecimal, BigDecimal] = new BigDecimalField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): BigDecimal = BigDecimal(s)
 }
 
 trait BigDecimalField extends SimpleField[BigDecimal] with BaseBigDecimalRender {
-  override def getValue(rs: ResultSet, index: Int): BigDecimal = { val v = rs.getBigDecimal(index); if (rs.wasNull()) null else BigDecimal(v) }
+  override def getValue(rs: ResultSet, index: Int): BigDecimal = {val v = rs.getBigDecimal(index); if (rs.wasNull()) null else BigDecimal(v)}
   override def setValue(st: PreparedStatement, index: Int, value: BigDecimal): Unit = st.setBigDecimal(index, value.bigDecimal)
 }
 
 trait OptionBigDecimalField extends OptionField[BigDecimal] with BaseBigDecimalRender {
-  override def getValue(rs: ResultSet, index: Int): Option[BigDecimal] = { val v = rs.getBigDecimal(index); if (rs.wasNull()) None else Some(BigDecimal(v)) }
+  override def getValue(rs: ResultSet, index: Int): Option[BigDecimal] = {val v = rs.getBigDecimal(index); if (rs.wasNull()) None else Some(BigDecimal(v))}
   override def setValue(st: PreparedStatement, index: Int, value: Option[BigDecimal]) = value.foreach(v => st.setBigDecimal(index, v.bigDecimal))
 }
 
 // ---------------------- Float ----------------------
 
 trait BaseFloatRender {
-  def renderEscapedT(value: Float)(implicit buf: SqlBuffer): Unit = buf ++ value
+  def tRenderer(vendor: Vendor): TypeRenderer[Float] = FloatRenderer
+  def tParser: TypeParser[Float] = FloatParser
   def newExpression(r: (SqlBuffer) => Unit): El[Float, Float] = new FloatField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): Float = s.toFloat
 }
 
 trait FloatField extends SimpleField[Float] with BaseFloatRender {
@@ -203,18 +220,18 @@ trait FloatField extends SimpleField[Float] with BaseFloatRender {
 }
 
 trait OptionFloatField extends OptionField[Float] with BaseFloatRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Float] = { val v = rs.getFloat(index); if (rs.wasNull()) None else Some(v) }
+  override def getValue(rs: ResultSet, index: Int): Option[Float] = {val v = rs.getFloat(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Float]) = value.foreach(v => st.setFloat(index, v))
 }
 
 // ---------------------- Double ----------------------
 
 trait BaseDoubleRender {
-  def renderEscapedT(value: Double)(implicit buf: SqlBuffer): Unit = buf ++ value
+  def tRenderer(vendor: Vendor): TypeRenderer[Double] = DoubleRenderer
+  def tParser: TypeParser[Double] = DoubleParser
   def newExpression(r: (SqlBuffer) => Unit): El[Double, Double] = new DoubleField {
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def fromStringSimple(s: String): Double = s.toDouble
 }
 
 trait DoubleField extends SimpleField[Double] with BaseDoubleRender {
@@ -223,23 +240,21 @@ trait DoubleField extends SimpleField[Double] with BaseDoubleRender {
 }
 
 trait OptionDoubleField extends OptionField[Double] with BaseDoubleRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Double] = { val v = rs.getDouble(index); if (rs.wasNull()) None else Some(v) }
+  override def getValue(rs: ResultSet, index: Int): Option[Double] = {val v = rs.getDouble(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Double]) = value.foreach(v => st.setDouble(index, v))
 }
 
 class CustomDoubleField(val sql: String) extends DoubleField {
-  override def render(implicit buf: SqlBuffer) { buf ++ sql }
+  override def render(implicit buf: SqlBuffer) {buf ++ sql}
 }
 
 // ---------------------- LocalDateTime ----------------------
 
 trait BaseTemporalRender {self: Field[Temporal, _] =>
-  def renderEscapedT(value: Temporal)(implicit buf: SqlBuffer): Unit = {
-    if (value == null) sys.error("Cannot render null field: " + self.renderToString(buf.vendor))
-    buf renderTemporalValue value
-  }
+  def tRenderer(vendor: Vendor): TypeRenderer[Temporal] = TemporalRenderer
   def newExpression(r: (SqlBuffer) => Unit): El[Temporal, Temporal] = new Field[Temporal, Temporal] with BaseTemporalRender {
-    override def renderEscapedValue(value: Temporal)(implicit buf: SqlBuffer) = renderEscapedT(value)
+    override def vRenderer(vendor: Vendor): TypeRenderer[Temporal] = tRenderer(vendor)
+    override def parser: TypeParser[Temporal] = TemporalParser
     override def getValue(rs: ResultSet, index: Int): Temporal = rs.getTimestamp(index).toLocalDateTime
     override def setValue(st: PreparedStatement, index: Int, value: Temporal) = {
       st.setTimestamp(index,
@@ -249,46 +264,43 @@ trait BaseTemporalRender {self: Field[Temporal, _] =>
         })
     }
     override def render(implicit sql: SqlBuffer) = r(sql)
-    override def fromString(s: String): Temporal = LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss)
-    override protected def fromStringSimple(s: String): Temporal = fromString(s)
-    override protected def fromStringNotNull(s: String): Temporal = fromString(s)
-  }
-  protected def withValidateYear(v: LocalDateTime): LocalDateTime = withValidateYear(v, v.getYear)
-  protected def withValidateYear(v: LocalDate): LocalDate = withValidateYear(v, v.getYear)
-  protected def withValidateYear[D](v: D, year: Int): D = {
-    if (year < 1800 || year >= 3000) throw new IllegalArgumentException("Invalid year " + year)
-    v
+//    override protected def fromStringT(s: String): Temporal = fromString(s)
+//    override protected def fromStringNotNull(s: String): Temporal = fromString(s)
   }
 }
 
 trait LocalDateTimeField extends Field[Temporal, LocalDateTime] with BaseTemporalRender {
-  override def renderEscapedValue(value: LocalDateTime)(implicit buf: SqlBuffer) = renderEscapedT(value)
+  override def vRenderer(vendor: Vendor): TypeRenderer[LocalDateTime] = tRenderer(vendor)
+  override def parser: TypeParser[LocalDateTime] = LocalDateTimeParser
   override def getValue(rs: ResultSet, index: Int): LocalDateTime = rs.getTimestamp(index).toLocalDateTime
   override def setValue(st: PreparedStatement, index: Int, value: LocalDateTime) = st.setTimestamp(index, ldt2ts(value))
-  override def fromString(s: String): LocalDateTime = withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss))
-  override def fromStringSimple(s: String): Temporal = fromString(s)
-  override def fromStringNotNull(s: String): LocalDateTime = fromString(s)
+//  override def fromString(s: String): LocalDateTime = withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss))
+//  override def fromStringT(s: String): Temporal = fromString(s)
+//  override def fromStringNotNull(s: String): LocalDateTime = fromString(s)
 }
 
 trait OptionDateTimeField extends OptionCovariantField[Temporal, LocalDateTime] with BaseTemporalRender {
-  override def getValue(rs: ResultSet, index: Int): Option[LocalDateTime] = { val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toLocalDateTime)}
+  override def tParser: TypeParser[LocalDateTime] = LocalDateTimeParser
+  override def getValue(rs: ResultSet, index: Int): Option[LocalDateTime] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toLocalDateTime)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDateTime]) = value.foreach(v => st.setTimestamp(index, ldt2ts(v)))
-  override protected def fromStringNotNull(s: String): Option[LocalDateTime] = Some(withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss)))
+//  override protected def fromStringNotNull(s: String): Option[LocalDateTime] = Some(withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss)))
 }
 
 // ---------------------- LocalDate ----------------------
 
 trait LocalDateField extends Field[Temporal, LocalDate] with BaseTemporalRender {
-  override def renderEscapedValue(value: LocalDate)(implicit buf: SqlBuffer) = renderEscapedT(value)
+  override def vRenderer(vendor: Vendor): TypeRenderer[LocalDate] = tRenderer(vendor)
+  override def parser: TypeParser[LocalDate] = LocalDateParser
   override def getValue(rs: ResultSet, index: Int): LocalDate = rs.getDate(index).toLocalDate
   override def setValue(st: PreparedStatement, index: Int, value: LocalDate) = st.setDate(index, java.sql.Date.valueOf(value))
-  override def fromString(s: String): LocalDate = withValidateYear(LocalDate.parse(s, dateFormatter))
-  override def fromStringSimple(s: String): Temporal = fromString(s)
-  override def fromStringNotNull(s: String): LocalDate = fromString(s)
+//  override def fromString(s: String): LocalDate = withValidateYear(LocalDate.parse(s, dateFormatter))
+//  override def fromStringT(s: String): Temporal = fromString(s)
+//  override def fromStringNotNull(s: String): LocalDate = fromString(s)
 }
 
 trait OptionDateField extends OptionCovariantField[Temporal, LocalDate] with BaseTemporalRender {
-  override def getValue(rs: ResultSet, index: Int): Option[LocalDate] = { val v = rs.getDate(index); if (rs.wasNull()) None else Some(v.toLocalDate) }
+  override def tParser: TypeParser[LocalDate] = LocalDateParser
+  override def getValue(rs: ResultSet, index: Int): Option[LocalDate] = {val v = rs.getDate(index); if (rs.wasNull()) None else Some(v.toLocalDate)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDate]) = value.foreach(v => st.setDate(index, java.sql.Date.valueOf(v)))
-  override protected def fromStringNotNull(s: String): Option[LocalDate] = Some(withValidateYear(LocalDate.parse(s, dateFormatter)))
+//  override protected def fromStringNotNull(s: String): Option[LocalDate] = Some(withValidateYear(LocalDate.parse(s, dateFormatter)))
 }

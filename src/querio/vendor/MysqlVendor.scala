@@ -1,8 +1,5 @@
 package querio.vendor
 
-import java.sql.{Connection, ResultSet, SQLException, Statement}
-
-import org.apache.commons.lang3.StringUtils
 import querio.utils.{MysqlUtils, SQLExceptionCode}
 
 class MysqlVendor extends Vendor {
@@ -24,14 +21,12 @@ class MysqlVendor extends Vendor {
     // Cannot add or update a child row: a foreign key constraint fails
     val ForeignKeyConstraintFails = SQLExceptionCode(1452)
   }
-
   override def errorMatcher: ErrorMatcher = Error
 
   def getClassImport: String = "querio.db.Mysql"
 
-  def sqlCalcFoundRows = "sql_calc_found_rows"
-
-  def selectFoundRows = "select found_rows()"
+  override def sqlCalcFoundRows = "sql_calc_found_rows"
+  override def selectFoundRows = "select found_rows()"
 
   val reservedWordsUppercased: Set[String] = Set("MICROSECOND", "SECOND", "MINUTE", "HOUR", "DAY",
     "WEEK", "MONTH", "QUARTER", "YEAR", "SECOND_MICROSECOND", "MINUTE_MICROSECOND", "MINUTE_SECOND",

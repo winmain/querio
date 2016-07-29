@@ -233,11 +233,11 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p block {
         p ++ "def _table = " ++ tableObjectName n()
         p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
-        p ++ s"""def toMutable: $tableMutableName = { """
+        p ++ s"""def toMutable: $tableMutableName = {"""
         locally {
           p ++ s"""val m = new $tableMutableName; """
           columns.foreach(c => p ++ "m." ++ c.varName ++ " = " ++ c.varName ++ "; ")
-          p ++ "m }" n()
+          p ++ "m}" n()
         }
         printUserLines(p, reader.userClassLines)
       }
@@ -258,10 +258,10 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
         p ++ "def _setPrimaryKey($: Int): Unit = " ++ primaryKey.fold("{}")(_.varName + " = $") n()
         locally {
-          p ++ "def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = { "
+          p ++ "def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {"
           for (c <- columns) {
             def renderRow() {
-              p ++ tableObjectName ++ "." ++ c.varName ++ ".renderEscapedValue(" ++ c.varName ++ "); "
+              p ++ tableObjectName ++ "." ++ c.varName ++ ".renderV(" ++ c.varName ++ "); "
               p ++ "buf ++ \", \""
             }
             if (primaryKeyNames.nonEmpty && primaryKeyNames.head == c.rs.name) {
@@ -272,15 +272,14 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
             else renderRow()
             p ++ "; "
           }
-          p ++ "buf del 2 }" n()
+          p ++ "buf del 2}" n()
         }
         locally {
-          p ++ "def _renderChangedUpdate($: " ++ tableClassName ++ ", $u: UpdateSetStep): Unit = { "
+          p ++ "def _renderChangedUpdate($: " ++ tableClassName ++ ", $u: UpdateSetStep): Unit = {"
           for (c <- columns) {
-            p ++ "if (" ++ c.varName ++ " != $." ++ c.varName ++ ") "
-            p ++ "$u.set(" ++ tableObjectName ++ "." ++ c.varName ++ " := " ++ c.varName ++ "); "
+            p ++ tableObjectName ++ "." ++ c.varName ++ ".maybeUpdateSet($u, $." ++ c.varName ++ ", " ++ c.varName ++ "); "
           }
-          p ++ "}" n()
+          p.del(1) ++ "}" n()
         }
         locally {
           p ++ "def toRecord: " ++ tableObjectName ++ " = new " ++ tableObjectName ++ "("

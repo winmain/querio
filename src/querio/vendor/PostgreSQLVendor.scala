@@ -36,12 +36,11 @@ class PostgreSQLVendor extends Vendor {
       SQLExceptionState("42830"), // invalid_foreign_key
       SQLExceptionState("23503") // foreign_key_violation
     )
-
   }
 
   override val errorMatcher: ErrorMatcher = Error
 
-  def getClassImport:String = "querio.db.PostgreSQL"
+  def getClassImport: String = "querio.db.PostgreSQL"
 
   val reservedWordsUppercased: Set[String] = Set("ALL", "ANALYSE", "ANALYZE", "AND", "ANY", "AS",
     "ASC", "BOTH", "CASE", "CAST", "CHECK", "COLLATE", "COLUMN", "CONSTRAINT", "CREATE",
@@ -55,7 +54,11 @@ class PostgreSQLVendor extends Vendor {
     "LEFT", "LIKE", "NATURAL", "NOTNULL", "OUTER", "OVERLAPS", "RIGHT", "SIMILAR", "VERBOSE")
 
   override def isReservedWord(word: String): Boolean = reservedWordsUppercased.contains(word.toUpperCase)
-  override def isNeedEscape(word: String): Boolean = isReservedWord(word) || isHaveUpperCase(word)
+  override def isNeedEscape(word: String): Boolean = {
+    // Do not use uppercase in identifiers. Otherwise they all must be quoted.
+    // see https://www.postgresql.org/docs/current/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    isReservedWord(word) || word.toLowerCase != word
+  }
 
   override def escapeName(name: String): String = '\"' + name + '\"'
   override def unescapeName(escaped: String): String =
@@ -63,11 +66,9 @@ class PostgreSQLVendor extends Vendor {
 
   override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in postgres
 
-  override def selectFoundRows: String = ???
-  override def sqlCalcFoundRows: String = ???
+  // ------------------------------- Render methods -------------------------------
 
-  def isHaveUpperCase(word: String) = word.toLowerCase != word
-
+  override val arrayMkString: MkString = MkString("array[", ",", "]")
 }
 
 object DefaultPostgreSQLVendor extends PostgreSQLVendor

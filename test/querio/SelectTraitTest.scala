@@ -7,8 +7,8 @@ import querio.vendor.{DefaultMysqlVendor, MysqlVendor, Vendor}
 class SelectTraitTest extends FlatSpec {
   class ElStub[T, V](renderFn: SqlBuffer => Any) extends El[T, V] {
     override def render(implicit buf: SqlBuffer): Unit = renderFn(buf)
-    override def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit = {}
-    override def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit = {}
+    override def tRenderer(vendor: Vendor): TypeRenderer[T] = null
+    override def vRenderer(vendor: Vendor): TypeRenderer[V] = null
     override def getValue(rs: ResultSet, index: Int): V = null.asInstanceOf[V]
     override def setValue(st: PreparedStatement, index: Int, value: V): Unit = {}
     override def newExpression(render: (SqlBuffer) => Unit): El[T, T] = ???
