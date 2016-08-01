@@ -25,28 +25,19 @@ trait SimpleField[T] extends Field[T, T] {
   override def vRenderer(vendor: Vendor): TypeRenderer[T] = tRenderer(vendor)
   override def parser: TypeParser[T] = tParser
   def tParser: TypeParser[T]
-  //  override def fromString(s: String): T = fromStringT(s)
-  //  override def fromStringNotNull(s: String): T = fromStringT(s)
 }
 trait OptionField[T] extends Field[T, Option[T]] with OptionEl[T, T] {
-  //  override def fromString(s: String): Option[T] = if (s == null) None else fromStringNotNull(s)
-  //  override def fromStringNotNull(s: String): Option[T] = Some(fromStringT(s))
   override def parser: TypeParser[Option[T]] = tParser.toOptionParser
   def tParser: TypeParser[T]
 }
 trait OptionCovariantField[T, V <: T] extends Field[T, Option[V]] with OptionEl[T, V] {self =>
-  //  override def fromString(s: String): Option[V] = if (s == null) None else fromStringNotNull(s)
-  //  override def fromStringT(s: String): T = throw new UnsupportedOperationException()
   override def parser: TypeParser[Option[V]] = new TypeParser[Option[V]] {
     override def parse(s: String): Option[V] = if (s == null) None else Some(self.tParser.parse(s).asInstanceOf[V])
   }
 
   def tParser: TypeParser[T]
 }
-trait SetField[T] extends Field[T, Set[T]] with SetEl[T] {
-  //  override def fromString(s: String): Set[T] = if (s == null) Set.empty else fromStringNotNull(s)
-  //  override def fromStringT(s: String): T = throw new UnsupportedOperationException()
-}
+trait SetField[T] extends Field[T, Set[T]] with SetEl[T]
 
 // ---------------------- Object ----------------------
 
@@ -264,8 +255,6 @@ trait BaseTemporalRender {self: Field[Temporal, _] =>
         })
     }
     override def render(implicit sql: SqlBuffer) = r(sql)
-//    override protected def fromStringT(s: String): Temporal = fromString(s)
-//    override protected def fromStringNotNull(s: String): Temporal = fromString(s)
   }
 }
 
@@ -274,16 +263,12 @@ trait LocalDateTimeField extends Field[Temporal, LocalDateTime] with BaseTempora
   override def parser: TypeParser[LocalDateTime] = LocalDateTimeParser
   override def getValue(rs: ResultSet, index: Int): LocalDateTime = rs.getTimestamp(index).toLocalDateTime
   override def setValue(st: PreparedStatement, index: Int, value: LocalDateTime) = st.setTimestamp(index, ldt2ts(value))
-//  override def fromString(s: String): LocalDateTime = withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss))
-//  override def fromStringT(s: String): Temporal = fromString(s)
-//  override def fromStringNotNull(s: String): LocalDateTime = fromString(s)
 }
 
 trait OptionDateTimeField extends OptionCovariantField[Temporal, LocalDateTime] with BaseTemporalRender {
   override def tParser: TypeParser[LocalDateTime] = LocalDateTimeParser
   override def getValue(rs: ResultSet, index: Int): Option[LocalDateTime] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toLocalDateTime)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDateTime]) = value.foreach(v => st.setTimestamp(index, ldt2ts(v)))
-//  override protected def fromStringNotNull(s: String): Option[LocalDateTime] = Some(withValidateYear(LocalDateTime.parse(s, yyyy_mm_dd_hh_mm_ss)))
 }
 
 // ---------------------- LocalDate ----------------------
@@ -293,14 +278,10 @@ trait LocalDateField extends Field[Temporal, LocalDate] with BaseTemporalRender 
   override def parser: TypeParser[LocalDate] = LocalDateParser
   override def getValue(rs: ResultSet, index: Int): LocalDate = rs.getDate(index).toLocalDate
   override def setValue(st: PreparedStatement, index: Int, value: LocalDate) = st.setDate(index, java.sql.Date.valueOf(value))
-//  override def fromString(s: String): LocalDate = withValidateYear(LocalDate.parse(s, dateFormatter))
-//  override def fromStringT(s: String): Temporal = fromString(s)
-//  override def fromStringNotNull(s: String): LocalDate = fromString(s)
 }
 
 trait OptionDateField extends OptionCovariantField[Temporal, LocalDate] with BaseTemporalRender {
   override def tParser: TypeParser[LocalDate] = LocalDateParser
   override def getValue(rs: ResultSet, index: Int): Option[LocalDate] = {val v = rs.getDate(index); if (rs.wasNull()) None else Some(v.toLocalDate)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDate]) = value.foreach(v => st.setDate(index, java.sql.Date.valueOf(v)))
-//  override protected def fromStringNotNull(s: String): Option[LocalDate] = Some(withValidateYear(LocalDate.parse(s, dateFormatter)))
 }

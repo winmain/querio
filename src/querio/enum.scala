@@ -76,16 +76,6 @@ trait EnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: T
       val v = rs.getInt(index)
       if (rs.wasNull()) None else enum.getValue(v)
     }
-    //  override def renderEscapedValue(value: Option[V])(implicit buf: SqlBuffer): Unit = renderEscapedT(value)
-    //    override def tRenderer(vendor: Vendor): TypeRenderer[E#V] = super.tRenderer(vendor)
-    //    override def vRenderer(vendor: Vendor): TypeRenderer[Option[E#V]] = super.vRenderer(vendor)
-    //  override def fromString(s: String): Option[T] = if (s == null) None else fromStringNotNull(s)
-    /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    //    override def renderEscapedT(value: Option[E#V])(implicit sql: SqlBuffer) = value match {
-    //      case Some(v) => renderEscapedT(v)
-    //      case None => sql ++ "default"
-    //    }
-    // TODO -------------------------------------------
 
     override def tParser: TypeParser[E#V] = throw new UnsupportedOperationException
     override def parser: TypeParser[Option[E#V]] = new TypeParser[Option[E#V]] {
@@ -112,13 +102,6 @@ trait EnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: T
       val v = rs.getString(index)
       if (rs.wasNull()) None else enum.getValue(v)
     }
-    //  override def fromString(s: String): Option[T] = if (s == null) None else fromStringNotNull(s)
-    /** В случае None вместо null следует возвращает default, т.к. БД может не принимать null для этих полей. */
-    //    override def renderEscapedT(value: Option[E])(implicit sql: SqlBuffer) = value match {
-    //      case Some(v) => renderEscapedT(v)
-    //      case None => sql ++ "default"
-    //    }
-    // TODO -------------------------------------------
 
     override def tParser: TypeParser[E] = throw new UnsupportedOperationException
     override def parser: TypeParser[Option[E]] = new TypeParser[Option[E]] {

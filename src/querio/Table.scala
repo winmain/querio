@@ -10,6 +10,7 @@ import querio.vendor.Vendor
 
 import scala.collection.immutable.IntMap
 import scala.collection.mutable
+import scala.reflect.ClassTag
 
 /**
   * Database table description
@@ -254,12 +255,13 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
     def :=(value: Option[V]): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit buf: SqlBuffer): Unit = renderV(value)
     }
-//    def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
-//      override def renderValue(implicit buf: SqlBuffer): Unit = buf.renderNull
-//    }
-//    def :=(value: T): FieldSetClause = new FieldSetClause(this) {
-//      override def renderValue(implicit buf: SqlBuffer): Unit = if (value == null) buf.renderNull else renderT(value)
-//    }
+    def :=(value: None.type): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit buf: SqlBuffer): Unit = buf.renderNull
+    }
+    // implicit ClassTag needed only to prevent name clash & ClassFormatError
+    def :=(value: T)(implicit ct: ClassTag[T]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit buf: SqlBuffer): Unit = if (value == null) buf.renderNull else renderT(value)
+    }
 
     /**
       * De-option field. Make Non-option variant of this field, ex. Option[V] => V

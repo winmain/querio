@@ -100,13 +100,6 @@ trait El[T, @specialized(Int, Long, Float, Double, Boolean) V] extends ElTable[V
 
   def render(implicit buf: SqlBuffer): Unit
   def renderToString(vendor: Vendor): String = (SqlBuffer.stub(vendor) ++ self).toString
-//  def renderEscapedT(value: T)(implicit buf: SqlBuffer): Unit
-//  def renderEscapedValue(value: V)(implicit buf: SqlBuffer): Unit
-
-//  def renderEscapedT(value: Option[T])(implicit buf: SqlBuffer): Unit = value match {
-//    case Some(v) => renderEscapedT(v)
-//    case None => buf.renderNull
-//  }
 
   def getValue(rs: ResultSet, index: Int): V
   def setValue(st: PreparedStatement, index: Int, value: V): Unit
@@ -126,13 +119,10 @@ trait OptionEl[T, V <: T] extends El[T, Option[V]] {
     case Some(v) => condition(" != ", v)
     case None => isNotNull
   }
-//  override def renderEscapedValue(value: Option[V])(implicit buf: SqlBuffer): Unit = renderEscapedT(value)
 }
 
 trait SetEl[T] extends El[T, Set[T]] {
   def &(value: Int): El[Int, Int] = Fun.intOp(this, " & ", value)
-//  def renderEscapedT(value: Set[T])(implicit buf: SqlBuffer) = renderIterable(value, ",")
-//  override def renderEscapedValue(value: Set[T])(implicit buf: SqlBuffer) = renderEscapedT(value)
 }
 
 
