@@ -148,7 +148,7 @@ trait DbTrait {
               case e: Throwable =>
                 log("exception", e.toString)
                 conn.rollback()
-                throw e
+                throw qe
             }
 
           case e: SQLException =>
