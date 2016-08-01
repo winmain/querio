@@ -114,7 +114,9 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       def objectField(p: SourcePrinter) {
         ft.scalaType.imp(p)
         className.imp(p)
-        p ++ s"""val $varName = new ${className.shortName}(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _"""
+        p ++ s"""val $varName = new ${className.shortName}"""
+        if (ft.args.nonEmpty) p ++ ft.args.mkString("(", ", ", ")")
+        p ++ s"""(TFD("$maybeUnescapeName", _.$varName, _.$varName, _.$varName = _"""
         if (escaped) p ++ ", escaped = true"
         p ++ withComment ++ "))" n()
       }

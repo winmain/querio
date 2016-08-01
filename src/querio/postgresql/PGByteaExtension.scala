@@ -6,8 +6,9 @@ import querio.vendor.Vendor
 trait PGByteaExtension {this: Vendor =>
   addTypeExtension(new FieldTypeExtension {
     override def recognize(colType: Int, typeName: String): Option[FieldType] = {
+      type T = PGByteaFields[_, _]
       if (PGByteaTableTraitExtension.isBytea(colType, typeName)) {
-        Some(FieldType.ft("Array[Byte]", "Bytea_TF", "OptionBytea_TF"))
+        Some(FieldType.ft("Array[Byte]", classOf[T#Bytea_TF], classOf[T#OptionBytea_TF]))
       } else {
         None
       }
@@ -19,13 +20,14 @@ trait PGByteaExtension {this: Vendor =>
 }
 
 object PGByteaTableTraitExtension extends TableTraitExtension {
+  def PGByteaFieldsClass = classOf[PGByteaFields[_, _]]
 
   def isBytea(colType: Int, typeName: String): Boolean = {
     colType == -2 && typeName == "bytea"
   }
 
   def makeExtendDef(data: TableGeneratorData): ExtendDef = {
-    new ExtendDef("PGByteaFields", s"[${data.tableClassName}, ${data.tableMutableName}]")
+    new ExtendDef(PGByteaFieldsClass.getSimpleName, s"[${data.tableClassName}, ${data.tableMutableName}]")
   }
 
 
@@ -37,7 +39,7 @@ object PGByteaTableTraitExtension extends TableTraitExtension {
     if (isByteaExists(data.columns)) {
       Some(new TableExtensionInfo(
         makeExtendDef(data),
-        List("querio.postgresql.PGByteaFields")
+        List(PGByteaFieldsClass.getName)
       ))
     } else {
       None

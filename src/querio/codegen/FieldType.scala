@@ -2,10 +2,21 @@ package querio.codegen
 
 import java.sql.Types
 
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import querio.AnyTable
 
-case class FieldType(scalaType: ClassName, notNullCN: ClassName, nullableCN: ClassName) {
+/**
+  * Field type info for [[TableGenerator]].
+  *
+  * @param scalaType  Scala type for this field. Either short class name (if no imports needed),
+  *                   or full class name (imports will be added).
+  * @param notNullCN  Class name for NOT NULL field
+  * @param nullableCN Class name for NULL field
+  * @param args       Optional arguments. Will be prepended before TFD declarations, for example:
+  *                   if args == Seq("int4"), then field will be `new ArrayInt_TF("int4")(TFD(...))`
+  */
+case class FieldType(scalaType: ClassName, notNullCN: ClassName, nullableCN: ClassName, args: Seq[String] = Nil) {
   def className(nullable: Boolean): ClassName = if (nullable) nullableCN else notNullCN
   def shortScalaType(nullable: Boolean): String = if (nullable) "Option[" + scalaType.shortName + "]" else scalaType.shortName
 }
@@ -13,10 +24,10 @@ case class FieldType(scalaType: ClassName, notNullCN: ClassName, nullableCN: Cla
 object FieldType {
   val log = LoggerFactory.getLogger(getClass)
 
-  def ft(scalaType: String, notNull: String, nullable: String): FieldType =
-    FieldType(ClassName(scalaType), ClassName(notNull), ClassName(nullable))
-  def ft(scalaType: String, notNullClass: Class[_], nullableClass: Class[_]): FieldType =
-    ft(scalaType, notNullClass.getSimpleName, nullableClass.getSimpleName)
+  def fts(scalaType: String, notNull: String, nullable: String, args: Seq[String] = Nil): FieldType =
+    FieldType(ClassName(scalaType), ClassName(notNull), ClassName(nullable), args = args)
+  def ft(scalaType: String, notNullClass: Class[_], nullableClass: Class[_], args: Seq[String] = Nil): FieldType =
+    fts(scalaType, notNullClass.getSimpleName, nullableClass.getSimpleName, args = args)
 
   type T = AnyTable
 
@@ -31,12 +42,12 @@ object FieldType {
   val dateTime = ft("java.time.LocalDateTime", classOf[T#LocalDateTime_TF], classOf[T#OptionLocalDateTime_TF])
   val date = ft("java.time.LocalDate", classOf[T#LocalDate_TF], classOf[T#OptionLocalDate_TF])
 
-  val booleanArray = ft("Array[Boolean]", classOf[T#ArrayBoolean_TF], classOf[T#OptionArrayBoolean_TF])
-  val intArray = ft("Array[Int]", classOf[T#ArrayInt_TF], classOf[T#OptionArrayInt_TF])
-  val longArray = ft("Array[Long]", classOf[T#ArrayLong_TF], classOf[T#OptionArrayLong_TF])
-  val stringArray = ft("Array[String]", classOf[T#ArrayString_TF], classOf[T#OptionArrayString_TF])
-  val floatArray = ft("Array[Float]", classOf[T#ArrayFloat_TF], classOf[T#OptionArrayFloat_TF])
-  val doubleArray = ft("Array[Double]", classOf[T#ArrayDouble_TF], classOf[T#OptionArrayDouble_TF])
+  def booleanArray(dataType: String) = ft("Array[Boolean]", classOf[T#ArrayBoolean_TF], classOf[T#OptionArrayBoolean_TF], args = Seq('"' + dataType + '"'))
+  def intArray(dataType: String) = ft("Array[Int]", classOf[T#ArrayInt_TF], classOf[T#OptionArrayInt_TF], args = Seq('"' + dataType + '"'))
+  def longArray(dataType: String) = ft("Array[Long]", classOf[T#ArrayLong_TF], classOf[T#OptionArrayLong_TF], args = Seq('"' + dataType + '"'))
+  def stringArray(dataType: String) = ft("Array[String]", classOf[T#ArrayString_TF], classOf[T#OptionArrayString_TF], args = Seq('"' + dataType + '"'))
+  def floatArray(dataType: String) = ft("Array[Float]", classOf[T#ArrayFloat_TF], classOf[T#OptionArrayFloat_TF], args = Seq('"' + dataType + '"'))
+  def doubleArray(dataType: String) = ft("Array[Double]", classOf[T#ArrayDouble_TF], classOf[T#OptionArrayDouble_TF], args = Seq('"' + dataType + '"'))
 
   /**
     * Вернуть тип поля по типу столбца в БД.
@@ -59,13 +70,14 @@ object FieldType {
       case Types.DATE => date
       case Types.ARRAY =>
         // Tested only on Postgres
+        val dataType = StringUtils.removeStart(typeName, "_")
         typeName.toLowerCase match {
-          case "_bit" | "_bool" => booleanArray
-          case "_int4" => intArray
-          case "_int8" => longArray
-          case "_varchar" | "_text" => stringArray
-          case "_float4" => floatArray
-          case "_float8" => doubleArray
+          case "_bit" | "_bool" => booleanArray(dataType)
+          case "_int4" => intArray(dataType)
+          case "_int8" => longArray(dataType)
+          case "_varchar" | "_text" => stringArray(dataType)
+          case "_float4" => floatArray(dataType)
+          case "_float8" => doubleArray(dataType)
           case _ => undetectedType("Unresolved array type")
         }
 

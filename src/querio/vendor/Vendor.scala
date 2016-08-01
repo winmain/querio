@@ -34,7 +34,11 @@ trait Vendor {
   def sqlCalcFoundRows: String = unsupported
   def selectFoundRows: String = unsupported
 
-  def arrayMkString: MkString = unsupported
+  /**
+    * Returns [[MkString]] structure to render SQL array for this vendor.
+    * @param elementDataType Array elements DataType, for example "int4", "varchar", "boolean".
+    */
+  def arrayMkString(elementDataType: String): MkString = unsupported
 
   // ------------------------------- Inner methods -------------------------------
 

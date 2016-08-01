@@ -68,7 +68,7 @@ class PostgreSQLVendor extends Vendor {
 
   // ------------------------------- Render methods -------------------------------
 
-  override val arrayMkString: MkString = MkString("array[", ",", "]")
+  override def arrayMkString(elementDataType: String): MkString = MkString("array[", ",", "]::" + elementDataType + "[]")
 }
 
 object DefaultPostgreSQLVendor extends PostgreSQLVendor
