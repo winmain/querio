@@ -1,6 +1,6 @@
 package querio
 
-import java.sql.{PreparedStatement, ResultSet}
+import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 
@@ -60,7 +60,7 @@ trait BaseBooleanRender {
   def tParser: TypeParser[Boolean] = BooleanParser
 
   def newExpression(r: (SqlBuffer) => Unit): El[Boolean, Boolean] = new BooleanField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 
   def unary_! : Condition = new Condition {
@@ -115,7 +115,7 @@ trait BaseLongRender {
   def tRenderer(vendor: Vendor): TypeRenderer[Long] = LongRenderer
   def tParser: TypeParser[Long] = LongParser
   def newExpression(r: (SqlBuffer) => Unit): El[Long, Long] = new LongField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -135,7 +135,7 @@ trait BaseStringRender {
   def tRenderer(vendor: Vendor): TypeRenderer[String] = StringRenderer
   def tParser: TypeParser[String] = StringParser
   def newExpression(r: (SqlBuffer) => Unit): El[String, String] = new StringField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -181,7 +181,7 @@ trait BaseBigDecimalRender {self: Field[BigDecimal, _] =>
   def tRenderer(vendor: Vendor): TypeRenderer[BigDecimal] = BigDecimalRenderer
   def tParser: TypeParser[BigDecimal] = BigDecimalParser
   def newExpression(r: (SqlBuffer) => Unit): El[BigDecimal, BigDecimal] = new BigDecimalField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -201,7 +201,7 @@ trait BaseFloatRender {
   def tRenderer(vendor: Vendor): TypeRenderer[Float] = FloatRenderer
   def tParser: TypeParser[Float] = FloatParser
   def newExpression(r: (SqlBuffer) => Unit): El[Float, Float] = new FloatField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -221,7 +221,7 @@ trait BaseDoubleRender {
   def tRenderer(vendor: Vendor): TypeRenderer[Double] = DoubleRenderer
   def tParser: TypeParser[Double] = DoubleParser
   def newExpression(r: (SqlBuffer) => Unit): El[Double, Double] = new DoubleField {
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -239,6 +239,26 @@ class CustomDoubleField(val sql: String) extends DoubleField {
   override def render(implicit buf: SqlBuffer) {buf ++ sql}
 }
 
+// ---------------------- Timestamp ----------------------
+
+trait BaseTimestampRender {self: Field[Timestamp, _] =>
+  def tRenderer(vendor: Vendor): TypeRenderer[Timestamp] = TimestampRenderer
+  def tParser: TypeParser[Timestamp] = TimestampParser
+  def newExpression(r: (SqlBuffer) => Unit): El[Timestamp, Timestamp] = new TimestampField {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+trait TimestampField extends SimpleField[Timestamp] with BaseTimestampRender {
+  override def getValue(rs: ResultSet, index: Int): Timestamp = rs.getTimestamp(index)
+  override def setValue(st: PreparedStatement, index: Int, value: Timestamp): Unit = {checkNotNull(value); st.setTimestamp(index, value)}
+}
+
+trait OptionTimestampField extends OptionField[Timestamp] with BaseTimestampRender {
+  override def getValue(rs: ResultSet, index: Int): Option[Timestamp] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Timestamp]): Unit = value.foreach(v => st.setTimestamp(index, v))
+}
+
 // ---------------------- LocalDateTime ----------------------
 
 trait BaseTemporalRender {self: Field[Temporal, _] =>
@@ -254,7 +274,7 @@ trait BaseTemporalRender {self: Field[Temporal, _] =>
           case v: LocalDate => ld2ts(v)
         })
     }
-    override def render(implicit sql: SqlBuffer) = r(sql)
+    override def render(implicit buf: SqlBuffer) = r(buf)
   }
 }
 
@@ -265,7 +285,7 @@ trait LocalDateTimeField extends Field[Temporal, LocalDateTime] with BaseTempora
   override def setValue(st: PreparedStatement, index: Int, value: LocalDateTime) = st.setTimestamp(index, ldt2ts(value))
 }
 
-trait OptionDateTimeField extends OptionCovariantField[Temporal, LocalDateTime] with BaseTemporalRender {
+trait OptionLocalDateTimeField extends OptionCovariantField[Temporal, LocalDateTime] with BaseTemporalRender {
   override def tParser: TypeParser[LocalDateTime] = LocalDateTimeParser
   override def getValue(rs: ResultSet, index: Int): Option[LocalDateTime] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toLocalDateTime)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDateTime]) = value.foreach(v => st.setTimestamp(index, ldt2ts(v)))
@@ -280,7 +300,7 @@ trait LocalDateField extends Field[Temporal, LocalDate] with BaseTemporalRender 
   override def setValue(st: PreparedStatement, index: Int, value: LocalDate) = st.setDate(index, java.sql.Date.valueOf(value))
 }
 
-trait OptionDateField extends OptionCovariantField[Temporal, LocalDate] with BaseTemporalRender {
+trait OptionLocalDateField extends OptionCovariantField[Temporal, LocalDate] with BaseTemporalRender {
   override def tParser: TypeParser[LocalDate] = LocalDateParser
   override def getValue(rs: ResultSet, index: Int): Option[LocalDate] = {val v = rs.getDate(index); if (rs.wasNull()) None else Some(v.toLocalDate)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[LocalDate]) = value.foreach(v => st.setDate(index, java.sql.Date.valueOf(v)))

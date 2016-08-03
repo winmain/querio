@@ -2,10 +2,7 @@ package querio
 
 import java.lang.StringBuilder
 import java.sql.{SQLException, Statement}
-import java.time.temporal.Temporal
-import java.time.{LocalDate, LocalDateTime}
 
-import org.apache.commons.lang3.StringUtils
 import querio.vendor.Vendor
 
 trait SqlBuffer {
@@ -62,25 +59,6 @@ trait SqlBuffer {
     this ++ '\'' ++ vendor.escapeSql(value) ++ '\''
   }
 
-  def renderBigDecimalValue(value: BigDecimal) {
-    this ++ value.toString()
-  }
-
-  def renderLocalDateTimeValue(v: LocalDateTime) {
-    this ++ '\'' ++ v.getYear ++ '-' ++ zpad2(v.getMonthValue) ++ '-' ++ zpad2(v.getDayOfMonth) ++
-      ' ' ++ zpad2(v.getHour) ++ ':' ++ zpad2(v.getMinute) ++ ':' ++ zpad2(v.getSecond) ++ '\''
-  }
-
-  def renderLocalDateValue(v: LocalDate) {
-    this ++ '\'' ++ v.getYear ++ '-' ++ zpad2(v.getMonthValue) ++ '-' ++ zpad2(v.getDayOfMonth) ++ '\''
-  }
-
-  def renderTemporalValue(value: Temporal): Unit = value match {
-    case ldt: LocalDateTime => renderLocalDateTimeValue(ldt)
-    case ld: LocalDate => renderLocalDateValue(ld)
-    case f => throw new IllegalArgumentException("Unknown DateTime field " + f)
-  }
-
   // ------------------------------- Utility methods -------------------------------
 
   def statement[R](body: (Statement, String) => R): R = {
@@ -105,11 +83,6 @@ trait SqlBuffer {
   protected def makeQuerioSQLException(e: SQLException, sql: String): Throwable = {
     new QuerioSQLException(e.getSQLState + ": " + e.getMessage + "\n" + sql, e, sql)
   }
-
-  private def zpad(value: Int, zeroes: Int): String =
-    StringUtils.leftPad(String.valueOf(value), zeroes, '0')
-
-  private def zpad2(value: Int) = zpad(value, 2)
 }
 
 object SqlBuffer {

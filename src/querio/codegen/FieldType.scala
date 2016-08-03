@@ -39,6 +39,7 @@ object FieldType {
   val bigDecimal = ft("BigDecimal", classOf[T#BigDecimal_TF], classOf[T#OptionBigDecimal_TF])
   val float = ft("Float", classOf[T#Float_TF], classOf[T#OptionFloat_TF])
   val double = ft("Double", classOf[T#Double_TF], classOf[T#OptionDouble_TF])
+  val timestamp = ft("java.sql.Timestamp", classOf[T#Timestamp_TF], classOf[T#OptionTimestamp_TF])
   val dateTime = ft("java.time.LocalDateTime", classOf[T#LocalDateTime_TF], classOf[T#OptionLocalDateTime_TF])
   val date = ft("java.time.LocalDate", classOf[T#LocalDate_TF], classOf[T#OptionLocalDate_TF])
 
@@ -66,7 +67,8 @@ object FieldType {
       case Types.DECIMAL => bigDecimal
       case Types.FLOAT | Types.REAL => float
       case Types.DOUBLE => double
-      case Types.TIMESTAMP | Types.TIME => dateTime
+      case Types.TIMESTAMP => timestamp
+      case Types.TIME => dateTime
       case Types.DATE => date
       case Types.ARRAY =>
         // Tested only on Postgres

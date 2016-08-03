@@ -1,6 +1,9 @@
 package querio
+import java.sql.Timestamp
 import java.time.temporal.Temporal
+import java.time.{LocalDate, LocalDateTime}
 
+import org.apache.commons.lang3.StringUtils
 import querio.utils.MkString
 
 abstract class TypeRenderer[-T] {self =>
@@ -25,6 +28,11 @@ abstract class TypeRenderer[-T] {self =>
   protected def checkNotNull(value: AnyRef, elInfo: El[_, _]): Unit = {
     if (value == null) throw new NullPointerException("Field " + elInfo.fullName + " cannot be null")
   }
+
+  protected def zpad(value: Int, zeroes: Int): String =
+    StringUtils.leftPad(String.valueOf(value), zeroes, '0')
+
+  protected def zpad2(value: Int): String = zpad(value, 2)
 }
 
 object ToStringRenderer extends TypeRenderer[AnyRef] {
@@ -53,7 +61,7 @@ object StringRenderer extends TypeRenderer[String] {
 object BigDecimalRenderer extends TypeRenderer[BigDecimal] {
   override def render(value: BigDecimal, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
     checkNotNull(value, elInfo)
-    buf renderBigDecimalValue value
+    buf ++ value.toString()
   }
 }
 
@@ -65,9 +73,25 @@ object DoubleRenderer extends TypeRenderer[Double] {
   override def render(value: Double, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf ++ value
 }
 
+object TimestampRenderer extends TypeRenderer[Timestamp] {
+  override def render(value: Timestamp, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf renderStringValue value.toString
+  }
+}
+
 object TemporalRenderer extends TypeRenderer[Temporal] {
   override def render(value: Temporal, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
     checkNotNull(value, elInfo)
-    buf renderTemporalValue value
+    value match {
+      case v: LocalDateTime =>
+        buf ++ '\'' ++ v.getYear ++ '-' ++ zpad2(v.getMonthValue) ++ '-' ++ zpad2(v.getDayOfMonth) ++
+          ' ' ++ zpad2(v.getHour) ++ ':' ++ zpad2(v.getMinute) ++ ':' ++ zpad2(v.getSecond) ++ '\''
+
+      case v: LocalDate =>
+        buf ++ '\'' ++ v.getYear ++ '-' ++ zpad2(v.getMonthValue) ++ '-' ++ zpad2(v.getDayOfMonth) ++ '\''
+
+      case f => throw new IllegalArgumentException("Unknown DateTime field " + f)
+    }
   }
 }

@@ -1,4 +1,5 @@
 package querio
+import java.sql.Timestamp
 import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 
@@ -45,6 +46,10 @@ object FloatParser extends TypeParser[Float] {
 
 object DoubleParser extends TypeParser[Double] {
   override def parse(s: String): Double = s.toDouble
+}
+
+object TimestampParser extends TypeParser[Timestamp] {
+  override def parse(s: String): Timestamp = Timestamp.valueOf(s)
 }
 
 abstract class CommonTemporalParser[T] extends TypeParser[T] {

@@ -1,6 +1,6 @@
 package querio
 
-import java.sql.{PreparedStatement, ResultSet, Array => SqlArray}
+import java.sql.{PreparedStatement, ResultSet, Timestamp, Array => SqlArray}
 import java.time.temporal.Temporal
 import java.time.{LocalDate, LocalDateTime}
 import javax.annotation.Nullable
@@ -347,15 +347,20 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   class Double_TF(tfd: TFD[Double]) extends SimpleTableField[Double](tfd) with DoubleField
   class OptionDouble_TF(tfd: TFD[Option[Double]]) extends OptionTableField[Double](tfd) with OptionDoubleField
 
+  // ---------------------- DateMidnight ----------------------
+
+  class Timestamp_TF(tfd: TFD[Timestamp]) extends SimpleTableField[Timestamp](tfd) with TimestampField
+  class OptionTimestamp_TF(tfd: TFD[Option[Timestamp]]) extends OptionTableField[Timestamp](tfd) with OptionTimestampField
+
   // ---------------------- DateTime ----------------------
 
   class LocalDateTime_TF(tfd: TFD[LocalDateTime]) extends Field[Temporal, LocalDateTime](tfd) with LocalDateTimeField with SimpleFieldSetClause2[Temporal, LocalDateTime]
-  class OptionLocalDateTime_TF(tfd: TFD[Option[LocalDateTime]]) extends OptionCovariantTableField[Temporal, LocalDateTime](tfd) with OptionDateTimeField
+  class OptionLocalDateTime_TF(tfd: TFD[Option[LocalDateTime]]) extends OptionCovariantTableField[Temporal, LocalDateTime](tfd) with OptionLocalDateTimeField
 
   // ---------------------- DateMidnight ----------------------
 
   class LocalDate_TF(tfd: TFD[LocalDate]) extends Field[Temporal, LocalDate](tfd) with LocalDateField with SimpleFieldSetClause2[Temporal, LocalDate]
-  class OptionLocalDate_TF(tfd: TFD[Option[LocalDate]]) extends OptionCovariantTableField[Temporal, LocalDate](tfd) with OptionDateField
+  class OptionLocalDate_TF(tfd: TFD[Option[LocalDate]]) extends OptionCovariantTableField[Temporal, LocalDate](tfd) with OptionLocalDateField
 }
 
 
