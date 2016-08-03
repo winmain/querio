@@ -5,10 +5,10 @@ import javax.annotation.Nullable
 import scala.collection.mutable
 
 /**
- * Enumerable implementation with integer key field.
- * Internally store values in [[mutable.ArrayBuffer]]. Each value key is an array index hence.
- * Hence keys should not be scarce.
- */
+  * Enumerable implementation with integer key field.
+  * Internally store values in [[mutable.ArrayBuffer]]. Each value key is an array index hence.
+  * Hence keys should not be scarce.
+  */
 abstract class DbEnum {
   type V <: Cls
 
@@ -50,31 +50,33 @@ abstract class DbEnum {
 
 
 /**
- * Реестр всех DbEnum'ов, позволяющий определить enum-объект по его классу.
- */
-//object DbEnums {
-//
-//  private val enumClsToObject = mutable.Map[Class[_ <: AnyDbEnumCls], AnyDbEnum]()
-//
-//  private[orm] def register[E <: DbEnumCls[E]](cls: Class[E], obj: DbEnum[E]) {
-//    enumClsToObject.put(cls, obj)
-//  }
-//  private def registerUntyped(cls: Class[_ <: AnyDbEnumCls], obj: AnyDbEnum) {
-//    enumClsToObject.put(cls, obj)
-//  }
-//
-//  private def tryToFindEnum(cls: Class[_ <: AnyDbEnumCls]): AnyDbEnum = {
-//    val enumCls = Thread.currentThread().getContextClassLoader.loadClass(cls.getCanonicalName + "$")
-//    enumCls.getField("MODULE$").get(enumCls).asInstanceOf[AnyDbEnum]
-//  }
-//
-//  def getEnum(cls: Class[_ <: AnyDbEnumCls]): Option[AnyDbEnum] = {
-//    enumClsToObject.get(cls) match {
-//      case None =>
-//        val enum = tryToFindEnum(cls)
-//        registerUntyped(cls, enum)
-//        Some(enum)
-//      case some => some
-//    }
-//  }
-//}
+  * DbEnum registry. Provides enum detection by DbEnum#Cls.
+  * There is no need to manually registry enums. [[DbEnums]] automatically discovers enum objects
+  * on first use.
+  */
+object DbEnums {
+
+  private val enumClsToObject = mutable.Map[Class[_ <: DbEnum#Cls], DbEnum]()
+
+  private[querio] def register[E <: DbEnum](cls: Class[E#Cls], obj: E) {
+    enumClsToObject.put(cls, obj)
+  }
+  private def registerUntyped(cls: Class[_ <: DbEnum#Cls], obj: DbEnum) {
+    enumClsToObject.put(cls, obj)
+  }
+
+  private def tryToFindEnum(cls: Class[_ <: DbEnum#Cls]): DbEnum = {
+    val enumCls = Thread.currentThread().getContextClassLoader.loadClass(cls.getCanonicalName + "$")
+    enumCls.getField("MODULE$").get(enumCls).asInstanceOf[DbEnum]
+  }
+
+  def getEnum(cls: Class[_ <: DbEnum#Cls]): Option[DbEnum] = {
+    enumClsToObject.get(cls) match {
+      case None =>
+        val enum = tryToFindEnum(cls)
+        registerUntyped(cls, enum)
+        Some(enum)
+      case some => some
+    }
+  }
+}
