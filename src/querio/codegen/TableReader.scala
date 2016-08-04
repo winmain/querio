@@ -146,11 +146,16 @@ class TableReader(db: Vendor, lines: List[String]) {
         for ((line, idx) <- StringUtils.split("val" + splitted(1), '\n').zipWithIndex) {
           if (constructorVarNames.isDefinedAt(idx)) {
             line.trim match {
-              case classHeaderFieldR(_, scalaType) =>
-                val name: String = constructorVarNames(idx)
+              case classHeaderFieldR(gotName, scalaType) =>
+//                val name: String = constructorVarNames(idx)
+                // name теперь получается из gotName, потому что был случай, когда я удалил поле
+                // из всех трёх классов (чтобы генератор заново создал его),
+                // а из-за этого последнее поле получалось нераспознанным.
+                val name = gotName
                 userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
-              case classHeaderPrivateFieldR(_, scalaType) =>
-                val name: String = constructorVarNames(idx)
+              case classHeaderPrivateFieldR(gotName, scalaType) =>
+//                val name: String = constructorVarNames(idx)
+                val name = gotName
                 userColumnsByVarName.get(name).foreach {col =>
                   col.isPrivate = true
                   col.scalaType = scalaType.trim
