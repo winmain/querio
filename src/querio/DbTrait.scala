@@ -261,6 +261,14 @@ trait DbTrait {
     update.asInstanceOf[UpdateSetNextStep].setMtr(record).execute()
   }
 
+  /** Do update if original record defined, otherwise do insert */
+  def updateOrInsert[TR <: TableRecord, MTR <: MutableTableRecord[TR]](maybeOriginalRecord: Option[TR], record: MTR)(implicit dt: DataTr): Unit = {
+    maybeOriginalRecord match {
+      case Some(original) => updateChanged(original, record)
+      case None => insert(record)
+    }
+  }
+
   /** Выполнить update только для изменившихся полей внутри патча. */
   def updateRecordPatch[TR <: TableRecord, MTR <: MutableTableRecord[TR]](table: Table[TR, MTR], record: TR)(patch: MTR => Any)(implicit dt: DataTr): MTR = {
     val update: UpdateSetStep = newQuery(dt).update(table, record._primaryKey)
