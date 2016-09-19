@@ -131,8 +131,10 @@ trait EnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: T
     }
 
     override def parser: TypeParser[Set[E]] = new TypeParser[Set[E]] {
-      override def parse(s: String): Set[E] =
-        StringUtils.split(s, ',').map(enum.getValue(_).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName")))(scala.collection.breakOut)
+      override def parse(s: String): Set[E] = {
+        if (s == null) Set.empty
+        else StringUtils.split(s, ',').map(enum.getValue(_).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName")))(scala.collection.breakOut)
+      }
     }
 
     protected def valueAsString(value: Set[E]): String = {
@@ -153,9 +155,12 @@ trait EnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: T
     override def tParser: TypeParser[E] = throw new UnsupportedOperationException
     override def parser: TypeParser[Set[E]] = new TypeParser[Set[E]] {
       override def parse(s: String): Set[E] = {
-        val b = Set.newBuilder[E]
-        for (str <- StringUtils.split(s, ',')) enum.getValue(str).foreach(b.+=)
-        b.result()
+        if (s == null) Set.empty
+        else {
+          val b = Set.newBuilder[E]
+          for (str <- StringUtils.split(s, ',')) enum.getValue(str).foreach(b.+=)
+          b.result()
+        }
       }
     }
   }
