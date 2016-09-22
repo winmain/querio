@@ -1,5 +1,6 @@
 package querio.vendor
 
+import querio.SqlBuffer
 import querio.utils._
 
 class PostgreSQLVendor extends Vendor {
@@ -67,6 +68,16 @@ class PostgreSQLVendor extends Vendor {
   override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in postgres
 
   // ------------------------------- Render methods -------------------------------
+
+  /**
+    * To properly work with float4 in PostgreSQL we must cast them to REAL.
+    *
+    * Consider this example:
+    * SELECT 56.035732::REAL num INTO TEMPORARY tt;
+    * SELECT count(*) FROM tt WHERE num = 56.035732;        -- returns 0
+    * SELECT count(*) FROM tt WHERE num = 56.035732::REAL;  -- returns 1
+    */
+  override def renderFloat(v: Float, buf: SqlBuffer): Unit = {buf.sb append v append "::real"}
 
   override def arrayMkString(elementDataType: String): MkString = MkString("array[", ",", "]::" + elementDataType + "[]")
 }

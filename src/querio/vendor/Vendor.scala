@@ -1,5 +1,6 @@
 package querio.vendor
 
+import querio.SqlBuffer
 import querio.codegen.{FieldTypeExtension, TableTraitExtension}
 import querio.utils.MkString
 
@@ -30,6 +31,8 @@ trait Vendor {
   def getTableTraitsExtensions: Seq[TableTraitExtension] = tableTraitExtensions
 
   // ------------------------------- Render methods -------------------------------
+
+  def renderFloat(v: Float, buf: SqlBuffer): Unit = {buf.sb append v}
 
   def sqlCalcFoundRows: String = unsupported
   def selectFoundRows: String = unsupported

@@ -16,17 +16,17 @@ trait SqlBuffer {
 
   override def toString: String = sb.toString
 
-  def ++(sql: CharSequence): this.type = { sb append sql; this }
-  def ++(sql: Char): this.type = { sb append sql; this }
-  def ++(sql: Int): this.type = { sb append sql; this }
-  def ++(sql: Long): this.type = { sb append sql; this }
-  def ++(sql: Float): this.type = { sb append sql; this }
-  def ++(sql: Double): this.type = { sb append sql; this }
-  def ++(cond: Condition): this.type = { cond.renderCond(this); this }
-  def ++(el: El[_, _]): this.type = { el.render(this); this }
-  def ++(buf: SqlBuffer): this.type = { if (buf != this) {sb append buf.sb}; this }
+  def ++(sql: CharSequence): this.type = {sb append sql; this}
+  def ++(v: Char): this.type = {sb append v; this}
+  def ++(v: Int): this.type = {sb append v; this}
+  def ++(v: Long): this.type = {sb append v; this}
+  def ++(v: Float): this.type = {vendor.renderFloat(v, this); this}
+  def ++(v: Double): this.type = {sb append v; this}
+  def ++(cond: Condition): this.type = {cond.renderCond(this); this}
+  def ++(el: El[_, _]): this.type = {el.render(this); this}
+  def ++(buf: SqlBuffer): this.type = {if (buf != this) {sb append buf.sb}; this}
 
-  def del(chars: Int): this.type = { sb.delete(sb.length() - chars, sb.length()); this }
+  def del(chars: Int): this.type = {sb.delete(sb.length() - chars, sb.length()); this}
 
   def addSelectFlags(flags: String): this.type = sb.indexOf("select ") match {
     case -1 => sys.error("Cannot find 'select' in this query")
