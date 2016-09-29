@@ -62,7 +62,6 @@ trait OptionArrayField[T] extends ArrayField[T, Option[Array[T]]] {
   def getValue(rs: ResultSet, index: Int): Option[Array[T]] = {
     val array: SqlArray = rs.getArray(index)
     if (rs.wasNull()) {
-      array.free()
       None
     } else {
       val javaArray = array.getArray
