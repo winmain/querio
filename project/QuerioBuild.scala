@@ -10,7 +10,7 @@ object QuerioBuild extends sbt.Build {
 
   val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
     organization := "com.github.citrum.querio",
-    version := "0.6.4.1",
+    version := "0.6.5",
 
     incOptions := incOptions.value.withNameHashing(nameHashing = true),
     sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc

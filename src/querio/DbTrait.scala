@@ -407,7 +407,6 @@ trait DbTrait {
 
 
 trait ModifyData {
-  def dateTime: LocalDateTime
 }
 
 
