@@ -1,5 +1,8 @@
 package querio.vendor
 
+import java.lang.StringBuilder
+
+import org.postgresql.util.{PSQLException, PSQLState}
 import querio.SqlBuffer
 import querio.utils._
 
@@ -65,7 +68,23 @@ class PostgreSQLVendor extends Vendor {
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
 
-  override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in postgres
+  override def escapeSql(value: String): String = {
+    // This code is a ported version of org.postgresql.core.Utils.doAppendEscapedLiteral
+    // Add 5% for escaping.
+    val sb = new StringBuilder(value.length * 105 / 100)
+    val len = value.length
+    var i = 0
+    while (i < len) {
+      value.charAt(i) match {
+        case 0 => throw new PSQLException(sys.error("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE)
+        case '\'' => sb.append('\'').append('\'')
+        case '\\' => sb.append('\\').append('\\')
+        case ch => sb.append(ch)
+      }
+      i += 1
+    }
+    sb.toString
+  }
 
   // ------------------------------- Render methods -------------------------------
 
