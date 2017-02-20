@@ -7,6 +7,9 @@ import querio.SqlBuffer
 import querio.utils._
 
 class PostgreSQLVendor extends Vendor {
+  override final def isPostgres: Boolean = true
+  override final def isMysql: Boolean = false
+  override final def isH2: Boolean = false
 
   object Error extends ErrorMatcher {
     // Codes from http://www.postgresql.org/docs/9.1/static/errcodes-appendix.html

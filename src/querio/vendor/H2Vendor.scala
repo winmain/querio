@@ -3,6 +3,10 @@ package querio.vendor
 import querio.utils.{SQLExceptionCode, SQLExceptionMatcherList}
 
 class H2Vendor extends Vendor {
+  override final def isPostgres: Boolean = false
+  override final def isMysql: Boolean = false
+  override final def isH2: Boolean = true
+
   object Error extends ErrorMatcher {
     // http://www.h2database.com/javadoc/org/h2/api/ErrorCode.html#c90018
     // Connection is closed

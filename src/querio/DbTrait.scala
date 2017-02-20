@@ -1,7 +1,6 @@
 package querio
 import java.lang.StringBuilder
 import java.sql.{Connection, SQLException}
-import java.time.LocalDateTime
 import javax.annotation.Nullable
 
 import org.slf4j.{Logger, LoggerFactory}
@@ -309,9 +308,42 @@ trait DbTrait {
     count
   }
 
-  def truncate(table: AnyTable, disableForeignKeyChecks: Boolean = false)(implicit tr: Transaction) {
-    if (disableForeignKeyChecks) execute("SET FOREIGN_KEY_CHECKS=0")
-    execute(_ ++ "truncate " ++ table._aliasName)
+  /**
+    * Truncates table
+    *
+    * @param table                   Table to truncate
+    * @param disableForeignKeyChecks MySQL ONLY:
+    *                                Turns off foreign key checks before truncate, do truncate, and turn them on again.
+    *                                This will lead to database inconsistency and broke foreign keys.
+    *                                Set this flag only when you known what you doing.
+    *                                Warning: this option will always set FOREIGN_KEY_CHECKS=1 after truncate
+    *                                regardless of previous state.
+    * @param restartIdentity         PostgreSQL ONLY:
+    *                                Automatically restart sequences owned by columns of the truncated table(s).
+    * @param cascade                 PostgreSQL ONLY:
+    *                                Automatically truncate all tables that have foreign-key references
+    *                                to any of the named tables, or to any tables added to the group due to CASCADE.
+    */
+  def truncate(table: AnyTable,
+               disableForeignKeyChecks: Boolean = false,
+               restartIdentity: Boolean = false,
+               cascade: Boolean = false)
+              (implicit tr: Transaction) {
+    if (disableForeignKeyChecks) {
+      require(vendor.isMysql, "Truncate disableForeignKeyChecks flag is available only for Mysql")
+      execute("SET FOREIGN_KEY_CHECKS=0")
+    }
+    execute {sql =>
+      sql ++ "truncate table " ++ table._aliasName
+      if (restartIdentity) {
+        require(vendor.isPostgres, "Truncate restartIdentity flag is available only for Postgres")
+        sql ++ " restart identity"
+      }
+      if (cascade) {
+        require(vendor.isPostgres, "Truncate cascade flag is available only for Postgres")
+        sql ++ " cascade"
+      }
+    }
     if (disableForeignKeyChecks) execute("SET FOREIGN_KEY_CHECKS=1")
   }
 

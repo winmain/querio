@@ -8,6 +8,9 @@ import scala.collection.mutable
 
 
 trait Vendor {
+  def isPostgres: Boolean
+  def isMysql: Boolean
+  def isH2: Boolean
 
   def errorMatcher: ErrorMatcher
 

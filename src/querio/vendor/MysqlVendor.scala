@@ -3,6 +3,9 @@ package querio.vendor
 import querio.utils.{MysqlUtils, SQLExceptionCode}
 
 class MysqlVendor extends Vendor {
+  override final def isPostgres: Boolean = false
+  override final def isMysql: Boolean = true
+  override final def isH2: Boolean = false
 
   // Коды ошибок mysql (SQLException.getErrorCode)
   object Error extends ErrorMatcher {
