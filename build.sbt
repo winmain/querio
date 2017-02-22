@@ -2,16 +2,17 @@ import sbt.Keys._
 
 // ------------------------------- Main projects -------------------------------
 
-val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
-  organization := "com.github.citrum.querio",
-  version := "0.6.7",
+val DefaultScalaVersion = "2.12.1"
 
-  incOptions := incOptions.value.withNameHashing(nameHashing = true),
-  sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
-  crossScalaVersions := Seq("2.11.8", "2.12.1"),
-  scalacOptions ++= Seq(/*"-target:jvm-1.8", */"-unchecked", "-deprecation", "-feature", "-language:existentials"),
-  mainClass in Compile := None,
+crossScalaVersions := Seq("2.11.8", "2.12.1")
+scalaVersion := DefaultScalaVersion
 
+val scalaSettings = Seq(
+  scalaVersion := DefaultScalaVersion,
+  scalacOptions ++= Seq(/*"-target:jvm-1.8", */"-unchecked", "-deprecation", "-feature", "-language:existentials")
+)
+
+val defaultProjectStructure = Seq(
   sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
   scalaSource in Compile := baseDirectory.value / "src",
   javaSource in Compile := baseDirectory.value / "src",
@@ -19,7 +20,16 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ Seq(
 
   scalaSource in Test := baseDirectory.value / "test",
   javaSource in Test := baseDirectory.value / "test",
-  resourceDirectory in Test := baseDirectory.value / "test/resources",
+  resourceDirectory in Test := baseDirectory.value / "test/resources"
+)
+
+val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
+  organization := "com.github.citrum.querio",
+  version := "0.6.7",
+
+  incOptions := incOptions.value.withNameHashing(nameHashing = true),
+  sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
+  mainClass in Compile := None,
 
   // Dependencies
   libraryDependencies += "com.google.code.findbugs" % "jsr305" % "3.0.1", // @Nonnull, @Nullable annotation support
@@ -70,39 +80,22 @@ lazy val main: Project = Project("querio", base = file("."), settings = commonSe
 
 // ------------------------------- Test projects -------------------------------
 
-val testH2Settings = Seq(
+val testH2Settings = scalaSettings ++ defaultProjectStructure ++ Seq(
   name := "querio-test-h2",
   version := "0.1",
-  scalaVersion := "2.11.7",
   //  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
   libraryDependencies += "com.h2database" % "h2" % "1.3.175",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
-  libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
-
-
-  sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
-  scalaSource in Compile := baseDirectory.value / "src",
-  javaSource in Compile := baseDirectory.value / "src",
-
-  scalaSource in Test := baseDirectory.value / "test",
-  javaSource in Test := baseDirectory.value / "test"
+  libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7"
 )
 
-val testPostgreSQLSettings = Seq(
+val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
   name := "querio-test-postgresql",
   version := "0.1",
-  scalaVersion := "2.11.7",
   libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
   libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
-  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0",
-
-  sourceDirectories in Compile := Seq(baseDirectory.value / "src"),
-  scalaSource in Compile := baseDirectory.value / "src",
-  javaSource in Compile := baseDirectory.value / "src",
-
-  scalaSource in Test := baseDirectory.value / "test",
-  javaSource in Test := baseDirectory.value / "test"
+  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0"
 )
 
 lazy val test_h2 = Project(id = "test-h2",
