@@ -18,13 +18,14 @@ class SubTableUpdater[TR <: TableRecord, MTR <: MutableTableRecord[TR], V]
     maybeSubTableList match {
       case Some(subTableList) =>
         val remainValues: mutable.Set[V] = newValues.to[mutable.Set]
-        val obsoleteRecords = mutable.Buffer[TR]()
+        val obsoleteRecords = mutable.ArrayBuffer[TR]()
 
         // Выяснить, какие записи можно не трогать, какие новые, а какие старые
         for (record <- subTableList.items) {
           val value: V = get(record)
           if (remainValues.contains(value)) remainValues -= value
           else obsoleteRecords += record
+          () // Workaround for scala compiler 2.12.1.
         }
         // Поменять значения оставшимся записям
         while (remainValues.nonEmpty && obsoleteRecords.nonEmpty) {
