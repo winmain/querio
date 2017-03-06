@@ -2,6 +2,7 @@ package querio.codegen
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
+import javax.annotation.Nullable
 
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.wrapIterable
@@ -13,15 +14,17 @@ import scala.collection.mutable
 
 class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
                      dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
-                     primaryKeyNames: Vector[String], pkg: String, dir: Path, namePrefix: String = "",
+                     primaryKeyNames: Vector[String], pkg: String, tgFile: TableGenFile,
+                     namePrefix: String = "",
                      isDefaultDatabase: Boolean = false,
                      noRead: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
-  val filePath: Path = dir.resolve(pkg.replace('.', File.separatorChar)).resolve(originalTableClassName + ".scala")
+
+  tgFile.init(pkg.replace('.', File.separatorChar) + File.separatorChar + originalTableClassName + ".scala")
 
   def generateToFile(): Generator = {
     val gen: Generator = makeGenerator
-    gen.generate().saveToFile(filePath)
+    gen.generate().saveToFile(tgFile.filePath)
     gen
   }
 
@@ -29,6 +32,10 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
     val gen: Generator = makeGenerator
     gen.generate().saveToFile(Paths.get("/tmp/tt.scala"))
     gen
+  }
+
+  def generateToString():String = {
+    makeGenerator.generate().getSource
   }
 
   def generateDoubleTest(): Unit = {
@@ -40,10 +47,8 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
   private def makeGenerator: Generator = {
     if (noRead) new Generator(null)
-    else new Generator(readSource(filePath))
+    else new Generator(tgFile.readSource())
   }
-
-  private def readSource(filePath: Path): String = if (Files.exists(filePath)) new String(Files.readAllBytes(filePath)) else null
 
   class Generator(source: String) extends TableGeneratorData {
     val ormPatches: OrmPatches = new OrmPatches(vendor)
@@ -365,4 +370,22 @@ trait TableGeneratorData {
   val tableTableName: String
   val tableObjectName: String
   val tableMutableName: String
+}
+
+
+trait TableGenFile {
+  def filePath: Path
+  def init(addToDir:String): Unit
+  @Nullable def readSource(): String
+}
+
+case class RealTableGenFile(dir:Path) extends TableGenFile {
+  private var _filePath: Path = _
+  override def filePath: Path = _filePath
+
+  override def init(addToDir: String): Unit = {
+    _filePath = dir.resolve(addToDir)
+  }
+
+  override def readSource(): String = if (Files.exists(_filePath)) new String(Files.readAllBytes(_filePath)) else null
 }

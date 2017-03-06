@@ -5,13 +5,20 @@ import javax.annotation.Nullable
 
 import scala.collection.mutable.ArrayBuffer
 
-class TableRS(rs: ResultSet) {
-  @Nullable val cat: String = rs.getString(1)
-  @Nullable val schema: String = rs.getString(2)
-  val name: String = rs.getString(3)
+trait TableRS {
+  @Nullable
+  def catalog: String
+
+  @Nullable
+  def schema: String
+
+  def name: String
+
   /** Typical types are "TABLE", "VIEW", "SYSTEM TABLE", "GLOBAL TEMPORARY", "LOCAL TEMPORARY", "ALIAS", "SYNONYM". */
-  val tpe: String = rs.getString(4)
-  @Nullable val comment: String = rs.getString(5)
+  def tpe: String
+
+  @Nullable
+  def comment: String
 
   /**
     * Full table name, like "cat.schema.name",
@@ -20,9 +27,17 @@ class TableRS(rs: ResultSet) {
     */
   def fullName: String = {
     val parts = new ArrayBuffer[String](3)
-    if (cat != null) parts += cat
+    if (catalog != null) parts += catalog
     if (schema != null) parts += schema
     parts += name
     parts.mkString(".")
   }
+}
+
+class TableRSImpl(rs: ResultSet) extends TableRS {
+  @Nullable override val catalog: String = rs.getString(1)
+  @Nullable override val schema: String = rs.getString(2)
+  override val name: String = rs.getString(3)
+  override val tpe: String = rs.getString(4)
+  @Nullable override val comment: String = rs.getString(5)
 }

@@ -11,7 +11,7 @@ import scala.collection.immutable.IndexedSeq
 
 class TableGeneratorTest extends FlatSpec with MockFactory with Matchers {
   val tableName: String = "Level"
-  val nutableTableName: String = "MutableLevel"
+  val mutableTableName: String = "MutableLevel"
 
   def intC = makeCol(Types.INTEGER, "integer", tableName, "id")
 
@@ -44,77 +44,77 @@ class TableGeneratorTest extends FlatSpec with MockFactory with Matchers {
     (rs.getInt(_: Int)).when(11).returns(DatabaseMetaData.columnNoNulls)
     (rs.getString(_: Int)).when(12).returns(null)
     (rs.getString(_: Int)).when(23).returns("NO")
-    val columnRS: ColumnRS = new ColumnRS(rs)
+    val columnRS: ColumnRS = new ColumnRSImpl(rs)
     val col: Col = stub[Col]
     (col.rs _).when().returns(columnRS)
     col
   }
 
   "withAdditionTraitsForTable" should "return same data when no extensions used" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector())
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector())
     val te: Seq[TableTraitExtension] = Seq()
-    val td: TableDef = TableDef(tableName, nutableTableName)
+    val td: TableDef = TableDef(tableName, mutableTableName)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
     rdt should be(td)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "return same data when extensions used but no columns" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector())
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector())
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
-    val td: TableDef = TableDef(tableName, nutableTableName)
+    val td: TableDef = TableDef(tableName, mutableTableName)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
     rdt should be(td)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "return same data when extensions used but no columns with suitable types" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
-    val td: TableDef = TableDef(tableName, nutableTableName)
+    val td: TableDef = TableDef(tableName, mutableTableName)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
     rdt should be(td)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "clear useless data when extensions used but no columns with suitable types" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd)))
-    val td: TableDef = TableDef(tableName, nutableTableName, moreExtends)
+    val td: TableDef = TableDef(tableName, mutableTableName, moreExtends)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-    val expected: TableDef = TableDef(tableName, nutableTableName)
+    val expected: TableDef = TableDef(tableName, mutableTableName)
     rdt should be(expected)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "clear useless data and save useful when extensions used but no columns with suitable types" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd)))
     val ut: String = "with UsefulTrait"
-    val td: TableDef = TableDef(tableName, nutableTableName, ut + moreExtends)
+    val td: TableDef = TableDef(tableName, mutableTableName, ut + moreExtends)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-    val expected: TableDef = TableDef(tableName, nutableTableName, ut)
+    val expected: TableDef = TableDef(tableName, mutableTableName, ut)
     rdt should be(expected)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "clear useless data and save useful when extensions used but no columns with suitable types, even though when useful mixed up with useles" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd), PGByteaTableTraitExtension.makeExtendDef(tgd)))
     val ut1: String = "with UsefulTrait1"
     val ut2: String = " with UsefulTrait2"
-    val td: TableDef = TableDef(tableName, nutableTableName, ut1 + moreExtends + ut2)
+    val td: TableDef = TableDef(tableName, mutableTableName, ut1 + moreExtends + ut2)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-    val expected: TableDef = TableDef(tableName, nutableTableName, ut1 + ut2)
+    val expected: TableDef = TableDef(tableName, mutableTableName, ut1 + ut2)
     rdt should be(expected)
     rimport should be(Seq())
   }
 
   "withAdditionTraitsForTable" should "support initial order of traits" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd)))
     val ut: String = "UsefulTrait"
@@ -127,9 +127,9 @@ class TableGeneratorTest extends FlatSpec with MockFactory with Matchers {
       val rndTraits: IndexedSeq[String] = rnd.shuffle(Range(0, amounts).map(i => ut + i) ++ List(ext1, ext2))
       val beforeDefenition = rndTraits.map(x => "with " + x).mkString(" ")
       val expectedAfterDefenition = rndTraits.filterNot(x => x == ext1 || x == ext2).map(x => "with " + x).mkString(" ")
-      val td: TableDef = TableDef(tableName, nutableTableName, beforeDefenition)
+      val td: TableDef = TableDef(tableName, mutableTableName, beforeDefenition)
       val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-      val expected: TableDef = TableDef(tableName, nutableTableName, expectedAfterDefenition)
+      val expected: TableDef = TableDef(tableName, mutableTableName, expectedAfterDefenition)
       rdt should be(expected)
       rimport should be(Seq())
     }
@@ -142,23 +142,23 @@ class TableGeneratorTest extends FlatSpec with MockFactory with Matchers {
   }
 
   "withAdditionTraitsForTable" should "save useful data when extensions used with suitable types" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(jsonbC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(jsonbC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd)))
-    val td: TableDef = TableDef(tableName, nutableTableName, moreExtends)
+    val td: TableDef = TableDef(tableName, mutableTableName, moreExtends)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-    val expected: TableDef = TableDef(tableName, nutableTableName, moreExtends)
+    val expected: TableDef = TableDef(tableName, mutableTableName, moreExtends)
     rdt should be(expected)
     rimport.size should be(1)
   }
 
   "withAdditionTraitsForTable" should "save useful data when extensions used with suitable types in case many fields" in {
-    val tgd: TableGeneratorData = makeTGD(tableName, nutableTableName, Vector(jsonbC, byteaC, intC, dateC))
+    val tgd: TableGeneratorData = makeTGD(tableName, mutableTableName, Vector(jsonbC, byteaC, intC, dateC))
     val te: Seq[TableTraitExtension] = Seq(JSON4STableTraitExtension, PGByteaTableTraitExtension)
     val moreExtends: String = TableDef.defsToExtendStr(Seq(JSON4STableTraitExtension.makeExtendDef(tgd), PGByteaTableTraitExtension.makeExtendDef(tgd)))
-    val td: TableDef = TableDef(tableName, nutableTableName, moreExtends)
+    val td: TableDef = TableDef(tableName, mutableTableName, moreExtends)
     val (rdt, rimport) = TableGenerator.withAdditionTraitsForTable(tgd, te, td)
-    val expected: TableDef = TableDef(tableName, nutableTableName, moreExtends)
+    val expected: TableDef = TableDef(tableName, mutableTableName, moreExtends)
     rdt should be(expected)
     rimport.size should be(2)
   }

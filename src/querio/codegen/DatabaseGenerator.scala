@@ -49,18 +49,18 @@ class DatabaseGenerator(vendor: Vendor,
     val tableObjectNames = mutable.Buffer[String]()
 
     while (tablesRS.next()) {
-      val trs = new TableRS(tablesRS)
+      val trs = new TableRSImpl(tablesRS)
       val primaryKeyNames = getStrings(metaData.getPrimaryKeys(catalog, schema, trs.name), 4)
       val columnsRS: ResultSet = metaData.getColumns(catalog, schema, trs.name, "%")
       val columnsBuilder = Vector.newBuilder[ColumnRS]
-      while (columnsRS.next()) columnsBuilder += new ColumnRS(columnsRS)
+      while (columnsRS.next()) columnsBuilder += new ColumnRSImpl(columnsRS)
       val columns = columnsBuilder.result()
 
       try {
         val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
           tableDbNameSelector.get(Option(catalog), Option(schema)),
           trs, columns, primaryKeyNames, pkg,
-          dir, tableNamePrefix, isDefaultDatabase, noRead = noRead)
+          RealTableGenFile(dir), tableNamePrefix, isDefaultDatabase, noRead = noRead)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
             if (toTempFile) generator.generateToTempFile()

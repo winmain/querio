@@ -186,9 +186,17 @@ class TableReader(db: Vendor, lines: List[String]) {
   // read mutable
   def readMutable(head: String, classBody: List[String]) {
     mutableDefinition = makeDefinition(head)
+    // This flag is set only for the very first block containing field `vars`.
+    // The flag resets on the first non-var statement.
+    // This technique prevents removing non-field user-defined `vars` in mutable class (see issue #7)
+    var inFieldDefinition = true
+
     for (line <- classBody) StringUtils.stripEnd(StringUtils.removeStart(line, "  "), " ") match {
-      case mutableFieldR() | mutableTableR() | mutablePrimaryKeyR() | mutableSetPrimaryKeyR() |
-           mutableRenderValuesR() | mutableRenderChangedUpdateR() | mutableToRecordR() => ()
+      case mutableFieldR() =>
+        if (!inFieldDefinition) userMutableLines += line
+      case mutableTableR() | mutablePrimaryKeyR() | mutableSetPrimaryKeyR() |
+           mutableRenderValuesR() | mutableRenderChangedUpdateR() | mutableToRecordR() =>
+        inFieldDefinition = false
       case s => userMutableLines += line
     }
     userMutableLines = userMutableLines.dropWhile(StringUtils.isBlank)

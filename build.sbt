@@ -1,4 +1,4 @@
-import sbt.Keys._
+import sbt.Keys.{scalaSource, _}
 
 // ------------------------------- Main projects -------------------------------
 
@@ -18,14 +18,14 @@ val defaultProjectStructure = Seq(
   javaSource in Compile := baseDirectory.value / "src",
   resourceDirectory in Compile := baseDirectory.value / "resources",
 
-  scalaSource in Test := baseDirectory.value / "test",
-  javaSource in Test := baseDirectory.value / "test",
-  resourceDirectory in Test := baseDirectory.value / "test/resources"
+  scalaSource in Test := baseDirectory.value / "testSrc",
+  javaSource in Test := baseDirectory.value / "testSrc",
+  resourceDirectory in Test := baseDirectory.value / "testData"
 )
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.6.7",
+  version := "0.6.8",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -86,7 +86,7 @@ val testH2Settings = scalaSettings ++ defaultProjectStructure ++ Seq(
   //  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
   libraryDependencies += "com.h2database" % "h2" % "1.3.175",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
-  libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7"
+  libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8"
 )
 
 val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
@@ -94,7 +94,7 @@ val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
   version := "0.1",
   libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
-  libraryDependencies += "org.specs2" % "specs2_2.11" % "3.7",
+  libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8",
   libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0"
 )
 
@@ -133,24 +133,22 @@ lazy val genQuerioLibSourcesTask = genQuerioLibSources := {
 }
 
 val genTestH2DbSources = TaskKey[Unit]("gen-test-h2-db-sources")
-lazy val genTestH2DbSourcesTask = genTestH2DbSources <<=
-  (scalaSource in Compile, dependencyClasspath in Compile,
-    baseDirectory in Compile, classDirectory in Runtime) map {
-    (scalaSource, classPath, baseDir, classesDir) => {
-      runScala(classPath.files :+ baseDir :+ classesDir, "test.SourcesGenerator",
-        Seq(scalaSource.absolutePath))
-    }
-  }
+lazy val genTestH2DbSourcesTask = genTestH2DbSources := {
+  runScala((dependencyClasspath in Compile).value.files :+
+    (baseDirectory in Compile).value :+
+    (classDirectory in Runtime).value,
+    "test.SourcesGenerator",
+    Seq((scalaSource in Compile).value.absolutePath))
+}
 
 val genTestPostgreSqlDbSources = TaskKey[Unit]("gen-test-postgresql-db-sources")
-lazy val genTestPostgreSqlDbSourcesTask = genTestPostgreSqlDbSources <<=
-  (scalaSource in Compile, dependencyClasspath in Compile,
-    baseDirectory in Compile, classDirectory in Runtime) map {
-    (scalaSource, classPath, baseDir, classesDir) => {
-      runScala(classPath.files :+ baseDir :+ classesDir, "test.SourcesGenerator",
-        Seq(scalaSource.absolutePath))
-    }
-  }
+lazy val genTestPostgreSqlDbSourcesTask = genTestPostgreSqlDbSources := {
+  runScala((dependencyClasspath in Compile).value.files :+
+    (baseDirectory in Compile).value :+
+    (classDirectory in Runtime).value,
+    "test.SourcesGenerator",
+    Seq((scalaSource in Compile).value.absolutePath))
+}
 
 /*
     // Task: Сгенерировать классы для таблиц БД
