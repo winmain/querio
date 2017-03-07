@@ -17,4 +17,4 @@ EOF
 }
 
 make-bintray-credentials
-sbt publish
+sbt ++$TRAVIS_SCALA_VERSION publish
