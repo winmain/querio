@@ -1,5 +1,8 @@
 package querio.vendor
 
+import java.sql.Connection
+
+import querio.Transaction
 import querio.utils.{MysqlUtils, SQLExceptionCode}
 
 class MysqlVendor extends Vendor {
@@ -43,6 +46,14 @@ class MysqlVendor extends Vendor {
   override def unescapeName(escaped: String): String =
     if (escaped.charAt(0) == '`') escaped.substring(1, escaped.length - 1) else escaped
   override def escapeSql(value: String): String = MysqlUtils.escapeSql(value)
+
+  override def setTransactionIsolationLevel(isolationLevel: Int,
+                                            maybeParentTransaction: Option[Transaction],
+                                            connection: Connection): Unit =
+    connection.setTransactionIsolation(isolationLevel)
+
+  override def resetTransactionIsolationLevel(parentTransaction: Transaction, connection: Connection): Unit =
+    connection.setTransactionIsolation(parentTransaction.isolationLevel)
 }
 
 

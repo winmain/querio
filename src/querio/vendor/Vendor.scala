@@ -1,8 +1,10 @@
 package querio.vendor
 
-import querio.SqlBuffer
+import java.sql.Connection
+
 import querio.codegen.{FieldTypeExtension, TableTraitExtension}
 import querio.utils.MkString
+import querio.{SqlBuffer, Transaction}
 
 import scala.collection.mutable
 
@@ -32,6 +34,12 @@ trait Vendor {
 
   def getTypeExtensions: Seq[FieldTypeExtension] = typeExtensions
   def getTableTraitsExtensions: Seq[TableTraitExtension] = tableTraitExtensions
+
+  def setTransactionIsolationLevel(isolationLevel: Int,
+                                   maybeParentTransaction: Option[Transaction],
+                                   connection: Connection): Unit
+  def resetTransactionIsolationLevel(parentTransaction: Transaction,
+                                     connection: Connection): Unit
 
   // ------------------------------- Render methods -------------------------------
 

@@ -1,5 +1,8 @@
 package querio.vendor
 
+import java.sql.Connection
+
+import querio.Transaction
 import querio.utils.{SQLExceptionCode, SQLExceptionMatcherList}
 
 class H2Vendor extends Vendor {
@@ -51,6 +54,14 @@ class H2Vendor extends Vendor {
   override def escapeSql(value: String): String = value // TODO: Find out with escaping rules in H2
 
   def isNotAllUpperCaseCase(word: String) = word.toUpperCase != word
+
+  override def setTransactionIsolationLevel(isolationLevel: Int,
+                                            maybeParentTransaction: Option[Transaction],
+                                            connection: Connection): Unit =
+    connection.setTransactionIsolation(isolationLevel)
+
+  override def resetTransactionIsolationLevel(parentTransaction: Transaction, connection: Connection): Unit =
+    connection.setTransactionIsolation(parentTransaction.isolationLevel)
 }
 
 object DefaultH2Vendor extends H2Vendor

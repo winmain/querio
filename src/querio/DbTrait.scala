@@ -59,7 +59,7 @@ trait DbTrait {
     val tr = trFactory(conn, isolationLevel, parent)
     currentTransaction.set(Some(tr))
 
-    conn.setTransactionIsolation(isolationLevel)
+    vendor.setTransactionIsolationLevel(isolationLevel, parent, conn)
     conn.setAutoCommit(false)
 
     def log(title: String, ending: => String = null): Unit = {
@@ -103,7 +103,7 @@ trait DbTrait {
             }
             throw e
         } finally {
-          conn.setTransactionIsolation(par.isolationLevel)
+          vendor.resetTransactionIsolationLevel(par, conn)
           currentTransaction.set(tr.parent.asInstanceOf[Option[TR]])
         }
 

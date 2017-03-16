@@ -1,10 +1,11 @@
 package querio.vendor
 
 import java.lang.StringBuilder
+import java.sql.Connection
 
 import org.postgresql.util.{PSQLException, PSQLState}
-import querio.SqlBuffer
 import querio.utils._
+import querio.{SqlBuffer, Transaction}
 
 class PostgreSQLVendor extends Vendor {
   override final def isPostgres: Boolean = true
@@ -102,6 +103,21 @@ class PostgreSQLVendor extends Vendor {
   override def renderFloat(v: Float, buf: SqlBuffer): Unit = {buf.sb append v append "::real"}
 
   override def arrayMkString(elementDataType: String): MkString = MkString("array[", ",", "]::" + elementDataType + "[]")
+
+  override def setTransactionIsolationLevel(isolationLevel: Int,
+                                            maybeParentTransaction: Option[Transaction],
+                                            connection: Connection): Unit = maybeParentTransaction match {
+    case Some(parent) =>
+      if (isolationLevel > parent.isolationLevel) {
+        throw new IllegalArgumentException("Cannot raise isolation level in the middle of transaction.")
+      } else {
+        // we already have equal or higher isolation level, just ignore
+      }
+    case None =>
+      connection.setTransactionIsolation(isolationLevel)
+  }
+
+  override def resetTransactionIsolationLevel(parentTransaction: Transaction, connection: Connection): Unit = {}
 }
 
 object DefaultPostgreSQLVendor extends PostgreSQLVendor
