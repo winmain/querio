@@ -1,10 +1,10 @@
 package querio
 import java.sql.{PreparedStatement, ResultSet}
 
-import org.scalatest.FlatSpec
+import org.scalatest.FunSuite
 import querio.vendor.{DefaultMysqlVendor, MysqlVendor, Vendor}
 
-class SelectTraitTest extends FlatSpec {
+class SelectTraitTest extends FunSuite {
   class ElStub[T, V](renderFn: SqlBuffer => Any) extends El[T, V] {
     override def render(implicit buf: SqlBuffer): Unit = renderFn(buf)
     override def tRenderer(vendor: Vendor): TypeRenderer[T] = null
@@ -63,10 +63,25 @@ class SelectTraitTest extends FlatSpec {
     val query: DefaultQuery = new DefaultQuery(buf)
   }
 
-  "SelectTrait" should "select one field" in new QueryContext {
+  test("SelectTrait: select one field")(new QueryContext {
     val el = new ElStub[Int, Int](_ ++ "el")
     private val select = query.select(el)
     if (false) {val _: Vector[Int] = select.fetch()} // test return type in compile time only
     assert(buf.toString === "select el")
-  }
+  })
+
+  test("distinctOn with single field")(new QueryContext {
+    val foo = new ElStub[Int, Int](_ ++ "foo")
+    val bar = new ElStub[Int, Int](_ ++ "bar")
+    query.select.distinctOn(foo).of(bar).from(Article)
+    assert(buf.toString === "select distinct on (foo) bar\nfrom article")
+  })
+
+  test("distinctOn with multiple fields")(new QueryContext {
+    val foo = new ElStub[Int, Int](_ ++ "foo")
+    val bar = new ElStub[Int, Int](_ ++ "bar")
+    val baz = new ElStub[Int, Int](_ ++ "baz")
+    query.select.distinctOn(foo, bar).of(foo, bar, baz).from(Article)
+    assert(buf.toString === "select distinct on (foo, bar) foo, bar, baz\nfrom article")
+  })
 }

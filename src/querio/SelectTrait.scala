@@ -17,7 +17,20 @@ trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils
 
 trait SelectFlagStep extends SqlQuery {self: SelectFlagOfStep =>
   def custom(flag: String): SelectFlagOfStep = {buf ++ " " ++ flag; this}
+
+  @support(Postgres, Mysql)
   def distinct: SelectFlagOfStep = {buf ++ " distinct"; this}
+
+  @support(Postgres)
+  def distinctOn(field1: El[_, _], fields: El[_, _]*): SelectFlagOfStep = {
+    buf ++ " distinct on ("
+    field1.render
+    fields.foreach {f => buf ++ ", "; f.render}
+    buf ++ ")"
+    this
+  }
+
+  @support(Mysql)
   def sqlNoCache: SelectFlagOfStep = {buf ++ " sql_no_cache"; this}
 }
 
