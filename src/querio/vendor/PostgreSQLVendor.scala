@@ -1,9 +1,8 @@
 package querio.vendor
 
-import java.lang.StringBuilder
 import java.sql.Connection
 
-import org.postgresql.util.{PSQLException, PSQLState}
+import org.postgresql.core.Utils
 import querio.utils._
 import querio.{SqlBuffer, Transaction}
 
@@ -73,36 +72,9 @@ class PostgreSQLVendor extends Vendor {
     if (escaped.charAt(0) == '\"') escaped.substring(1, escaped.length - 1) else escaped
 
   override def escapeSql(value: String): String = {
-    // This code is a ported version of org.postgresql.core.Utils.doAppendEscapedLiteral
-    // Add 5% for escaping.
-    val sb = new StringBuilder(value.length * 105 / 100)
-    val len = value.length
-    var i = 0
-    while (i < len) {
-      value.charAt(i) match {
-        case 0 => throw new PSQLException(sys.error("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE)
-        case '\'' => sb.append('\'').append('\'')
-        case '\\' => sb.append('\\').append('\\')
-        case ch => sb.append(ch)
-      }
-      i += 1
-    }
-    sb.toString
+    // Warning! In order to properly work, the pg connection setting `standard_conforming_strings` must be turned is on.
+    Utils.escapeLiteral(null, value, true).toString
   }
-
-  // ------------------------------- Render methods -------------------------------
-
-  /**
-    * To properly work with float4 in PostgreSQL we must cast them to REAL.
-    *
-    * Consider this example:
-    * SELECT 56.035732::REAL num INTO TEMPORARY tt;
-    * SELECT count(*) FROM tt WHERE num = 56.035732;        -- returns 0
-    * SELECT count(*) FROM tt WHERE num = 56.035732::REAL;  -- returns 1
-    */
-  override def renderFloat(v: Float, buf: SqlBuffer): Unit = {buf.sb append v append "::real"}
-
-  override def arrayMkString(elementDataType: String): MkString = MkString("array[", ",", "]::" + elementDataType + "[]")
 
   override def setTransactionIsolationLevel(isolationLevel: Int,
                                             maybeParentTransaction: Option[Transaction],
@@ -118,6 +90,20 @@ class PostgreSQLVendor extends Vendor {
   }
 
   override def resetTransactionIsolationLevel(parentTransaction: Transaction, connection: Connection): Unit = {}
+
+  // ------------------------------- Render methods -------------------------------
+
+  /**
+    * To properly work with float4 in PostgreSQL we must cast them to REAL.
+    *
+    * Consider this example:
+    * SELECT 56.035732::REAL num INTO TEMPORARY tt;
+    * SELECT count(*) FROM tt WHERE num = 56.035732;        -- returns 0
+    * SELECT count(*) FROM tt WHERE num = 56.035732::REAL;  -- returns 1
+    */
+  override def renderFloat(v: Float, buf: SqlBuffer): Unit = {buf.sb append v append "::real"}
+
+  override def arrayMkString(elementDataType: String): MkString = MkString("array[", ",", "]::" + elementDataType + "[]")
 }
 
 object DefaultPostgreSQLVendor extends PostgreSQLVendor

@@ -25,7 +25,7 @@ val defaultProjectStructure = Seq(
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.6.10",
+  version := "0.6.11",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -37,7 +37,7 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.21",
 
   // Optional dependencies
-  libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4" % "optional",
+  libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212" % "optional",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.0" % "optional",
 
   // Test dependencies
@@ -92,7 +92,7 @@ val testH2Settings = scalaSettings ++ defaultProjectStructure ++ Seq(
 val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
   name := "querio-test-postgresql",
   version := "0.1",
-  libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1101-jdbc4",
+  libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
   libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8",
   libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0"

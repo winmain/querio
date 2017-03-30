@@ -36,6 +36,8 @@ trait DbTrait {
     finally conn.connection.close()
   }
 
+  // ------------------------------- Transactions -------------------------------
+
   def hasCurrentTransaction: Boolean = currentTransaction.get().isDefined
 
   def transaction[A](isolationLevel: Int, block: TR => A): A =
