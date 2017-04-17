@@ -43,6 +43,10 @@ object BooleanRenderer extends TypeRenderer[Boolean] {
   override def render(value: Boolean, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf renderBooleanValue value
 }
 
+object ShortRenderer extends TypeRenderer[Short] {
+  override def render(value: Short, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf ++ value
+}
+
 object IntRenderer extends TypeRenderer[Int] {
   override def render(value: Int, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf ++ value
 }

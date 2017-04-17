@@ -18,6 +18,7 @@ trait SqlBuffer {
 
   def ++(sql: CharSequence): this.type = {sb append sql; this}
   def ++(v: Char): this.type = {sb append v; this}
+  def ++(v: Short): this.type = {sb append v; this}
   def ++(v: Int): this.type = {sb append v; this}
   def ++(v: Long): this.type = {sb append v; this}
   def ++(v: Float): this.type = {vendor.renderFloat(v, this); this}

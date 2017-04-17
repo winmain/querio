@@ -24,6 +24,10 @@ object BooleanParser extends TypeParser[Boolean] {
   override def parse(s: String): Boolean = s == "1" || s == "t" || s == "true"
 }
 
+object ShortParser extends TypeParser[Short] {
+  override def parse(s: String): Short = s.toShort
+}
+
 object IntParser extends TypeParser[Int] {
   override def parse(s: String): Int = s.toInt
 }

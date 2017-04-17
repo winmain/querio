@@ -87,6 +87,30 @@ class CustomBooleanField(val sql: String) extends BooleanField {
 
 // ---------------------- Int ----------------------
 
+trait BaseShortRenderer {
+  def tRenderer(vendor: Vendor): TypeRenderer[Short] = ShortRenderer
+  def tParser: TypeParser[Short] = ShortParser
+  def newExpression(r: (SqlBuffer) => Unit): El[Short, Short] = new ShortField {
+    override def render(implicit buf: SqlBuffer) = r(buf)
+  }
+}
+
+trait ShortField extends SimpleField[Short] with BaseShortRenderer {
+  override def getValue(rs: ResultSet, index: Int): Short = rs.getShort(index)
+  override def setValue(st: PreparedStatement, index: Int, value: Short): Unit = st.setShort(index, value)
+}
+
+trait OptionShortField extends OptionField[Short] with BaseShortRenderer {
+  override def getValue(rs: ResultSet, index: Int): Option[Short] = {val v = rs.getShort(index); if (rs.wasNull()) None else Some(v)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Short]) = value.foreach(v => st.setShort(index, v))
+}
+
+class CustomShortField(val sql: String) extends ShortField {
+  override def render(implicit buf: SqlBuffer) {buf ++ sql}
+}
+
+// ---------------------- Int ----------------------
+
 trait BaseIntRenderer {
   def tRenderer(vendor: Vendor): TypeRenderer[Int] = IntRenderer
   def tParser: TypeParser[Int] = IntParser

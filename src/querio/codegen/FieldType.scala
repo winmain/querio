@@ -34,6 +34,7 @@ object FieldType {
   val obj = ft("AnyRef", classOf[T#Object_TF], classOf[T#Object_TF])
   val boolean = ft("Boolean", classOf[T#Boolean_TF], classOf[T#OptionBoolean_TF])
   val int = ft("Int", classOf[T#Int_TF], classOf[T#OptionInt_TF])
+  val short = ft("Short", classOf[T#Short_TF], classOf[T#OptionShort_TF])
   val long = ft("Long", classOf[T#Long_TF], classOf[T#OptionLong_TF])
   val string = ft("String", classOf[T#String_TF], classOf[T#OptionString_TF])
   val bigDecimal = ft("BigDecimal", classOf[T#BigDecimal_TF], classOf[T#OptionBigDecimal_TF])
@@ -44,6 +45,7 @@ object FieldType {
   val date = ft("java.time.LocalDate", classOf[T#LocalDate_TF], classOf[T#OptionLocalDate_TF])
 
   def booleanArray(dataType: String) = ft("Array[Boolean]", classOf[T#ArrayBoolean_TF], classOf[T#OptionArrayBoolean_TF], args = Seq('"' + dataType + '"'))
+  def shortArray(dataType: String) = ft("Array[Short]", classOf[T#ArrayShort_TF], classOf[T#OptionArrayShort_TF], args = Seq('"' + dataType + '"'))
   def intArray(dataType: String) = ft("Array[Int]", classOf[T#ArrayInt_TF], classOf[T#OptionArrayInt_TF], args = Seq('"' + dataType + '"'))
   def longArray(dataType: String) = ft("Array[Long]", classOf[T#ArrayLong_TF], classOf[T#OptionArrayLong_TF], args = Seq('"' + dataType + '"'))
   def stringArray(dataType: String) = ft("Array[String]", classOf[T#ArrayString_TF], classOf[T#OptionArrayString_TF], args = Seq('"' + dataType + '"'))
@@ -61,7 +63,8 @@ object FieldType {
 
     colType match {
       case Types.BIT | Types.BOOLEAN | Types.TINYINT => boolean
-      case Types.INTEGER | Types.SMALLINT => int
+      case Types.SMALLINT => short
+      case Types.INTEGER => int
       case Types.BIGINT => long
       case Types.CHAR | Types.VARCHAR | Types.LONGVARCHAR => string
       case Types.DECIMAL => bigDecimal
@@ -75,6 +78,7 @@ object FieldType {
         val dataType = StringUtils.removeStart(typeName, "_")
         typeName.toLowerCase match {
           case "_bit" | "_bool" => booleanArray(dataType)
+          case "_int2" => shortArray(dataType)
           case "_int4" => intArray(dataType)
           case "_int8" => longArray(dataType)
           case "_varchar" | "_text" => stringArray(dataType)

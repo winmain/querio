@@ -299,6 +299,14 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   class Boolean_TF(tfd: TFD[Boolean]) extends SimpleTableField[Boolean](tfd) with BooleanField
   class OptionBoolean_TF(tfd: TFD[Option[Boolean]]) extends OptionTableField[Boolean](tfd) with OptionBooleanField
 
+  // ---------------------- Short ----------------------
+
+  class Short_TF(tfd: TFD[Short]) extends SimpleTableField[Short](tfd) with ShortField
+  class OptionShort_TF(tfd: TFD[Option[Short]]) extends OptionTableField[Short](tfd) with OptionShortField
+  class OptionShortZeroAsNone_TF(tfd: TFD[Option[Short]]) extends OptionTableField[Short](tfd) with OptionShortField {
+    override def getValue(rs: ResultSet, index: Int): Option[Short] = {val v = rs.getShort(index); if (v == 0 || rs.wasNull()) None else Some(v)}
+  }
+
   // ---------------------- Int ----------------------
 
   class Int_TF(tfd: TFD[Int]) extends SimpleTableField[Int](tfd) with IntField {

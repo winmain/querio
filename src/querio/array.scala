@@ -100,6 +100,34 @@ trait ArrayBooleanField[V] extends ArrayField[Boolean, V] {self =>
   }
 }
 
+// ------------------------------- Short[] -------------------------------
+
+trait ArrayShortField[V] extends ArrayField[Short, V] {self =>
+  override implicit def classTag: ClassTag[Short] = ClassTag.Short
+  override def elementRenderer: TypeRenderer[Short] = ShortRenderer
+  override def elementParser: TypeParser[Short] = ShortParser
+  override def objectsToArray(v: AnyRef): Array[Short] = v match {
+    case null => null
+    case arr: Array[java.lang.Short] => ArrayUtils.toPrimitive(arr)
+    case arr: Array[java.lang.Number] =>
+      if (arr.length == 0) ArrayUtils.EMPTY_SHORT_ARRAY
+      else {
+        val result = new Array[Short](arr.length)
+        var i = 0
+        while (i < result.length) {
+          result(i) = arr(i).shortValue()
+          i += 1
+        }
+        result
+      }
+  }
+  override def arrayToObjects(v: Array[Short]): Array[_ <: AnyRef] = ArrayUtils.toObject(v)
+  override def newExpression(r: (SqlBuffer) => Unit): El[Array[Short], Array[Short]] = new ArrayShortField[Array[Short]] with SimpleArrayField[Short] {
+    override def elementDataType: String = self.elementDataType
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
 // ------------------------------- Int[] -------------------------------
 
 trait ArrayIntField[V] extends ArrayField[Int, V] {self =>
@@ -191,6 +219,9 @@ trait ArrayTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
 
   class ArrayBoolean_TF(val elementDataType: String)(tfd: TFD[Array[Boolean]]) extends SimpleArrayTableField[Boolean](tfd) with ArrayBooleanField[Array[Boolean]]
   class OptionArrayBoolean_TF(val elementDataType: String)(tfd: TFD[Option[Array[Boolean]]]) extends OptionArrayTableField[Boolean](tfd) with ArrayBooleanField[Option[Array[Boolean]]]
+
+  class ArrayShort_TF(val elementDataType: String)(tfd: TFD[Array[Short]]) extends SimpleArrayTableField[Short](tfd) with ArrayShortField[Array[Short]]
+  class OptionArrayShort_TF(val elementDataType: String)(tfd: TFD[Option[Array[Short]]]) extends OptionArrayTableField[Short](tfd) with ArrayShortField[Option[Array[Short]]]
 
   class ArrayInt_TF(val elementDataType: String)(tfd: TFD[Array[Int]]) extends SimpleArrayTableField[Int](tfd) with ArrayIntField[Array[Int]]
   class OptionArrayInt_TF(val elementDataType: String)(tfd: TFD[Option[Array[Int]]]) extends OptionArrayTableField[Int](tfd) with ArrayIntField[Option[Array[Int]]]
