@@ -2,9 +2,9 @@ import sbt.Keys.{scalaSource, _}
 
 // ------------------------------- Main projects -------------------------------
 
-val DefaultScalaVersion = "2.12.1"
+val DefaultScalaVersion = "2.12.2"
 
-crossScalaVersions := Seq("2.11.8", "2.12.1")
+crossScalaVersions := Seq("2.11.11", "2.12.2")
 scalaVersion := DefaultScalaVersion
 
 val scalaSettings = Seq(
