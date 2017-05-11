@@ -1,10 +1,13 @@
 package querio.utils
-import java.sql.Timestamp
+import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.ChronoField
 import java.time.{LocalDate, LocalDateTime, ZoneId, ZoneOffset}
+import java.util.{Calendar, TimeZone}
 
 private[querio] object DateTimeUtils {
+  val UTC: ZoneId = ZoneOffset.UTC.normalized()
+
   def ldt2ts(v: LocalDateTime): Timestamp = Timestamp.from(v.atZone(ZoneId.systemDefault()).toInstant)
   def ld2ts(v: LocalDate): Timestamp = Timestamp.from(v.atStartOfDay(ZoneId.systemDefault()).toInstant)
 
@@ -36,9 +39,14 @@ private[querio] object DateTimeUtils {
     .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
     .optionalEnd()
     .toFormatter
-    .withZone(ZoneOffset.UTC.normalized())
+    .withZone(UTC)
 
-  def main(args: Array[String]): Unit = {
-//    println(DateTimeUtils.yyyy_mm_dd_hh_mm_ss_fffffffff.format(new Timestamp(System.currentTimeMillis()).toInstant))
+  def calendarUTC: Calendar = Calendar.getInstance(TimeZone.getTimeZone(DateTimeUtils.UTC))
+
+  def getUTCTimestamp(rs: ResultSet, index: Int): Timestamp =
+    rs.getTimestamp(index, calendarUTC)
+
+  def setUTCTimestamp(st: PreparedStatement, index: Int, value: Timestamp) {
+    st.setTimestamp(index, value, calendarUTC)
   }
 }

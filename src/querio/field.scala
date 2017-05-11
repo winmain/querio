@@ -274,13 +274,13 @@ trait BaseInstantRender {self: Field[Instant, _] =>
 }
 
 trait InstantField extends SimpleField[Instant] with BaseInstantRender {
-  override def getValue(rs: ResultSet, index: Int): Instant = rs.getTimestamp(index).toInstant
-  override def setValue(st: PreparedStatement, index: Int, value: Instant): Unit = {checkNotNull(value); st.setTimestamp(index, Timestamp.from(value))}
+  override def getValue(rs: ResultSet, index: Int): Instant = getUTCTimestamp(rs, index).toInstant
+  override def setValue(st: PreparedStatement, index: Int, value: Instant): Unit = {checkNotNull(value); setUTCTimestamp(st, index, Timestamp.from(value))}
 }
 
 trait OptionInstantField extends OptionField[Instant] with BaseInstantRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Instant] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toInstant)}
-  override def setValue(st: PreparedStatement, index: Int, value: Option[Instant]): Unit = value.foreach(v => st.setTimestamp(index, Timestamp.from(v)))
+  override def getValue(rs: ResultSet, index: Int): Option[Instant] = {val v = getUTCTimestamp(rs, index); if (rs.wasNull()) None else Some(v.toInstant)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Instant]): Unit = value.foreach(v => setUTCTimestamp(st, index, Timestamp.from(v)))
 }
 
 // ---------------------- UTCTimestamp (uses UTC timezone) ----------------------
@@ -294,13 +294,13 @@ trait BaseUTCTimestampRender {self: Field[Timestamp, _] =>
 }
 
 trait UTCTimestampField extends SimpleField[Timestamp] with BaseUTCTimestampRender {
-  override def getValue(rs: ResultSet, index: Int): Timestamp = rs.getTimestamp(index)
-  override def setValue(st: PreparedStatement, index: Int, value: Timestamp): Unit = {checkNotNull(value); st.setTimestamp(index, value)}
+  override def getValue(rs: ResultSet, index: Int): Timestamp = getUTCTimestamp(rs, index)
+  override def setValue(st: PreparedStatement, index: Int, value: Timestamp): Unit = {checkNotNull(value); setUTCTimestamp(st, index, value)}
 }
 
 trait OptionUTCTimestampField extends OptionField[Timestamp] with BaseUTCTimestampRender {
-  override def getValue(rs: ResultSet, index: Int): Option[Timestamp] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v)}
-  override def setValue(st: PreparedStatement, index: Int, value: Option[Timestamp]): Unit = value.foreach(v => st.setTimestamp(index, v))
+  override def getValue(rs: ResultSet, index: Int): Option[Timestamp] = {val v = getUTCTimestamp(rs, index); if (rs.wasNull()) None else Some(v)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Timestamp]): Unit = value.foreach(v => setUTCTimestamp(st, index, v))
 }
 
 // ---------------------- LocalTimestamp (uses local timezone) ----------------------
