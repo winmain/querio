@@ -40,9 +40,10 @@ object FieldType {
   val bigDecimal = ft("BigDecimal", classOf[T#BigDecimal_TF], classOf[T#OptionBigDecimal_TF])
   val float = ft("Float", classOf[T#Float_TF], classOf[T#OptionFloat_TF])
   val double = ft("Double", classOf[T#Double_TF], classOf[T#OptionDouble_TF])
-  val timestamp = ft("java.sql.Timestamp", classOf[T#Timestamp_TF], classOf[T#OptionTimestamp_TF])
-  val dateTime = ft("java.time.LocalDateTime", classOf[T#LocalDateTime_TF], classOf[T#OptionLocalDateTime_TF])
-  val date = ft("java.time.LocalDate", classOf[T#LocalDate_TF], classOf[T#OptionLocalDate_TF])
+  val instant = ft("java.time.Instant", classOf[T#Instant_TF], classOf[T#OptionInstant_TF])
+  val localTimestamp = ft("java.sql.Timestamp", classOf[T#LocalTimestamp_TF], classOf[T#OptionLocalTimestamp_TF])
+  val localDateTime = ft("java.time.LocalDateTime", classOf[T#LocalDateTime_TF], classOf[T#OptionLocalDateTime_TF])
+  val localDate = ft("java.time.LocalDate", classOf[T#LocalDate_TF], classOf[T#OptionLocalDate_TF])
 
   def booleanArray(dataType: String) = ft("Array[Boolean]", classOf[T#ArrayBoolean_TF], classOf[T#OptionArrayBoolean_TF], args = Seq('"' + dataType + '"'))
   def shortArray(dataType: String) = ft("Array[Short]", classOf[T#ArrayShort_TF], classOf[T#OptionArrayShort_TF], args = Seq('"' + dataType + '"'))
@@ -70,9 +71,9 @@ object FieldType {
       case Types.DECIMAL => bigDecimal
       case Types.FLOAT | Types.REAL => float
       case Types.DOUBLE => double
-      case Types.TIMESTAMP => timestamp
-      case Types.TIME => dateTime
-      case Types.DATE => date
+      case Types.TIMESTAMP => instant
+      case Types.TIME => localDateTime
+      case Types.DATE => localDate
       case Types.ARRAY =>
         // Tested only on Postgres
         val dataType = StringUtils.removeStart(typeName, "_")

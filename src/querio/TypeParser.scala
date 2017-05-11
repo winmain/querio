@@ -1,7 +1,7 @@
 package querio
 import java.sql.Timestamp
 import java.time.temporal.Temporal
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, LocalDateTime}
 
 import querio.utils.DateTimeUtils
 
@@ -52,7 +52,15 @@ object DoubleParser extends TypeParser[Double] {
   override def parse(s: String): Double = s.toDouble
 }
 
-object TimestampParser extends TypeParser[Timestamp] {
+object InstantParser extends TypeParser[Instant] {
+  override def parse(s: String): Instant = Instant.from(DateTimeUtils.yyyy_mm_dd_hh_mm_ss_fffffffff.parse(s))
+}
+
+object UTCTimestampParser extends TypeParser[Timestamp] {
+  override def parse(s: String): Timestamp = Timestamp.from(Instant.from(DateTimeUtils.yyyy_mm_dd_hh_mm_ss_fffffffff.parse(s)))
+}
+
+object LocalTimestampParser extends TypeParser[Timestamp] {
   override def parse(s: String): Timestamp = Timestamp.valueOf(s)
 }
 

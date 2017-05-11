@@ -2,7 +2,7 @@ package querio
 
 import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.temporal.Temporal
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, LocalDateTime}
 
 import querio.utils.DateTimeUtils._
 import querio.vendor.Vendor
@@ -263,22 +263,62 @@ class CustomDoubleField(val sql: String) extends DoubleField {
   override def render(implicit buf: SqlBuffer) {buf ++ sql}
 }
 
-// ---------------------- Timestamp ----------------------
+// ---------------------- Instant ----------------------
 
-trait BaseTimestampRender {self: Field[Timestamp, _] =>
-  def tRenderer(vendor: Vendor): TypeRenderer[Timestamp] = TimestampRenderer
-  def tParser: TypeParser[Timestamp] = TimestampParser
-  def newExpression(r: (SqlBuffer) => Unit): El[Timestamp, Timestamp] = new TimestampField {
+trait BaseInstantRender {self: Field[Instant, _] =>
+  def tRenderer(vendor: Vendor): TypeRenderer[Instant] = InstantRenderer
+  def tParser: TypeParser[Instant] = InstantParser
+  def newExpression(r: (SqlBuffer) => Unit): El[Instant, Instant] = new InstantField {
     override def render(implicit buf: SqlBuffer): Unit = r(buf)
   }
 }
 
-trait TimestampField extends SimpleField[Timestamp] with BaseTimestampRender {
+trait InstantField extends SimpleField[Instant] with BaseInstantRender {
+  override def getValue(rs: ResultSet, index: Int): Instant = rs.getTimestamp(index).toInstant
+  override def setValue(st: PreparedStatement, index: Int, value: Instant): Unit = {checkNotNull(value); st.setTimestamp(index, Timestamp.from(value))}
+}
+
+trait OptionInstantField extends OptionField[Instant] with BaseInstantRender {
+  override def getValue(rs: ResultSet, index: Int): Option[Instant] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v.toInstant)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Instant]): Unit = value.foreach(v => st.setTimestamp(index, Timestamp.from(v)))
+}
+
+// ---------------------- UTCTimestamp (uses UTC timezone) ----------------------
+
+trait BaseUTCTimestampRender {self: Field[Timestamp, _] =>
+  def tRenderer(vendor: Vendor): TypeRenderer[Timestamp] = UTCTimestampRenderer
+  def tParser: TypeParser[Timestamp] = UTCTimestampParser
+  def newExpression(r: (SqlBuffer) => Unit): El[Timestamp, Timestamp] = new UTCTimestampField {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+trait UTCTimestampField extends SimpleField[Timestamp] with BaseUTCTimestampRender {
   override def getValue(rs: ResultSet, index: Int): Timestamp = rs.getTimestamp(index)
   override def setValue(st: PreparedStatement, index: Int, value: Timestamp): Unit = {checkNotNull(value); st.setTimestamp(index, value)}
 }
 
-trait OptionTimestampField extends OptionField[Timestamp] with BaseTimestampRender {
+trait OptionUTCTimestampField extends OptionField[Timestamp] with BaseUTCTimestampRender {
+  override def getValue(rs: ResultSet, index: Int): Option[Timestamp] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v)}
+  override def setValue(st: PreparedStatement, index: Int, value: Option[Timestamp]): Unit = value.foreach(v => st.setTimestamp(index, v))
+}
+
+// ---------------------- LocalTimestamp (uses local timezone) ----------------------
+
+trait BaseLocalTimestampRender {self: Field[Timestamp, _] =>
+  def tRenderer(vendor: Vendor): TypeRenderer[Timestamp] = LocalTimestampRenderer
+  def tParser: TypeParser[Timestamp] = LocalTimestampParser
+  def newExpression(r: (SqlBuffer) => Unit): El[Timestamp, Timestamp] = new LocalTimestampField {
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+trait LocalTimestampField extends SimpleField[Timestamp] with BaseLocalTimestampRender {
+  override def getValue(rs: ResultSet, index: Int): Timestamp = rs.getTimestamp(index)
+  override def setValue(st: PreparedStatement, index: Int, value: Timestamp): Unit = {checkNotNull(value); st.setTimestamp(index, value)}
+}
+
+trait OptionLocalTimestampField extends OptionField[Timestamp] with BaseLocalTimestampRender {
   override def getValue(rs: ResultSet, index: Int): Option[Timestamp] = {val v = rs.getTimestamp(index); if (rs.wasNull()) None else Some(v)}
   override def setValue(st: PreparedStatement, index: Int, value: Option[Timestamp]): Unit = value.foreach(v => st.setTimestamp(index, v))
 }

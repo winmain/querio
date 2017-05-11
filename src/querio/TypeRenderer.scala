@@ -1,10 +1,10 @@
 package querio
 import java.sql.Timestamp
 import java.time.temporal.Temporal
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, LocalDateTime}
 
 import org.apache.commons.lang3.StringUtils
-import querio.utils.MkString
+import querio.utils.{DateTimeUtils, MkString}
 
 abstract class TypeRenderer[-T] {self =>
   def render(value: T, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit
@@ -77,7 +77,21 @@ object DoubleRenderer extends TypeRenderer[Double] {
   override def render(value: Double, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = buf ++ value
 }
 
-object TimestampRenderer extends TypeRenderer[Timestamp] {
+object InstantRenderer extends TypeRenderer[Instant] {
+  override def render(value: Instant, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf renderStringValue DateTimeUtils.yyyy_mm_dd_hh_mm_ss_fffffffff.format(value)
+  }
+}
+
+object UTCTimestampRenderer extends TypeRenderer[Timestamp] {
+  override def render(value: Timestamp, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf renderStringValue DateTimeUtils.yyyy_mm_dd_hh_mm_ss_fffffffff.format(value.toInstant)
+  }
+}
+
+object LocalTimestampRenderer extends TypeRenderer[Timestamp] {
   override def render(value: Timestamp, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
     checkNotNull(value, elInfo)
     buf renderStringValue value.toString

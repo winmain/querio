@@ -5,7 +5,7 @@ import java.sql.{SQLException, Statement}
 
 import querio.vendor.Vendor
 
-trait SqlBuffer {
+trait SqlBuffer extends Appendable {
   implicit def self: SqlBuffer = this
 
   def vendor: Vendor
@@ -15,6 +15,10 @@ trait SqlBuffer {
   private var queryExecuted = false
 
   override def toString: String = sb.toString
+
+  override def append(csq: CharSequence): Appendable = {sb append csq; this}
+  override def append(csq: CharSequence, start: Int, end: Int): Appendable = {sb.append(csq, start, end); this}
+  override def append(c: Char): Appendable = {sb append c; this}
 
   def ++(sql: CharSequence): this.type = {sb append sql; this}
   def ++(v: Char): this.type = {sb append v; this}

@@ -2,7 +2,7 @@ package querio
 
 import java.sql.{PreparedStatement, ResultSet, Timestamp, Array => SqlArray}
 import java.time.temporal.Temporal
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, LocalDateTime}
 import javax.annotation.Nullable
 
 import querio.utils.IterableTools.wrapIterable
@@ -355,10 +355,20 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   class Double_TF(tfd: TFD[Double]) extends SimpleTableField[Double](tfd) with DoubleField
   class OptionDouble_TF(tfd: TFD[Option[Double]]) extends OptionTableField[Double](tfd) with OptionDoubleField
 
-  // ---------------------- DateMidnight ----------------------
+  // ---------------------- Instant ----------------------
 
-  class Timestamp_TF(tfd: TFD[Timestamp]) extends SimpleTableField[Timestamp](tfd) with TimestampField
-  class OptionTimestamp_TF(tfd: TFD[Option[Timestamp]]) extends OptionTableField[Timestamp](tfd) with OptionTimestampField
+  class Instant_TF(tfd: TFD[Instant]) extends SimpleTableField[Instant](tfd) with InstantField
+  class OptionInstant_TF(tfd: TFD[Option[Instant]]) extends OptionTableField[Instant](tfd) with OptionInstantField
+
+  // ---------------------- UTCTimestamp ----------------------
+
+  class UTCTimestamp_TF(tfd: TFD[Timestamp]) extends SimpleTableField[Timestamp](tfd) with UTCTimestampField
+  class OptionUTCTimestamp_TF(tfd: TFD[Option[Timestamp]]) extends OptionTableField[Timestamp](tfd) with OptionUTCTimestampField
+
+  // ---------------------- LocalTimestamp ----------------------
+
+  class LocalTimestamp_TF(tfd: TFD[Timestamp]) extends SimpleTableField[Timestamp](tfd) with LocalTimestampField
+  class OptionLocalTimestamp_TF(tfd: TFD[Option[Timestamp]]) extends OptionTableField[Timestamp](tfd) with OptionLocalTimestampField
 
   // ---------------------- DateTime ----------------------
 
