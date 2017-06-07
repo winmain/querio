@@ -96,12 +96,15 @@ trait ModifyTrait extends EssentialModifyTrait {
     buf.statement {(st, sql) =>
       st.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
       val rs = st.getGeneratedKeys
-      val idOpt: Option[Int] =
-        if (record._table._primaryKey.isDefined && rs.next()) {
-          val id = rs.getInt(1)
-          record._setPrimaryKey(id)
-          Some(id)
-        } else None
+      val idOpt: Option[Int] = record._table._primaryKey match {
+        case Some(pk) =>
+          if (rs.next()) {
+            val id = pk.getTableValue(rs, 0)
+            record._setPrimaryKey(id)
+            Some(id)
+          } else None
+        case _ => None
+      }
       if (logSql) modifyData.foreach(this.logSql(record._table, idOpt, _, sql))
       tr.foreach(_.querioAddInsertChange(record, idOpt))
       idOpt
