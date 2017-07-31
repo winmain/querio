@@ -15,7 +15,10 @@ object GeneratorUtils {
     "protected", "return", "sealed", "super",
     "this", "throw", "trait", "try",
     "true", "type", "val", "var",
-    "while", "with", "yield")
+    "while", "with", "yield",
+    // Also add Object methods, because we cannot use their names
+    "getClass", "hashCode", "equals", "clone", "toString", "notify", "notifyAll", "wait", "finalize"
+  )
 
   def prepareComment(comment: String) =
   // Кавычки лучше не экранировать, а заменять на что-то другое. Иначе, разборка класса на существующие свойства может работать не верно.

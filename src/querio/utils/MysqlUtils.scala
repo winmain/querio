@@ -1,16 +1,23 @@
 package querio.utils
 
 import java.sql.{Connection, ResultSet, Statement}
+import java.util
+import java.util.Collections
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.text.translate.{CharSequenceTranslator, LookupTranslator}
+import org.apache.commons.text.translate._
 
 object MysqlUtils {
 
   /**
     * Translator object for escaping Sql queries.
     */
-  val ESCAPE_SQL: CharSequenceTranslator = new LookupTranslator(Array("'", "\\'"), Array("\\", "\\\\"))
+  val ESCAPE_SQL: CharSequenceTranslator = {
+    val map = new util.HashMap[CharSequence, CharSequence]
+    map.put("'", "\\'")
+    map.put("\\", "\\\\")
+    new LookupTranslator(Collections.unmodifiableMap(map))
+  }
 
   def escapeSql(input: String): String = ESCAPE_SQL.translate(input)
 

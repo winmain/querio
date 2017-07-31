@@ -2,9 +2,9 @@ import sbt.Keys.{scalaSource, _}
 
 // ------------------------------- Main projects -------------------------------
 
-val DefaultScalaVersion = "2.12.2"
+val DefaultScalaVersion = "2.12.3"
 
-crossScalaVersions := Seq("2.11.11", "2.12.2")
+crossScalaVersions := Seq("2.11.11", "2.12.3")
 scalaVersion := DefaultScalaVersion
 
 val scalaSettings = Seq(
@@ -25,7 +25,7 @@ val defaultProjectStructure = Seq(
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.6.14",
+  version := "0.6.15",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -33,8 +33,9 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
 
   // Dependencies
   libraryDependencies += "com.google.code.findbugs" % "jsr305" % "3.0.1", // @Nonnull, @Nullable annotation support
-  libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.4",
-  libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.21",
+  libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.6",
+  libraryDependencies += "org.apache.commons" % "commons-text" % "1.1",
+  libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25",
 
   // Optional dependencies
   libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212" % "optional",
