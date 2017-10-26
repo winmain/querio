@@ -68,7 +68,7 @@ object FieldType {
       case Types.INTEGER => int
       case Types.BIGINT => long
       case Types.CHAR | Types.VARCHAR | Types.LONGVARCHAR => string
-      case Types.DECIMAL => bigDecimal
+      case Types.DECIMAL | Types.NUMERIC => bigDecimal
       case Types.FLOAT | Types.REAL => float
       case Types.DOUBLE => double
       case Types.TIMESTAMP => instant
