@@ -3,8 +3,10 @@ package querio
 import scala.collection.mutable
 
 /**
- * Enumerable для полей БД
- */
+  * Softly deprecated. Use instead [[enumeratum.values.IntEnum]] or [[enumeratum.values.StringEnum]].
+  *
+  * Enumerable для полей БД
+  */
 abstract class ScalaDbEnum[E <: ScalaDbEnumCls[E]] {
   private[querio] val valueMap = mutable.LinkedHashMap[String, E]()
   private[querio] var _values = Vector[E]()
@@ -22,8 +24,8 @@ abstract class ScalaDbEnumCls[E <: ScalaDbEnumCls[E]] protected(enumObj: ScalaDb
   enumObj._values = enumObj._values :+ this.asInstanceOf[E]
 
   /**
-   * Вернуть значение этого поля в БД
-   */
+    * Вернуть значение этого поля в БД
+    */
   def getDbValue: String = dbValue
   def in(values: Set[E]): Boolean = values.contains(this)
   def in(values: Seq[E]): Boolean = values.contains(this)
@@ -32,8 +34,8 @@ abstract class ScalaDbEnumCls[E <: ScalaDbEnumCls[E]] protected(enumObj: ScalaDb
 }
 
 /**
- * Реестр всех ScalaDbEnum'ов, позволяющий определить enum-объект по его классу.
- */
+  * Реестр всех ScalaDbEnum'ов, позволяющий определить enum-объект по его классу.
+  */
 object ScalaDbEnums {
 
   private val enumClsToObject = mutable.Map[Class[_ <: AnyScalaDbEnumCls], AnyScalaDbEnum]()

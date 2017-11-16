@@ -86,6 +86,36 @@ trait OptionArrayField[T] extends ArrayField[T, Option[Array[T]]] {
   }
 }
 
+// Empty set treats as null value in database
+trait SetArrayField[T] extends ArrayField[T, Set[T]] {
+  override def vRenderer(vendor: Vendor): TypeRenderer[Set[T]] = elementRenderer.toMkStringRendererIterable(vendor.arrayMkString(elementDataType))
+  override def parser: TypeParser[Set[T]] = new SetTypeParser[T](elementParser)
+
+  override def getValue(rs: ResultSet, index: Int): Set[T] = {
+    val array: SqlArray = rs.getArray(index)
+    if (rs.wasNull()) {
+      Set.empty
+    } else {
+      val javaArray = array.getArray
+      array.free()
+      objectsToArray(javaArray).to
+    }
+  }
+
+  override def setValue(st: PreparedStatement, index: Int, value: Set[T]): Unit = {
+    checkNotNull(value)
+    if (value.nonEmpty) {
+      val array: Array[AnyRef] = new Array(value.size)
+      var i = 0
+      value.foreach {item =>
+        array(i) = item.asInstanceOf[AnyRef]
+        i += 1
+      }
+      st.setArray(index, st.getConnection.createArrayOf(elementDataType, array))
+    }
+  }
+}
+
 // ------------------------------- Boolean[] -------------------------------
 
 trait ArrayBooleanField[V] extends ArrayField[Boolean, V] {self =>
@@ -217,20 +247,31 @@ trait ArrayTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
     }
   }
 
+  abstract class SetArrayTableField[T](tfd: TFD[Set[T]]) extends Field[Array[T], Set[T]](tfd) with querio.SetArrayField[T] {field =>
+    def :=(value: Iterable[T]): FieldSetClause = new FieldSetClause(this) {
+      override def renderValue(implicit buf: SqlBuffer): Unit = elementRenderer.toMkStringRendererIterable(buf.vendor.arrayMkString(elementDataType)).render(value, field)
+    }
+    def :=(value: Set[T]): FieldSetClause = this := (value: Iterable[T])
+  }
+
   class ArrayBoolean_TF(val elementDataType: String)(tfd: TFD[Array[Boolean]]) extends SimpleArrayTableField[Boolean](tfd) with ArrayBooleanField[Array[Boolean]]
   class OptionArrayBoolean_TF(val elementDataType: String)(tfd: TFD[Option[Array[Boolean]]]) extends OptionArrayTableField[Boolean](tfd) with ArrayBooleanField[Option[Array[Boolean]]]
 
   class ArrayShort_TF(val elementDataType: String)(tfd: TFD[Array[Short]]) extends SimpleArrayTableField[Short](tfd) with ArrayShortField[Array[Short]]
   class OptionArrayShort_TF(val elementDataType: String)(tfd: TFD[Option[Array[Short]]]) extends OptionArrayTableField[Short](tfd) with ArrayShortField[Option[Array[Short]]]
+  class SetArrayShort_TF(val elementDataType: String)(tfd: TFD[Set[Short]]) extends SetArrayTableField[Short](tfd) with ArrayShortField[Set[Short]]
 
   class ArrayInt_TF(val elementDataType: String)(tfd: TFD[Array[Int]]) extends SimpleArrayTableField[Int](tfd) with ArrayIntField[Array[Int]]
   class OptionArrayInt_TF(val elementDataType: String)(tfd: TFD[Option[Array[Int]]]) extends OptionArrayTableField[Int](tfd) with ArrayIntField[Option[Array[Int]]]
+  class SetArrayInt_TF(val elementDataType: String)(tfd: TFD[Set[Int]]) extends SetArrayTableField[Int](tfd) with ArrayIntField[Set[Int]]
 
   class ArrayLong_TF(val elementDataType: String)(tfd: TFD[Array[Long]]) extends SimpleArrayTableField[Long](tfd) with ArrayLongField[Array[Long]]
   class OptionArrayLong_TF(val elementDataType: String)(tfd: TFD[Option[Array[Long]]]) extends OptionArrayTableField[Long](tfd) with ArrayLongField[Option[Array[Long]]]
+  class SetArrayLong_TF(val elementDataType: String)(tfd: TFD[Set[Long]]) extends SetArrayTableField[Long](tfd) with ArrayLongField[Set[Long]]
 
   class ArrayString_TF(val elementDataType: String)(tfd: TFD[Array[String]]) extends SimpleArrayTableField[String](tfd) with ArrayStringField[Array[String]]
   class OptionArrayString_TF(val elementDataType: String)(tfd: TFD[Option[Array[String]]]) extends OptionArrayTableField[String](tfd) with ArrayStringField[Option[Array[String]]]
+  class SetArrayString_TF(val elementDataType: String)(tfd: TFD[Set[String]]) extends SetArrayTableField[String](tfd) with ArrayStringField[Set[String]]
 
   class ArrayFloat_TF(val elementDataType: String)(tfd: TFD[Array[Float]]) extends SimpleArrayTableField[Float](tfd) with ArrayFloatField[Array[Float]]
   class OptionArrayFloat_TF(val elementDataType: String)(tfd: TFD[Option[Array[Float]]]) extends OptionArrayTableField[Float](tfd) with ArrayFloatField[Option[Array[Float]]]
@@ -243,4 +284,8 @@ trait ArrayTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: 
 
 class ArrayTypeParser[T](elementParser: TypeParser[T])(implicit ct: ClassTag[T]) extends TypeParser[Array[T]] {
   override def parse(s: String): Array[T] = StringUtils.split(s, ',').map(s => elementParser.parse(s.trim))
+}
+
+class SetTypeParser[T](elementParser: TypeParser[T])(implicit ct: ClassTag[T]) extends TypeParser[Set[T]] {
+  override def parse(s: String): Set[T] = StringUtils.split(s, ',').map(s => elementParser.parse(s.trim))(collection.breakOut)
 }

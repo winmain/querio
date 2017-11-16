@@ -25,7 +25,7 @@ val defaultProjectStructure = Seq(
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.6.16",
+  version := "0.7.0-rc1",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -40,6 +40,7 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   // Optional dependencies
   libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212" % "optional",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.0" % "optional",
+  libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.12" % "optional",
 
   // Test dependencies
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",

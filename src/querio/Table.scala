@@ -28,7 +28,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
                                                                        @Nullable val _alias: String,
                                                                        val _needDbPrefix: Boolean = false,
                                                                        val _escapeName: Boolean = false)
-  extends ElTable[TR] with ArrayTableFields[TR, MTR] with EnumTableFields[TR, MTR] {selfTable =>
+  extends ElTable[TR] with ArrayTableFields[TR, MTR] with DbEnumTableFields[TR, MTR] with EnumeratumTableFields[TR, MTR] {selfTable =>
 
   type ThisField = this.Field[_, _]
 

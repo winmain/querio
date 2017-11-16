@@ -5,6 +5,8 @@ import javax.annotation.Nullable
 import scala.collection.mutable
 
 /**
+  * Softly deprecated. Use instead [[enumeratum.values.IntEnum]] or [[enumeratum.values.StringEnum]].
+  *
   * Enumerable implementation with integer key field.
   * Internally store values in [[mutable.ArrayBuffer]]. Each value key is an array index hence.
   * Hence keys should not be scarce.

@@ -3,6 +3,7 @@ import java.sql.Timestamp
 import java.time.temporal.Temporal
 import java.time.{Instant, LocalDate, LocalDateTime}
 
+import enumeratum.values.{IntEnum, IntEnumEntry, StringEnum, StringEnumEntry}
 import querio.utils.DateTimeUtils
 
 /**
@@ -80,4 +81,13 @@ object LocalDateTimeParser extends CommonTemporalParser[LocalDateTime] {
 }
 object LocalDateParser extends CommonTemporalParser[LocalDate] {
   override def parse(s: String): LocalDate = withValidateYear(LocalDate.parse(s, DateTimeUtils.dateFormatter))
+}
+
+
+class IntEnumParser[EE <: IntEnumEntry](enum: IntEnum[EE]) extends TypeParser[EE] {
+  override def parse(s: String): EE = enum.withValue(s.toInt)
+}
+
+class StringEnumParser[EE <: StringEnumEntry](enum: StringEnum[EE]) extends TypeParser[EE] {
+  override def parse(s: String): EE = enum.withValue(s)
 }

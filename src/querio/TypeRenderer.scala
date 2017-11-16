@@ -3,7 +3,9 @@ import java.sql.Timestamp
 import java.time.temporal.Temporal
 import java.time.{Instant, LocalDate, LocalDateTime}
 
+import enumeratum.values.{IntEnumEntry, StringEnumEntry}
 import org.apache.commons.lang3.StringUtils
+import querio.IntEnumRenderer.checkNotNull
 import querio.utils.{DateTimeUtils, MkString}
 
 abstract class TypeRenderer[-T] {self =>
@@ -111,5 +113,20 @@ object TemporalRenderer extends TypeRenderer[Temporal] {
 
       case f => throw new IllegalArgumentException("Unknown DateTime field " + f)
     }
+  }
+}
+
+
+object IntEnumRenderer extends TypeRenderer[IntEnumEntry] {
+  override def render(value: IntEnumEntry, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf ++ value.value
+  }
+}
+
+object StringEnumRenderer extends TypeRenderer[StringEnumEntry] {
+  override def render(value: StringEnumEntry, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
+    checkNotNull(value, elInfo)
+    buf renderStringValue value.value
   }
 }

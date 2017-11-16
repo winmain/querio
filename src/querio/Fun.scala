@@ -13,10 +13,10 @@ object Fun {
   }
 
   def interval[I: IntegerType](intervalField: Field[I, _], intervalType: Interval.Type) = new LocalDateTimeField {
-    override def render(implicit buf: SqlBuffer) { buf ++ "interval " ++ intervalField ++ " " ++ intervalType.toString }
+    override def render(implicit buf: SqlBuffer) {buf ++ "interval " ++ intervalField ++ " " ++ intervalType.toString}
   }
   def interval(interval: Int, intervalType: Interval.Type) = new LocalDateTimeField {
-    override def render(implicit buf: SqlBuffer) { buf ++ "interval " ++ interval ++ " " ++ intervalType.toString }
+    override def render(implicit buf: SqlBuffer) {buf ++ "interval " ++ interval ++ " " ++ intervalType.toString}
   }
 
   @support(Mysql)
@@ -29,7 +29,7 @@ object Fun {
   def count = new CustomIntField("count(*)")
 
   def countDistinct(el: El[_, _]) = new IntField {
-    override def render(implicit buf: SqlBuffer): Unit = { buf ++ "count(distinct " ++ el ++ ")" }
+    override def render(implicit buf: SqlBuffer): Unit = {buf ++ "count(distinct " ++ el ++ ")"}
   }
 
   @support(Postgres)
@@ -154,6 +154,15 @@ object Fun {
   @support(Mysql)
   def rand = new CustomDoubleField("rand()")
 
+  @support(Mysql)
+  def findInSet(strEl: El[_, _], setEl: El[_, _]) = new Condition {
+    override def renderCond(buf: SqlBuffer) {buf ++ "FIND_IN_SET("; strEl.render(buf); buf ++ ", "; setEl.render(buf); buf ++ ")"}
+  }
+  @support(Mysql)
+  def findInSet(str: String, setEl: El[_, _]) = new Condition {
+    override def renderCond(buf: SqlBuffer) {buf ++ "FIND_IN_SET("; buf.renderStringValue(str); buf ++ ", "; setEl.render(buf); buf ++ ")"}
+  }
+
   // ------------------------------- Local functions -------------------------------
 
   def intFn(fn: SqlBuffer => Any): El[Int, Int] = new IntField {
@@ -166,15 +175,15 @@ object Fun {
   def fn1[T](fn: String, el: El[T, _]): El[T, T] = el.newExpression {_ ++ fn ++ "(" ++ el ++ ")"}
 
   def intFn1(fn: String, el: El[_, _]): El[Int, Int] = new IntField {
-    override def render(implicit buf: SqlBuffer) { buf ++ fn ++ "(" ++ el ++ ")" }
+    override def render(implicit buf: SqlBuffer) {buf ++ fn ++ "(" ++ el ++ ")"}
   }
   def intOp(el: El[_, _], op: String, value: Int): El[Int, Int] = new IntField {
-    override def render(implicit buf: SqlBuffer) { buf ++ el ++ op ++ value }
+    override def render(implicit buf: SqlBuffer) {buf ++ el ++ op ++ value}
   }
   def intFn2(fn: String, el: El[_, _], param: Int): El[Int, Int] = new IntField {
-    override def render(implicit buf: SqlBuffer) { buf ++ fn ++ "(" ++ el ++ "," ++ param ++ ")" }
+    override def render(implicit buf: SqlBuffer) {buf ++ fn ++ "(" ++ el ++ "," ++ param ++ ")"}
   }
   def longFn1(fn: String, el: El[_, _]): El[Long, Long] = new LongField {
-    override def render(implicit buf: SqlBuffer) { buf ++ fn ++ "(" ++ el ++ ")" }
+    override def render(implicit buf: SqlBuffer) {buf ++ fn ++ "(" ++ el ++ ")"}
   }
 }

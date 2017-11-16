@@ -1,167 +1,215 @@
 package querio
 import java.sql.{PreparedStatement, ResultSet}
+import java.util
 
-import org.apache.commons.lang3.StringUtils
-import querio.utils.IterableTools.wrapIterable
+import enumeratum.values.{IntEnum, IntEnumEntry, StringEnum, StringEnumEntry}
 import querio.vendor.Vendor
 
-// ---------------------- Enum renderers ----------------------
+import scala.reflect.ClassTag
 
-trait BaseIntEnumRender[E <: DbEnum] {self: El[_, _] =>
-  def enum: E
-  def tRenderer(vendor: Vendor): TypeRenderer[E#V] = new TypeRenderer[E#V] {
-    override def render(value: E#V, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {checkNotNull(value, elInfo); buf ++ value.getId}
+// ------------------------------- Enumeratum renderers -------------------------------
+
+trait BaseIntEnumRender[EE <: IntEnumEntry] {self: El[_, _] =>
+  def enum: IntEnum[EE]
+  def tRenderer(vendor: Vendor): TypeRenderer[EE] = new TypeRenderer[EE] {
+    override def render(value: EE, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {checkNotNull(value, elInfo); buf ++ value.value}
   }
-  def tParser: TypeParser[E#V] = new TypeParser[E#V] {
-    override def parse(s: String): E#V = getEnumValue(s.toInt)
+  def tParser: TypeParser[EE] = new TypeParser[EE] {
+    override def parse(s: String): EE = getEnumValue(s.toInt)
   }
-  def newExpression(r: (SqlBuffer) => Unit): El[E#V, E#V] = new EnumIntEl[E] {
-    override def enum: E = self.enum
+  def newExpression(r: (SqlBuffer) => Unit): El[EE, EE] = new EnumIntEl[EE] {
+    override def enum: IntEnum[EE] = self.enum
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
 
-  def getEnumValue(v: Int): E#V = enum.getValue(v).getOrElse(sys.error(s"Invalid enum value '$v' for field $fullName"))
+  def getEnumValue(v: Int): EE = enum.withValueOpt(v).getOrElse(sys.error(s"Invalid enum value '$v' for field $fullName"))
 }
 
-trait BaseStringEnumRender[E <: ScalaDbEnumCls[E]] {self: El[_, _] =>
-  def enum: ScalaDbEnum[E]
-  def tRenderer(vendor: Vendor): TypeRenderer[E] = new TypeRenderer[E] {
-    override def render(value: E, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {checkNotNull(value, elInfo); buf renderStringValue value.getDbValue}
+trait BaseStringEnumRender[EE <: StringEnumEntry] {self: El[_, _] =>
+  def enum: StringEnum[EE]
+  def tRenderer(vendor: Vendor): TypeRenderer[EE] = new TypeRenderer[EE] {
+    override def render(value: EE, elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {checkNotNull(value, elInfo); buf ++ value.value}
   }
-  def tParser: TypeParser[E] = new TypeParser[E] {
-    override def parse(s: String): E = getEnumValue(s)
+  def tParser: TypeParser[EE] = new TypeParser[EE] {
+    override def parse(s: String): EE = getEnumValue(s)
   }
-  def newExpression(r: (SqlBuffer) => Unit): El[E, E] = new EnumStringEl[E] {
-    override def enum: ScalaDbEnum[E] = self.enum
+  def newExpression(r: (SqlBuffer) => Unit): El[EE, EE] = new EnumStringEl[EE] {
+    override def enum: StringEnum[EE] = self.enum
     override def render(implicit sql: SqlBuffer) = r(sql)
   }
-  def getEnumValue(v: String): E = enum.getValue(v).getOrElse(sys.error(s"Invalid enum value '$v' for field $fullName"))
+
+  def getEnumValue(v: String): EE = enum.withValueOpt(v).getOrElse(sys.error(s"Invalid enum value '$v' for field $fullName"))
 }
 
 // ---------------------- Enum elements ----------------------
 
-trait EnumIntEl[E <: DbEnum] extends El[E#V, E#V] with BaseIntEnumRender[E] {
-  def enum: E
+trait EnumIntEl[EE <: IntEnumEntry] extends El[EE, EE] with BaseIntEnumRender[EE] {
+  def enum: IntEnum[EE]
 
-  override def vRenderer(vendor: Vendor): TypeRenderer[E#V] = tRenderer(vendor)
-  override def getValue(rs: ResultSet, index: Int): E#V = getEnumValue(rs.getInt(index))
-  override def setValue(st: PreparedStatement, index: Int, value: E#V) = st.setInt(index, value.getId)
+  override def vRenderer(vendor: Vendor): TypeRenderer[EE] = tRenderer(vendor)
+  override def getValue(rs: ResultSet, index: Int): EE = getEnumValue(rs.getInt(index))
+  override def setValue(st: PreparedStatement, index: Int, value: EE) = st.setInt(index, value.value)
 }
 
-trait EnumStringEl[E <: ScalaDbEnumCls[E]] extends El[E, E] with BaseStringEnumRender[E] {
-  def enum: ScalaDbEnum[E]
+trait EnumStringEl[EE <: StringEnumEntry] extends El[EE, EE] with BaseStringEnumRender[EE] {
+  def enum: StringEnum[EE]
 
-  override def vRenderer(vendor: Vendor): TypeRenderer[E] = tRenderer(vendor)
-  override def getValue(rs: ResultSet, index: Int): E = getEnumValue(rs.getString(index))
-  override def setValue(st: PreparedStatement, index: Int, value: E) = st.setString(index, value.getDbValue)
+  override def vRenderer(vendor: Vendor): TypeRenderer[EE] = tRenderer(vendor)
+  override def getValue(rs: ResultSet, index: Int): EE = getEnumValue(rs.getString(index))
+  override def setValue(st: PreparedStatement, index: Int, value: EE) = st.setString(index, value.value)
 }
 
 
-trait EnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+// ------------------------------- IntEnum[] -------------------------------
+
+trait ArrayIntEnumField[EE <: IntEnumEntry, V] extends ArrayField[EE, V] {self =>
+  def enum: IntEnum[EE]
+  override implicit def classTag: ClassTag[EE] = ClassTag.AnyRef.asInstanceOf[ClassTag[EE]]
+  override def elementRenderer: TypeRenderer[EE] = IntEnumRenderer
+  override def elementParser: TypeParser[EE] = new IntEnumParser[EE](enum)
+  override def objectsToArray(v: AnyRef): Array[EE] = {
+    val source = v.asInstanceOf[Array[java.lang.Integer]]
+    val ret: Array[EE] = new Array[IntEnumEntry](source.length).asInstanceOf[Array[EE]]
+    var i = 0
+    while (i < source.length) {
+      ret(i) = enum.withValue(source(i).intValue())
+      i += 1
+    }
+    ret
+  }
+  override def arrayToObjects(v: Array[EE]): Array[_ <: AnyRef] = {
+    val ret = new Array[java.lang.Integer](v.length)
+    var i = 0
+    while (i < v.length) {
+      ret(i) = java.lang.Integer.valueOf(v(i).value)
+      i += 1
+    }
+    ret
+  }
+  override def newExpression(r: SqlBuffer => Unit): El[Array[EE], Array[EE]] = new ArrayIntEnumField[EE, Array[EE]] with SimpleArrayField[EE] {
+    override def enum: IntEnum[EE] = self.enum
+    override def elementDataType: String = self.elementDataType
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+// ------------------------------- StringEnum[] -------------------------------
+
+trait ArrayStringEnumField[EE <: StringEnumEntry, V] extends ArrayField[EE, V] {self =>
+  def enum: StringEnum[EE]
+  override implicit def classTag: ClassTag[EE] = ClassTag.AnyRef.asInstanceOf[ClassTag[EE]]
+  override def elementRenderer: TypeRenderer[EE] = StringEnumRenderer
+  override def elementParser: TypeParser[EE] = new StringEnumParser[EE](enum)
+  override def objectsToArray(v: AnyRef): Array[EE] = {
+    val source = v.asInstanceOf[Array[String]]
+    val ret: Array[EE] = new Array[StringEnumEntry](source.length).asInstanceOf[Array[EE]]
+    var i = 0
+    while (i < source.length) {
+      ret(i) = enum.withValue(source(i))
+      i += 1
+    }
+    ret
+  }
+  override def arrayToObjects(v: Array[EE]): Array[_ <: AnyRef] = {
+    val ret = new Array[String](v.length)
+    var i = 0
+    while (i < v.length) {
+      ret(i) = v(i).value
+      i += 1
+    }
+    ret
+  }
+  override def newExpression(r: SqlBuffer => Unit): El[Array[EE], Array[EE]] = new ArrayStringEnumField[EE, Array[EE]] with SimpleArrayField[EE] {
+    override def enum: StringEnum[EE] = self.enum
+    override def elementDataType: String = self.elementDataType
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+/** The same as ArrayStringEnumField, but ignores unknown values instead of throwing exception. */
+trait WeakArrayStringEnumField[EE <: StringEnumEntry, V] extends ArrayStringEnumField[EE, V] {self =>
+  override def objectsToArray(v: AnyRef): Array[EE] = {
+    val source = v.asInstanceOf[Array[String]]
+    val ret: Array[EE] = new Array[StringEnumEntry](source.length).asInstanceOf[Array[EE]]
+    var si = 0
+    var ri = 0
+    while (si < source.length) {
+      enum.withValueOpt(source(si)).foreach {value =>
+        ret(ri) = value
+        ri += 1
+      }
+      si += 1
+    }
+    if (si == ri) ret else util.Arrays.copyOf[EE](ret, ri)
+  }
+  override def newExpression(r: SqlBuffer => Unit): El[Array[EE], Array[EE]] = new WeakArrayStringEnumField[EE, Array[EE]] with SimpleArrayField[EE] {
+    override def enum: StringEnum[EE] = self.enum
+    override def elementDataType: String = self.elementDataType
+    override def render(implicit buf: SqlBuffer): Unit = r(buf)
+  }
+}
+
+// ------------------------------- Table fields -------------------------------
+
+trait EnumeratumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
 
   // ---------------------- Int Enum ----------------------
-  class EnumInt_TF[E <: DbEnum](val enum: E)(tfd: TFD[E#V]) extends SimpleTableField[E#V](tfd) with EnumIntEl[E]
+  class EnumInt_TF[EE <: IntEnumEntry](val enum: IntEnum[EE])(tfd: TFD[EE]) extends SimpleTableField[EE](tfd) with EnumIntEl[EE]
 
-  class OptionEnumInt_TF[E <: DbEnum](val enum: E)(tfd: TFD[Option[E#V]]) extends OptionTableField[E#V](tfd) with BaseIntEnumRender[E] {
-    override def getValue(rs: ResultSet, index: Int): Option[E#V] = {
+  class OptionEnumInt_TF[EE <: IntEnumEntry](val enum: IntEnum[EE])(tfd: TFD[Option[EE]]) extends OptionTableField[EE](tfd) with BaseIntEnumRender[EE] {
+    override def getValue(rs: ResultSet, index: Int): Option[EE] = {
       val v = rs.getInt(index)
       if (rs.wasNull()) None else Some(getEnumValue(v))
     }
-    override def setValue(st: PreparedStatement, index: Int, value: Option[E#V]) = {checkNotNull(value); value.foreach(v => st.setInt(index, v.getId))}
+    override def setValue(st: PreparedStatement, index: Int, value: Option[EE]) = {checkNotNull(value); value.foreach(v => st.setInt(index, v.value))}
   }
 
-  /** Это тот же OptionEnumString_TF, только при получении неизвестного значения, он возвращает None, а не бросает exception. */
-  class WeakOptionEnumInt_TF[E <: DbEnum](enum: E)(tfd: TFD[Option[E#V]]) extends OptionEnumInt_TF[E](enum)(tfd) {field =>
-    override def getValue(rs: ResultSet, index: Int): Option[E#V] = {
+  /** The same as OptionEnumInt_TF, but on unknown value returns None, not exception. */
+  class WeakOptionEnumInt_TF[EE <: IntEnumEntry](enum: IntEnum[EE])(tfd: TFD[Option[EE]]) extends OptionEnumInt_TF[EE](enum)(tfd) {field =>
+    override def getValue(rs: ResultSet, index: Int): Option[EE] = {
       val v = rs.getInt(index)
-      if (rs.wasNull()) None else enum.getValue(v)
+      if (rs.wasNull()) None else enum.withValueOpt(v)
     }
 
-    override def tParser: TypeParser[E#V] = throw new UnsupportedOperationException
-    override def parser: TypeParser[Option[E#V]] = new TypeParser[Option[E#V]] {
-      override def parse(s: String): Option[E#V] = enum.getValue(s.toInt)
+    override def tParser: TypeParser[EE] = throw new UnsupportedOperationException
+    override def parser: TypeParser[Option[EE]] = new TypeParser[Option[EE]] {
+      override def parse(s: String): Option[EE] = enum.withValueOpt(s.toInt)
     }
   }
+
+  // WARN: Not tested
+  class SetEnumArrayInt_TF[EE <: IntEnumEntry](val enum: IntEnum[EE], val elementDataType: String)
+                                              (tfd: TFD[Set[EE]]) extends SetArrayTableField[EE](tfd) with ArrayIntEnumField[EE, Set[EE]]
 
   // ---------------------- String Enum ----------------------
 
-  class EnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[E]) extends SimpleTableField[E](tfd) with EnumStringEl[E]
+  class EnumString_TF[EE <: StringEnumEntry](val enum: StringEnum[EE])(tfd: TFD[EE]) extends SimpleTableField[EE](tfd) with EnumStringEl[EE]
 
-  class OptionEnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[Option[E]]) extends OptionTableField[E](tfd) with BaseStringEnumRender[E] {
-    override def getValue(rs: ResultSet, index: Int): Option[E] = {
+  class OptionEnumString_TF[EE <: StringEnumEntry](val enum: StringEnum[EE])(tfd: TFD[Option[EE]]) extends OptionTableField[EE](tfd) with BaseStringEnumRender[EE] {
+    override def getValue(rs: ResultSet, index: Int): Option[EE] = {
       val v = rs.getString(index)
-      // v.isEmpty здесь нужен только для того, чтобы игнорировать пустые строки в MySQL - там они должны быть null.
-      if (rs.wasNull() || v.isEmpty) None else Some(getEnumValue(v))
+      if (rs.wasNull()) None else Some(getEnumValue(v))
     }
-    override def setValue(st: PreparedStatement, index: Int, value: Option[E]) = {checkNotNull(value); value.foreach(v => st.setString(index, v.getDbValue))}
+    override def setValue(st: PreparedStatement, index: Int, value: Option[EE]) = {checkNotNull(value); value.foreach(v => st.setString(index, v.value))}
   }
 
-  /** Это тот же OptionEnumString_TF, только при получении неизвестного значения, он возвращает None, а не бросает exception. */
-  class WeakOptionEnumString_TF[E <: ScalaDbEnumCls[E]](enum: ScalaDbEnum[E])(tfd: TFD[Option[E]]) extends OptionEnumString_TF[E](enum)(tfd) {
-    override def getValue(rs: ResultSet, index: Int): Option[E] = {
+  /** The same as OptionEnumString_TF, but on unknown value returns None, not exception. */
+  class WeakOptionEnumString_TF[EE <: StringEnumEntry](enum: StringEnum[EE])(tfd: TFD[Option[EE]]) extends OptionEnumString_TF[EE](enum)(tfd) {field =>
+    override def getValue(rs: ResultSet, index: Int): Option[EE] = {
       val v = rs.getString(index)
-      if (rs.wasNull()) None else enum.getValue(v)
+      if (rs.wasNull()) None else enum.withValueOpt(v)
     }
 
-    override def tParser: TypeParser[E] = throw new UnsupportedOperationException
-    override def parser: TypeParser[Option[E]] = new TypeParser[Option[E]] {
-      override def parse(s: String): Option[E] = enum.getValue(s)
-    }
-  }
-
-  class SetEnumString_TF[E <: ScalaDbEnumCls[E]](val enum: ScalaDbEnum[E])(tfd: TFD[Set[E]]) extends SetTableField[E](tfd) with BaseStringEnumRender[E] {field =>
-    def contains(el: E): Condition = new Condition {
-      def renderCond(buf: SqlBuffer) {buf ++ "FIND_IN_SET("; renderT(el)(buf); buf ++ ", " ++ field ++ ")"}
-    }
-
-    override def getValue(rs: ResultSet, index: Int): Set[E] = {
-      val v = rs.getString(index)
-      if (rs.wasNull()) Set.empty[E] else parser.parse(v)
-    }
-    override def setValue(st: PreparedStatement, index: Int, value: Set[E]) = {
-      checkNotNull(value)
-      if (value.nonEmpty) st.setString(index, valueAsString(value))
-    }
-    override def vRenderer(vendor: Vendor): TypeRenderer[Set[E]] = new TypeRenderer[Set[E]] {
-      override def render(value: Set[E], elInfo: El[_, _])(implicit buf: SqlBuffer): Unit = {
-        checkNotNull(value, elInfo)
-        if (value.nonEmpty) buf renderStringValue valueAsString(value)
-        else buf.renderNull
-      }
-    }
-
-    override def parser: TypeParser[Set[E]] = new TypeParser[Set[E]] {
-      override def parse(s: String): Set[E] = {
-        if (s == null) Set.empty
-        else StringUtils.split(s, ',').map(enum.getValue(_).getOrElse(sys.error(s"Invalid enum value '$s' for field $fullName")))(scala.collection.breakOut)
-      }
-    }
-
-    protected def valueAsString(value: Set[E]): String = {
-      checkNotNull(value)
-      value._mapMkString({v =>
-        if (v == null) throw new NullPointerException("Field " + fullName + " cannot contain null-item")
-        v.getDbValue
-      }, ",")
+    override def tParser: TypeParser[EE] = throw new UnsupportedOperationException
+    override def parser: TypeParser[Option[EE]] = new TypeParser[Option[EE]] {
+      override def parse(s: String): Option[EE] = enum.withValueOpt(s)
     }
   }
 
-  /** Это тот же SetEnumString_TF, только при получении неизвестного значения, он его игнорирует, а не выбрасывает exception. */
-  class WeakSetEnumString_TF[E <: ScalaDbEnumCls[E]](enum: ScalaDbEnum[E])(tfd: TFD[Set[E]]) extends SetEnumString_TF[E](enum)(tfd) {
-    override def getValue(rs: ResultSet, index: Int): Set[E] = {
-      val v = rs.getString(index)
-      if (rs.wasNull()) Set.empty[E] else parser.parse(v)
-    }
-    override def tParser: TypeParser[E] = throw new UnsupportedOperationException
-    override def parser: TypeParser[Set[E]] = new TypeParser[Set[E]] {
-      override def parse(s: String): Set[E] = {
-        if (s == null) Set.empty
-        else {
-          val b = Set.newBuilder[E]
-          for (str <- StringUtils.split(s, ',')) enum.getValue(str).foreach(b.+=)
-          b.result()
-        }
-      }
-    }
-  }
+  // WARN: Not tested
+  class SetEnumArrayString_TF[EE <: StringEnumEntry](val enum: StringEnum[EE], val elementDataType: String)
+                                                    (tfd: TFD[Set[EE]]) extends SetArrayTableField[EE](tfd) with ArrayStringEnumField[EE, Set[EE]]
+
+  class WeakSetEnumArrayString_TF[EE <: StringEnumEntry](val enum: StringEnum[EE], val elementDataType: String)
+                                                        (tfd: TFD[Set[EE]]) extends SetArrayTableField[EE](tfd) with WeakArrayStringEnumField[EE, Set[EE]]
 }
