@@ -2,12 +2,13 @@ package query.common
 
 import common.Resources
 import model.db.common.User
+import querio.Fun
 import test.DbFunSpec
 
 class AggregateFunTest extends DbFunSpec(schemaSql = Resources.commonSchema) {
 
-  test("on empty result should return empty resultset") {db =>
-    val result = db.query(_ select User from User fetchOne())
-    assert(result === None)
+  test("count on empty table should return 0") {db =>
+    val result = db.query(_ select Fun.count from User fetchOne())
+    assert(result === Some(0))
   }
 }
