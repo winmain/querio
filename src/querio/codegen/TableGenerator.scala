@@ -98,6 +98,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       protected def defaultMutableValue(shortScalaType: String): String = shortScalaType match {
         case s if s.startsWith("Option[") => "None"
         case s if s.startsWith("Set[") => "Set.empty"
+        case s if s.startsWith("Array[") => "Array.empty"
         case "BigDecimal" => "0"
         case _ => "_"
       }
