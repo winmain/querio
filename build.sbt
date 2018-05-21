@@ -40,7 +40,7 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   // Optional dependencies
   libraryDependencies += "org.postgresql" % "postgresql" % "42.2.2" % "optional",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.0" % "optional",
-  libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.12" % "optional",
+  libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.13" % "optional",
 
   // Test dependencies
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
