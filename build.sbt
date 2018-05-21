@@ -59,9 +59,18 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   sources in(Compile, doc) := Seq.empty
 )
 
+// Disable packaging & publishing artifact
+val noPublishSettings = Seq(
+  Keys.`package` := file(""),
+  publishArtifact := false,
+  publishLocal := {},
+  publish := {},
+  bintrayUnpublish := {}
+)
+
 // ------------------------------- Main project -------------------------------
 
-lazy val main: Project = project.in(file(".")).settings(
+lazy val main: Project = project.in(file(".")).settings(noPublishSettings).settings(
   publishArtifact := false,
   genQuerioLibSourcesTask,
   genTestPostgreSqlDbSourcesTask,
@@ -84,22 +93,14 @@ lazy val querio = Project("querio",
 
 lazy val querioSelfCodegen = Project("querio-selfcodegen",
   base = file("selfcodegen"),
-  settings = commonSettings
-).settings(
-  name := "querio-selfcodegen",
-  // Disable packaging & publishing artifact
-  Keys.`package` := file(""),
-  publishArtifact := false,
-  publishLocal := {},
-  publish := {},
-  bintrayUnpublish := {}
+  settings = commonSettings ++ noPublishSettings
 )
 
 // ------------------------------- Test projects -------------------------------
 
 lazy val testH2 = Project(id = "test-h2",
   base = file("test-h2"),
-  settings = scalaSettings ++ defaultProjectStructure
+  settings = scalaSettings ++ defaultProjectStructure ++ noPublishSettings
 ).settings(
   name := "test-h2",
 
@@ -114,7 +115,7 @@ lazy val testH2 = Project(id = "test-h2",
 
 lazy val testPostgresql = Project(id = "test-postgresql",
   base = file("test-postgresql"),
-  settings = scalaSettings ++ defaultProjectStructure
+  settings = scalaSettings ++ defaultProjectStructure ++ noPublishSettings
 ).settings(
   name := "test-postgresql",
 
