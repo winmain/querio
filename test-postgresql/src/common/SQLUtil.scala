@@ -1,5 +1,7 @@
-package test
+package common
+
 import java.sql.{Connection, SQLException, Statement}
+
 import javax.sql.DataSource
 
 trait SQLUtil {

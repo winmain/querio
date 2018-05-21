@@ -1,9 +1,9 @@
 package model.db
 // querioVersion: 1
 
-import model.db.table.{Level, Purchase, User}
+import model.db.common.{Level, Purchase, User}
 import querio.AnyTable
 
-object Tables {
+object CommonTables {
   val tables: Vector[AnyTable] = Vector[AnyTable](Level, Purchase, User)
 }

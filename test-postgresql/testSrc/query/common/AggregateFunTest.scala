@@ -1,6 +1,8 @@
-package query
-import model.db.table.User
-import test.{DbFunSpec, Resources}
+package query.common
+
+import common.Resources
+import model.db.common.User
+import test.DbFunSpec
 
 class AggregateFunTest extends DbFunSpec(schemaSql = Resources.commonSchema) {
 

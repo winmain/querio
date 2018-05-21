@@ -1,4 +1,4 @@
-package test
+package common
 
 import java.io.{IOException, InputStream}
 import java.net.URL

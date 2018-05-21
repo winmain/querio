@@ -1,10 +1,10 @@
-package model.db.table
+package model.db.common
 // querioVersion: 2
 
 import java.sql.ResultSet
 
 import model.db.PostgresSQLVendor
-import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+import querio._
 
 class PurchaseTable(alias: String) extends Table[Purchase, MutablePurchase]("postgres", "purchase", alias) {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))

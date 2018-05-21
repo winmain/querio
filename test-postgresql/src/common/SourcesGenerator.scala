@@ -1,4 +1,4 @@
-package test
+package common
 
 import java.nio.file.Paths
 
@@ -18,8 +18,8 @@ object SourcesGenerator extends SQLUtil {
     }
     inConnection(dataSource) {connection =>
       new DatabaseGenerator(PostgresSQLVendor, connection, "postgres",
-        pkg = "model.db.table",
-        tableListClass = "model.db.Tables",
+        pkg = "model.db.common",
+        tableListClass = "model.db.CommonTables",
         dir = dir,
         noRead = false,
         isDefaultDatabase = true).generateDb()

@@ -1,6 +1,8 @@
-package query
-import model.db.table.{MutableUser, User}
-import test.{DbUtil, DbFlatSpec, Resources}
+package query.common
+
+import common.Resources
+import model.db.common.{MutableUser, User}
+import test.{DbFlatSpec, DbUtil}
 
 class ByteaFieldUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 

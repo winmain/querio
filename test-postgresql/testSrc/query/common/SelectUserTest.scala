@@ -1,11 +1,12 @@
-package query
+package query.common
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import model.db.table.{MutableUser, User}
+import common.Resources
+import model.db.common.{MutableUser, User}
 import querio.ModifyData
-import test.{DbFlatSpec, DbUtil, Resources}
+import test.{DbFlatSpec, DbUtil}
 
 class SelectUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 

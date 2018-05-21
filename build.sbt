@@ -64,6 +64,7 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
 lazy val main: Project = project.in(file(".")).settings(
   publishArtifact := false,
   genQuerioLibSourcesTask,
+  genTestPostgreSqlDbSourcesTask,
   testAllTask,
   // Наводим красоту в командной строке sbt
   shellPrompt := {state: State => "[" + scala.Console.GREEN + "querio" + scala.Console.RESET + "] "}
@@ -121,9 +122,7 @@ lazy val testPostgresql = Project(id = "test-postgresql",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.4",
   libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.12.0",
   libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1",
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-
-  genTestPostgreSqlDbSourcesTask
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 ).dependsOn(querio)
 
 
@@ -157,13 +156,14 @@ lazy val genTestH2DbSourcesTask = genTestH2DbSources := {
     Seq((scalaSource in Compile).value.absolutePath))
 }
 
+// One need to run `test-postgresql/compile` before running this method
 val genTestPostgreSqlDbSources = TaskKey[Unit]("gen-test-postgresql-db-sources")
 lazy val genTestPostgreSqlDbSourcesTask = genTestPostgreSqlDbSources := {
-  runScala((dependencyClasspath in Compile).value.files :+
-    (baseDirectory in Compile).value :+
-    (classDirectory in Runtime).value,
-    "test.SourcesGenerator",
-    Seq((scalaSource in Compile).value.absolutePath))
+  runScala((dependencyClasspath in Compile in testPostgresql).value.files :+
+    (resourceDirectory in Compile in testPostgresql).value :+
+    (classDirectory in Runtime in testPostgresql).value,
+    "common.SourcesGenerator",
+    Seq((scalaSource in Compile in testPostgresql).value.absolutePath))
 }
 
 // Run all tests task

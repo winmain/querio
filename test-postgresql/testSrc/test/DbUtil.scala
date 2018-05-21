@@ -2,7 +2,7 @@ package test
 
 import java.time.LocalDateTime
 
-import model.db.table.{MutableLevel, MutableUser}
+import model.db.common.{MutableLevel, MutableUser}
 import org.json4s.JsonAST.{JNothing, JObject}
 object DbUtil {
 

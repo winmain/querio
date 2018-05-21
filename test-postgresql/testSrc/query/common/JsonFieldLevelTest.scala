@@ -1,7 +1,9 @@
-package query
-import model.db.table.Level
+package query.common
+
+import common.Resources
+import model.db.common.Level
 import org.json4s.jackson.JsonMethods
-import test.{DbFlatSpec, DbUtil, Resources}
+import test.{DbFlatSpec, DbUtil}
 
 class JsonFieldLevelTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 

@@ -1,6 +1,8 @@
-package query
-import model.db.table.User
-import test.{DbFlatSpec, Resources}
+package query.common
+
+import common.Resources
+import model.db.common.User
+import test.DbFlatSpec
 
 class AccessUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 

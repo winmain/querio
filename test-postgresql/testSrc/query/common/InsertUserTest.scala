@@ -1,7 +1,9 @@
-package query
-import model.db.table.{MutableUser, User}
+package query.common
+
+import common.Resources
+import model.db.common.{MutableUser, User}
 import querio.ModifyData
-import test.{DbFlatSpec, DbUtil, Resources}
+import test.{DbFlatSpec, DbUtil}
 
 class InsertUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 

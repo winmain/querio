@@ -1,4 +1,4 @@
-package model.db.table
+package model.db.common
 // querioVersion: 2
 
 import java.sql.ResultSet
@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 
 import model.db.PostgresSQLVendor
 import org.json4s.JsonAST.JValue
-import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+import querio._
 import querio.json.JSON4SJsonFields
 import querio.postgresql.PGByteaFields
 

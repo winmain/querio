@@ -1,8 +1,9 @@
-package query
-import model.db.table.{MutableUser, User}
-import org.scalatest.Matchers
+package query.common
+
+import common.Resources
+import model.db.common.{MutableUser, User}
 import querio.{BaseDb, ModifyData}
-import test.{DbUtil, DbFlatSpec, Resources}
+import test.{DbFlatSpec, DbUtil}
 
 import scala.collection.immutable
 

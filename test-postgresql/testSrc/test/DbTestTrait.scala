@@ -1,6 +1,7 @@
 package test
 import java.sql.Connection
 
+import common.SQLUtil
 import model.db.PostgresSQLVendor
 import org.scalatest.{Outcome, fixture}
 import querio.BaseDb
