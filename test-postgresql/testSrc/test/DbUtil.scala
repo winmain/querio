@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import model.db.table.{MutableLevel, MutableUser}
 import org.json4s.JsonAST.{JNothing, JObject}
-object DBUtil {
+object DbUtil {
 
   def dummyUser(): MutableUser = {
     val user = new MutableUser

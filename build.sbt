@@ -43,7 +43,7 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.13" % "optional",
 
   // Test dependencies
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
   libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % "test",
   libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1" % "test",
 
@@ -96,38 +96,33 @@ lazy val querioSelfCodegen = Project("querio-selfcodegen",
 
 // ------------------------------- Test projects -------------------------------
 
-val testH2Settings = scalaSettings ++ defaultProjectStructure ++ Seq(
-  name := "querio-test-h2",
-  version := "0.1",
+lazy val testH2 = Project(id = "test-h2",
+  base = file("test-h2"),
+  settings = scalaSettings ++ defaultProjectStructure
+).settings(
+  name := "test-h2",
+
   //  libraryDependencies += "com.h2database" % "h2" % "1.4.191",
   libraryDependencies += "com.h2database" % "h2" % "1.3.175",
   libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
-  libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8"
-)
-
-val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
-  name := "querio-test-postgresql",
-  version := "0.1",
-  libraryDependencies += "org.postgresql" % "postgresql" % "42.2.2",
-  libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.4",
   libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8",
-  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.12.0",
-  libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1"
-)
 
-lazy val testH2 = Project(id = "test-h2",
-  base = file("test-h2"),
-  settings = testH2Settings
-).settings(
-  name := "test-h2",
+  parallelExecution in Test := false,
   genTestH2DbSourcesTask
 ).dependsOn(querio)
 
 lazy val testPostgresql = Project(id = "test-postgresql",
   base = file("test-postgresql"),
-  settings = testPostgreSQLSettings
+  settings = scalaSettings ++ defaultProjectStructure
 ).settings(
   name := "test-postgresql",
+
+  libraryDependencies += "org.postgresql" % "postgresql" % "42.2.2",
+  libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.4",
+  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.12.0",
+  libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1",
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+
   genTestPostgreSqlDbSourcesTask
 ).dependsOn(querio)
 

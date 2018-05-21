@@ -1,7 +1,6 @@
 package query
 
 import model.db.table.User
-import test.{BaseScheme, DbTestBase}
 
 class AccessUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,

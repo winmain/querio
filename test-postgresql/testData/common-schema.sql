@@ -1,5 +1,3 @@
--- CREATE DATABASE "example";
-
 CREATE TABLE "user"
 (
   id SERIAL PRIMARY KEY,
@@ -10,14 +8,14 @@ CREATE TABLE "user"
   "verbose" boolean NULL,
   "js_b" jsonb NOT NULL DEFAULT '{}',
   "js" json NOT NULL DEFAULT '{}',
-  "js_b_nullable" jsonb,
-  "js_nullable" json,
+  "js_b_nullable" jsonb NULL,
+  "js_nullable" json NULL,
   "lastLogin" timestamp without time zone NOT NULL,
   "byteArray" bytea not null,
-  "byteArrayNullable" bytea
+  "byteArrayNullable" bytea NULL
 )
 WITH (
-OIDS=FALSE
+  OIDS=FALSE
 );
 
 CREATE TABLE "level"
@@ -32,7 +30,7 @@ CREATE TABLE "level"
   "createdAt" timestamp without time zone NOT NULL
 )
 WITH (
-OIDS=FALSE
+  OIDS=FALSE
 );
 
 CREATE TABLE "purchase"
@@ -44,5 +42,5 @@ CREATE TABLE "purchase"
   "level" int
 )
 WITH (
-OIDS=FALSE
+  OIDS=FALSE
 );

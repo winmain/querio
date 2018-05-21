@@ -1,79 +1,71 @@
 package query
-
-import model.db.table.{Level, MutableUser, User}
-import org.json4s.JsonAST.{JField, _}
+import model.db.table.Level
 import org.json4s.jackson.JsonMethods
-import test.{BaseScheme, DBUtil, DbTestBase}
+import test.{DbFlatSpec, DbUtil, Resources}
 
-class JsonFieldLevelTest extends DbTestBase(
-  crateSchemaSql = BaseScheme.crateSql,
-  truncateSql = BaseScheme.truncateSql) {
+class JsonFieldLevelTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 
-  "Table \"level\"" should {
+  "Table \"level\"" should "support simple access to json field" in {db =>
+    val level = DbUtil.dummyLevel()
+    val expected = "{}"
+    level.js = expected
 
-    "support simple access to json field" in new FreshDB {
-      val level = DBUtil.dummyLevel()
-      val expected = "{}"
-      level.js = expected
-
-      db.dataTrReadCommittedNoLog {implicit dt =>
-        db.insert(level)
-      }
-
-      val json = db.query(_.select(Level.js)
-        from Level
-        fetch()).head
-
-      json must_== expected
+    db.dataTrReadCommittedNoLog {implicit dt =>
+      db.insert(level)
     }
 
-    "support simple access to jsonb field" in new FreshDB {
-      val level = DBUtil.dummyLevel()
-      val expected = "{}"
-      level.jsB = expected
+    val json = db.query(_.select(Level.js)
+      from Level
+      fetch()).head
 
-      db.dataTrReadCommittedNoLog {implicit dt =>
-        db.insert(level)
-      }
+    assert(json === expected)
+  }
 
-      val json = db.query(_.select(Level.jsB)
-        from Level
-        fetch()).head
+  it should "support simple access to jsonb field" in {db =>
+    val level = DbUtil.dummyLevel()
+    val expected = "{}"
+    level.jsB = expected
 
-      json must_== expected
+    db.dataTrReadCommittedNoLog {implicit dt =>
+      db.insert(level)
     }
 
-    "support complex json " in new FreshDB {
-      val level = DBUtil.dummyLevel()
-      val expected = "{\"id\":13,\"name\":\"json name\",\"obj\":{\"arr\":[1,2,3],\"f\":122.34}}"
-      level.js = expected
+    val json = db.query(_.select(Level.jsB)
+      from Level
+      fetch()).head
 
-      db.dataTrReadCommittedNoLog {implicit dt =>
-        db.insert(level)
-      }
+    assert(json === expected)
+  }
 
-      val json = db.query(_.select(Level.js)
-        from Level
-        fetch()).head
+  it should "support complex json" in {db =>
+    val level = DbUtil.dummyLevel()
+    val expected = "{\"id\":13,\"name\":\"json name\",\"obj\":{\"arr\":[1,2,3],\"f\":122.34}}"
+    level.js = expected
 
-      JsonMethods.parse(json) must_== JsonMethods.parse(expected)
+    db.dataTrReadCommittedNoLog {implicit dt =>
+      db.insert(level)
     }
 
-    "support complex bjson " in new FreshDB {
-      val level = DBUtil.dummyLevel()
-      val expected = "{\"id\":13,\"name\":\"json name\",\"obj\":{\"arr\":[1,2,3],\"f\":122.34}}"
-      level.jsB = expected
+    val json = db.query(_.select(Level.js)
+      from Level
+      fetch()).head
 
-      db.dataTrReadCommittedNoLog {implicit dt =>
-        db.insert(level)
-      }
+    assert(JsonMethods.parse(json) === JsonMethods.parse(expected))
+  }
 
-      val json = db.query(_.select(Level.jsB)
-        from Level
-        fetch()).head
+  it should "support complex bjson" in {db =>
+    val level = DbUtil.dummyLevel()
+    val expected = "{\"id\":13,\"name\":\"json name\",\"obj\":{\"arr\":[1,2,3],\"f\":122.34}}"
+    level.jsB = expected
 
-      JsonMethods.parse(json) must_== JsonMethods.parse(expected)
+    db.dataTrReadCommittedNoLog {implicit dt =>
+      db.insert(level)
     }
 
+    val json = db.query(_.select(Level.jsB)
+      from Level
+      fetch()).head
+
+    assert(JsonMethods.parse(json) === JsonMethods.parse(expected))
   }
 }

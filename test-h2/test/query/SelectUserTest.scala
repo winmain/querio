@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter
 
 import model.db.table.{MutableUser, User}
 import querio.ModifyData
-import test.{BaseScheme, DBUtil, DbTestBase}
 
 class SelectUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,

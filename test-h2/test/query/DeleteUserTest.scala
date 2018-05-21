@@ -4,7 +4,6 @@ import java.time.LocalDateTime
 
 import model.db.table.{MutableUser, User}
 import querio.ModifyData
-import test.{BaseScheme, DBUtil, DbTestBase}
 
 class DeleteUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,

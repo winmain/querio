@@ -1,21 +1,14 @@
 package query
-
 import model.db.table.User
-import test.{BaseScheme, DbTestBase}
+import test.{DbFlatSpec, Resources}
 
-class AccessUserTest extends DbTestBase(
-  crateSchemaSql = BaseScheme.crateSql,
-  truncateSql = BaseScheme.truncateSql) {
+class AccessUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 
-  "Table \"user\"" should {
-
-    "support access when  empty" in new FreshDB {
-
-      val result1 = db.query(_.select(User.email)
-        from User
-        limit 10
-        fetch())
-      result1 must beEmpty
-    }
+  "Table \"user\"" should "support access when empty" in {db =>
+    val result1 = db.query(_.select(User.email)
+      from User
+      limit 10
+      fetch())
+    assert(result1.isEmpty)
   }
 }

@@ -5,24 +5,22 @@ import java.time.format.DateTimeFormatter
 
 import model.db.table.{MutableUser, User}
 import querio.ModifyData
-import test.{BaseScheme, DBUtil, DbTestBase}
+import test.{DbFlatSpec, DbUtil, Resources}
 
-class SelectUserTest extends DbTestBase(
-  crateSchemaSql = BaseScheme.crateSql,
-  truncateSql = BaseScheme.truncateSql) {
+class SelectUserTest extends DbFlatSpec(schemaSql = Resources.commonSchema) {
 
   val mddt = new ModifyData {}
 
-  val user0: MutableUser = DBUtil.dummyUser()
-  val user1: MutableUser = DBUtil.dummyUser()
-  val user2: MutableUser = DBUtil.dummyUser()
-  val user3: MutableUser = DBUtil.dummyUser()
-  val user4: MutableUser = DBUtil.dummyUser()
-  val user5: MutableUser = DBUtil.dummyUser()
-  val user6: MutableUser = DBUtil.dummyUser()
-  val user7: MutableUser = DBUtil.dummyUser()
-  val user8: MutableUser = DBUtil.dummyUser()
-  val user9: MutableUser = DBUtil.dummyUser()
+  val user0: MutableUser = DbUtil.dummyUser()
+  val user1: MutableUser = DbUtil.dummyUser()
+  val user2: MutableUser = DbUtil.dummyUser()
+  val user3: MutableUser = DbUtil.dummyUser()
+  val user4: MutableUser = DbUtil.dummyUser()
+  val user5: MutableUser = DbUtil.dummyUser()
+  val user6: MutableUser = DbUtil.dummyUser()
+  val user7: MutableUser = DbUtil.dummyUser()
+  val user8: MutableUser = DbUtil.dummyUser()
+  val user9: MutableUser = DbUtil.dummyUser()
 
   val users = Seq(user0, user1, user2, user3, user4, user5, user6, user7, user8, user9)
 
@@ -82,9 +80,8 @@ class SelectUserTest extends DbTestBase(
   user8.lastlogin = LocalDateTime.parse("2000-01-01 12:08", formatter)
   user9.lastlogin = LocalDateTime.parse("2000-01-01 12:09", formatter)
 
-  override protected def beforeAll() {
-    super.beforeAll()
 
+  beforeFns += {db =>
     db.dataTrReadCommitted(mddt) {implicit dt =>
       users.foreach {user =>
         db.insert(user)
@@ -92,105 +89,91 @@ class SelectUserTest extends DbTestBase(
     }
   }
 
+  "Select for table \"user\"" should "retrieve all data" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      fetch())
+    assert(r sameElements users.map(_.email))
+  }
 
-  "Select for table \"user\"" should {
+  it should "retrieve data with boolean condition" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.active == true
+      fetch())
+    assert(r sameElements users.filter(_.active == true).map(_.email))
+  }
 
-    "retrieve all data" in {
-      val r = db.query(_.select(User.email)
-        from User
-        fetch())
-      r sameElements users.map(_.email)
-    }
+  it should "retrieve data with option boolean condition" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.verbose == true
+      fetch())
+    assert(r sameElements users.filter(_.verbose.getOrElse(false) == true).map(_.email))
+  }
 
-    "retrieve data with boolean condition" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.active == true
-        fetch())
-      r sameElements users.filter(_.active == true).map(_.email)
-    }
+  it should "retrieve data with option int condition" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.rating > 3
+      fetch())
+    assert(r sameElements users.filter(_.rating.getOrElse(-1) > 3).map(_.email))
+  }
 
-    "retrieve data with option boolean condition" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.verbose == true
-        fetch())
-      r sameElements users.filter(_.verbose.getOrElse(false) == true).map(_.email)
-    }
+  it should "retrieve data with time condition" in {db =>
+    val dateTime = LocalDateTime.parse("2000-01-01 12:04", formatter)
+    val r = db.query(_.select(User.email)
+      from User
+      where User.lastlogin > dateTime
+      fetch())
+    assert(r sameElements users.filter(_.lastlogin.isAfter(dateTime)).map(_.email))
+  }
 
-    "retrieve data with option boolean condition" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.verbose == true
-        fetch())
-      r sameElements users.filter(_.verbose.getOrElse(false) == true).map(_.email)
-    }
+  it should "support isNotNull" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.rating.isNotNull
+      fetch())
+    assert(r sameElements users.filter(_.rating.isDefined).map(_.email))
+  }
 
-    "retrieve data with option int condition" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.rating > 3
-        fetch())
-      r sameElements users.filter(_.rating.getOrElse(-1) > 3).map(_.email)
-    }
+  it should "support asc ordering by option filed" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.rating.isNotNull
+      orderBy User.rating.asc
+      fetch())
+    assert(r === users.flatMap(x => x.rating.map(r => x.email -> r)).sortBy(_._2).map(_._1))
+  }
 
-    "retrieve data with time condition" in {
-      val dateTime = LocalDateTime.parse("2000-01-01 12:04", formatter)
-      val r = db.query(_.select(User.email)
-        from User
-        where User.lastlogin > dateTime
-        fetch())
-      r sameElements users.filter(_.lastlogin.isAfter(dateTime)).map(_.email)
-    }
+  it should "support desc ordering by option filed" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.rating.isNotNull
+      orderBy User.rating.desc
+      fetch())
+    assert(r === users.flatMap(x => x.rating.map(r => x.email -> r)).sortBy(_._2).map(_._1).reverse)
+  }
 
-    "support isNotNull" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.rating.isNotNull
-        fetch())
-      r sameElements users.filter(_.rating.isDefined).map(_.email)
-    }
+  it should "support limit" in {db =>
+    val r1 = db.query(_.select(User.email)
+      from User
+      fetch())
+    assert(r1.size === 10)
 
-    "support asc ordering by option filed" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.rating.isNotNull
-        orderBy User.rating.asc
-        fetch())
-      r must_== users.flatMap(x => x.rating.map(r => x.email -> r)).sortBy(_._2).map(_._1)
-    }
+    val r2 = db.query(_.select(User.email)
+      from User
+      limit 5
+      fetch())
+    assert(r2.size === 5)
+  }
 
-    "support desc ordering by option filed" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.rating.isNotNull
-        orderBy User.rating.desc
-        fetch())
-      r must_== users.flatMap(x => x.rating.map(r => x.email -> r)).sortBy(_._2).map(_._1).reverse
-    }
-
-    "support limit" in {
-      val r1 = db.query(_.select(User.email)
-        from User
-        fetch())
-      r1.size must_== 10
-
-      val r2 = db.query(_.select(User.email)
-        from User
-        limit 5
-        fetch())
-      r2.size must_== 5
-    }
-
-    "support multiple conditions" in {
-      val r = db.query(_.select(User.email)
-        from User
-        where User.active == true && User.rating.isNotNull && User.rating > 3
-        orderBy User.rating.desc
-        fetch())
-      r must_== users.filter(x => x.active && x.rating.exists(r => r > 3)).sortBy(_.rating.get).map(_.email)
-    }
-
-
+  it should "support multiple conditions" in {db =>
+    val r = db.query(_.select(User.email)
+      from User
+      where User.active == true && User.rating.isNotNull && User.rating > 3
+      orderBy User.rating.desc
+      fetch())
+    assert(r === users.filter(x => x.active && x.rating.exists(r => r > 3)).sortBy(_.rating.get).map(_.email))
   }
 }
