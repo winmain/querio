@@ -1,12 +1,7 @@
 package query
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
-import model.db.table.{MutableUser, User}
-import org.json4s.jackson.JsonMethods
-import querio.ModifyData
-import test.{BaseScheme, DBUtil, DbTestBase}
+import model.db.table.User
+import test.{BaseScheme, DbTestBase}
 
 class AccessUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
@@ -14,7 +9,7 @@ class AccessUserTest extends DbTestBase(
 
   "Table \"user\"" should {
 
-    "support access when  empty" in new FreshDB{
+    "support access when  empty" in new FreshDB {
 
       val result1 = db.query(_.select(User.email)
         from User
@@ -22,7 +17,5 @@ class AccessUserTest extends DbTestBase(
         fetch())
       result1 must beEmpty
     }
-
-
   }
 }

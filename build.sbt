@@ -1,10 +1,10 @@
-import sbt.Keys.{scalaSource, _}
+import sbt.Keys.{libraryDependencies, scalaSource, _}
 
 // ------------------------------- Main projects -------------------------------
 
-val DefaultScalaVersion = "2.12.3"
+val DefaultScalaVersion = "2.12.6"
 
-crossScalaVersions := Seq("2.11.11", "2.12.3")
+crossScalaVersions := Seq("2.11.12", "2.12.6")
 scalaVersion := DefaultScalaVersion
 
 val scalaSettings = Seq(
@@ -25,7 +25,7 @@ val defaultProjectStructure = Seq(
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.7.1",
+  version := "0.7.0",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
@@ -38,13 +38,14 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25",
 
   // Optional dependencies
-  libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212" % "optional",
+  libraryDependencies += "org.postgresql" % "postgresql" % "42.2.2" % "optional",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.0" % "optional",
   libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.12" % "optional",
 
   // Test dependencies
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % "test",
+  libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1" % "test",
 
   // Deploy settings
   startYear := Some(2015),
@@ -58,9 +59,32 @@ val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scal
   sources in(Compile, doc) := Seq.empty
 )
 
+// ------------------------------- Main project -------------------------------
+
+lazy val main: Project = project.in(file(".")).settings(
+  publishArtifact := false,
+  genQuerioLibSourcesTask,
+  testAllTask,
+  // Наводим красоту в командной строке sbt
+  shellPrompt := {state: State => "[" + scala.Console.GREEN + "querio" + scala.Console.RESET + "] "}
+).dependsOn(querio).aggregate(querio)
+
+// ------------------------------- Querio project -------------------------------
+
+lazy val querio = Project("querio",
+  base = file("querio"),
+  settings = commonSettings
+).settings(
+  name := "querio",
+  description := "Scala ORM, DSL, and code generator for database queries"
+)
+
 // ------------------------------- Codegen project -------------------------------
 
-lazy val querioSelfCodegen = Project("querio-selfcodegen", base = file("selfcodegen"), settings = commonSettings).settings(
+lazy val querioSelfCodegen = Project("querio-selfcodegen",
+  base = file("selfcodegen"),
+  settings = commonSettings
+).settings(
   name := "querio-selfcodegen",
   // Disable packaging & publishing artifact
   Keys.`package` := file(""),
@@ -68,16 +92,6 @@ lazy val querioSelfCodegen = Project("querio-selfcodegen", base = file("selfcode
   publishLocal := {},
   publish := {},
   bintrayUnpublish := {}
-)
-
-// ------------------------------- Main project -------------------------------
-
-lazy val main: Project = Project("querio", base = file("."), settings = commonSettings).settings(
-  name := "querio",
-  description := "Scala ORM, DSL, and code generator for database queries",
-  genQuerioLibSourcesTask,
-  // Наводим красоту в командной строке sbt
-  shellPrompt := {state: State => "[" + scala.Console.GREEN + "querio" + scala.Console.RESET + "] "}
 )
 
 // ------------------------------- Test projects -------------------------------
@@ -94,23 +108,28 @@ val testH2Settings = scalaSettings ++ defaultProjectStructure ++ Seq(
 val testPostgreSQLSettings = scalaSettings ++ defaultProjectStructure ++ Seq(
   name := "querio-test-postgresql",
   version := "0.1",
-  libraryDependencies += "org.postgresql" % "postgresql" % "9.4.1212",
-  libraryDependencies += "org.json4s" % "json4s-jackson_2.10" % "3.3.0",
+  libraryDependencies += "org.postgresql" % "postgresql" % "42.2.2",
+  libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.4",
   libraryDependencies += "org.specs2" %% "specs2-core" % "3.8.8",
-  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.5.0"
+  libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.12.0",
+  libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1"
 )
 
-lazy val test_h2 = Project(id = "test-h2",
+lazy val testH2 = Project(id = "test-h2",
   base = file("test-h2"),
-  settings = testH2Settings).settings(
-  name := "test-h2"
-  ).dependsOn(main)
+  settings = testH2Settings
+).settings(
+  name := "test-h2",
+  genTestH2DbSourcesTask
+).dependsOn(querio)
 
-lazy val test_postgresql= Project(id = "test-postgresql",
+lazy val testPostgresql = Project(id = "test-postgresql",
   base = file("test-postgresql"),
-  settings = testPostgreSQLSettings).settings(
-  name := "test-postgresql"
-  ).dependsOn(main)
+  settings = testPostgreSQLSettings
+).settings(
+  name := "test-postgresql",
+  genTestPostgreSqlDbSourcesTask
+).dependsOn(querio)
 
 
 ///////////////////////  Tasks ///////////////////////////
@@ -131,7 +150,7 @@ lazy val genQuerioLibSourcesTask = genQuerioLibSources := {
     (dependencyClasspath in Compile in querioSelfCodegen).value.files :+
       (classDirectory in Runtime in querioSelfCodegen).value
   runScala(classPath, "querio.selfcodegen.SelfClassesGenerator",
-    Seq((scalaSource in Compile).value.absolutePath))
+    Seq((scalaSource in Compile in querio).value.absolutePath))
 }
 
 val genTestH2DbSources = TaskKey[Unit]("gen-test-h2-db-sources")
@@ -150,6 +169,14 @@ lazy val genTestPostgreSqlDbSourcesTask = genTestPostgreSqlDbSources := {
     (classDirectory in Runtime).value,
     "test.SourcesGenerator",
     Seq((scalaSource in Compile).value.absolutePath))
+}
+
+// Run all tests task
+
+val testAll = TaskKey[Unit]("test-all")
+lazy val testAllTask = testAll := {
+  val a = (test in Test in querio).value
+  val b = (test in Test in testPostgresql).value
 }
 
 /*

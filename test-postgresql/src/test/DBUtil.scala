@@ -25,11 +25,11 @@ object DBUtil {
     val level = new MutableLevel
     level.jsB = "{}"
     level.js = "{}"
-    level.userid = 0
+    level.userId = 0
     level.level = 0
     level.score = 0
     level.complete = false
-    level.createdat = LocalDateTime.now()
+    level.createdAt = LocalDateTime.now()
     level
   }
 

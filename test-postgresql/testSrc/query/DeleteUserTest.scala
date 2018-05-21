@@ -1,7 +1,5 @@
 package query
 
-import java.time.LocalDateTime
-
 import model.db.table.{MutableUser, User}
 import querio.ModifyData
 import test.{BaseScheme, DBUtil, DbTestBase}
@@ -10,9 +8,7 @@ class DeleteUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
   truncateSql = BaseScheme.truncateSql) {
 
-  val mddt = new ModifyData {
-    override def dateTime: LocalDateTime = LocalDateTime.now()
-  }
+  val mddt = new ModifyData {}
 
   "Table \"user\"" should {
 

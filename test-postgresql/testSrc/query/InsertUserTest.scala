@@ -10,9 +10,7 @@ class InsertUserTest extends DbTestBase(
   crateSchemaSql = BaseScheme.crateSql,
   truncateSql = BaseScheme.truncateSql) {
 
-  val mddt = new ModifyData {
-    override def dateTime: LocalDateTime = LocalDateTime.now()
-  }
+  val mddt = new ModifyData {}
 
   "Table \"user\"" should {
 

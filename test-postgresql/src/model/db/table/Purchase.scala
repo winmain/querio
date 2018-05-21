@@ -29,7 +29,7 @@ class Purchase(val id: Int,
                val level: Option[Int]) extends TableRecord {
   def _table = Purchase
   def _primaryKey: Int = id
-  def toMutable: MutablePurchase = { val m = new MutablePurchase; m.id = id; m.userid = userid; m.purchasecode = purchasecode; m.price = price; m.level = level; m }
+  def toMutable: MutablePurchase = {val m = new MutablePurchase; m.id = id; m.userid = userid; m.purchasecode = purchasecode; m.price = price; m.level = level; m}
 }
 
 
@@ -43,7 +43,7 @@ class MutablePurchase extends MutableTableRecord[Purchase] {
   def _table = Purchase
   def _primaryKey: Int = id
   def _setPrimaryKey($: Int): Unit = id = $
-  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = { if (withPrimaryKey) {Purchase.id.renderEscapedValue(id); buf ++ ", "}; Purchase.userid.renderEscapedValue(userid); buf ++ ", "; Purchase.purchasecode.renderEscapedValue(purchasecode); buf ++ ", "; Purchase.price.renderEscapedValue(price); buf ++ ", "; Purchase.level.renderEscapedValue(level); buf ++ ", "; buf del 2 }
-  def _renderChangedUpdate($: Purchase, $u: UpdateSetStep): Unit = { if (id != $.id) $u.set(Purchase.id := id); if (userid != $.userid) $u.set(Purchase.userid := userid); if (purchasecode != $.purchasecode) $u.set(Purchase.purchasecode := purchasecode); if (price != $.price) $u.set(Purchase.price := price); if (level != $.level) $u.set(Purchase.level := level); }
+  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {if (withPrimaryKey) {Purchase.id.renderV(id); buf ++ ", "}; Purchase.userid.renderV(userid); buf ++ ", "; Purchase.purchasecode.renderV(purchasecode); buf ++ ", "; Purchase.price.renderV(price); buf ++ ", "; Purchase.level.renderV(level); buf ++ ", "; buf del 2}
+  def _renderChangedUpdate($: Purchase, $u: UpdateSetStep): Unit = {Purchase.id.maybeUpdateSet($u, $.id, id); Purchase.userid.maybeUpdateSet($u, $.userid, userid); Purchase.purchasecode.maybeUpdateSet($u, $.purchasecode, purchasecode); Purchase.price.maybeUpdateSet($u, $.price, price); Purchase.level.maybeUpdateSet($u, $.level, level);}
   def toRecord: Purchase = new Purchase(id, userid, purchasecode, price, level)
 }

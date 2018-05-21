@@ -49,7 +49,7 @@ class User(val id: Int,
            val bytearraynullable: Option[Array[Byte]]) extends TableRecord {
   def _table = User
   def _primaryKey: Int = id
-  def toMutable: MutableUser = { val m = new MutableUser; m.id = id; m.email = email; m.passwordHash = passwordHash; m.active = active; m.rating = rating; m.verbose = verbose; m.jsB = jsB; m.js = js; m.jsBNullable = jsBNullable; m.jsNullable = jsNullable; m.lastlogin = lastlogin; m.bytearray = bytearray; m.bytearraynullable = bytearraynullable; m }
+  def toMutable: MutableUser = {val m = new MutableUser; m.id = id; m.email = email; m.passwordHash = passwordHash; m.active = active; m.rating = rating; m.verbose = verbose; m.jsB = jsB; m.js = js; m.jsBNullable = jsBNullable; m.jsNullable = jsNullable; m.lastlogin = lastlogin; m.bytearray = bytearray; m.bytearraynullable = bytearraynullable; m}
 }
 
 
@@ -65,13 +65,13 @@ class MutableUser extends MutableTableRecord[User] {
   var jsBNullable: Option[JValue] = None
   var jsNullable: Option[JValue] = None
   var lastlogin: LocalDateTime = _
-  var bytearray: Array[Byte] = _
+  var bytearray: Array[Byte] = Array.empty
   var bytearraynullable: Option[Array[Byte]] = None
 
   def _table = User
   def _primaryKey: Int = id
   def _setPrimaryKey($: Int): Unit = id = $
-  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = { if (withPrimaryKey) {User.id.renderEscapedValue(id); buf ++ ", "}; User.email.renderEscapedValue(email); buf ++ ", "; User.passwordHash.renderEscapedValue(passwordHash); buf ++ ", "; User.active.renderEscapedValue(active); buf ++ ", "; User.rating.renderEscapedValue(rating); buf ++ ", "; User.verbose.renderEscapedValue(verbose); buf ++ ", "; User.jsB.renderEscapedValue(jsB); buf ++ ", "; User.js.renderEscapedValue(js); buf ++ ", "; User.jsBNullable.renderEscapedValue(jsBNullable); buf ++ ", "; User.jsNullable.renderEscapedValue(jsNullable); buf ++ ", "; User.lastlogin.renderEscapedValue(lastlogin); buf ++ ", "; User.bytearray.renderEscapedValue(bytearray); buf ++ ", "; User.bytearraynullable.renderEscapedValue(bytearraynullable); buf ++ ", "; buf del 2 }
-  def _renderChangedUpdate($: User, $u: UpdateSetStep): Unit = { if (id != $.id) $u.set(User.id := id); if (email != $.email) $u.set(User.email := email); if (passwordHash != $.passwordHash) $u.set(User.passwordHash := passwordHash); if (active != $.active) $u.set(User.active := active); if (rating != $.rating) $u.set(User.rating := rating); if (verbose != $.verbose) $u.set(User.verbose := verbose); if (jsB != $.jsB) $u.set(User.jsB := jsB); if (js != $.js) $u.set(User.js := js); if (jsBNullable != $.jsBNullable) $u.set(User.jsBNullable := jsBNullable); if (jsNullable != $.jsNullable) $u.set(User.jsNullable := jsNullable); if (lastlogin != $.lastlogin) $u.set(User.lastlogin := lastlogin); if (bytearray != $.bytearray) $u.set(User.bytearray := bytearray); if (bytearraynullable != $.bytearraynullable) $u.set(User.bytearraynullable := bytearraynullable); }
+  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {if (withPrimaryKey) {User.id.renderV(id); buf ++ ", "}; User.email.renderV(email); buf ++ ", "; User.passwordHash.renderV(passwordHash); buf ++ ", "; User.active.renderV(active); buf ++ ", "; User.rating.renderV(rating); buf ++ ", "; User.verbose.renderV(verbose); buf ++ ", "; User.jsB.renderV(jsB); buf ++ ", "; User.js.renderV(js); buf ++ ", "; User.jsBNullable.renderV(jsBNullable); buf ++ ", "; User.jsNullable.renderV(jsNullable); buf ++ ", "; User.lastlogin.renderV(lastlogin); buf ++ ", "; User.bytearray.renderV(bytearray); buf ++ ", "; User.bytearraynullable.renderV(bytearraynullable); buf ++ ", "; buf del 2}
+  def _renderChangedUpdate($: User, $u: UpdateSetStep): Unit = {User.id.maybeUpdateSet($u, $.id, id); User.email.maybeUpdateSet($u, $.email, email); User.passwordHash.maybeUpdateSet($u, $.passwordHash, passwordHash); User.active.maybeUpdateSet($u, $.active, active); User.rating.maybeUpdateSet($u, $.rating, rating); User.verbose.maybeUpdateSet($u, $.verbose, verbose); User.jsB.maybeUpdateSet($u, $.jsB, jsB); User.js.maybeUpdateSet($u, $.js, js); User.jsBNullable.maybeUpdateSet($u, $.jsBNullable, jsBNullable); User.jsNullable.maybeUpdateSet($u, $.jsNullable, jsNullable); User.lastlogin.maybeUpdateSet($u, $.lastlogin, lastlogin); User.bytearray.maybeUpdateSet($u, $.bytearray, bytearray); User.bytearraynullable.maybeUpdateSet($u, $.bytearraynullable, bytearraynullable);}
   def toRecord: User = new User(id, email, passwordHash, active, rating, verbose, jsB, js, jsBNullable, jsNullable, lastlogin, bytearray, bytearraynullable)
 }
