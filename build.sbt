@@ -122,7 +122,8 @@ lazy val testPostgresql = Project(id = "test-postgresql",
   libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.4",
   libraryDependencies += "com.opentable.components" % "otj-pg-embedded" % "0.12.0",
   libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1",
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+  libraryDependencies += "com.beachape" %% "enumeratum" % "1.5.13"
 ).dependsOn(querio)
 
 
