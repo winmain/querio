@@ -1,5 +1,5 @@
 package model.db.common
-// querioVersion: 2
+// querioVersion: 3
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -10,7 +10,7 @@ import querio._
 import querio.json.JSON4SJsonFields
 import querio.postgresql.PGByteaFields
 
-class UserTable(alias: String) extends Table[User, MutableUser]("postgres", "user", alias, _escapeName = true) with JSON4SJsonFields[User, MutableUser] with PGByteaFields[User, MutableUser] {
+class UserTable(alias: String) extends Table[Int, User, MutableUser]("postgres", "user", alias, _escapeName = true) with JSON4SJsonFields[Int, User, MutableUser] with PGByteaFields[Int, User, MutableUser] {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
   val email = new String_TF(TFD("email", _.email, _.email, _.email = _))
   val passwordHash = new String_TF(TFD("password_hash", _.passwordHash, _.passwordHash, _.passwordHash = _))
@@ -46,14 +46,14 @@ class User(val id: Int,
            val jsNullable: Option[JValue],
            val lastlogin: LocalDateTime,
            val bytearray: Array[Byte],
-           val bytearraynullable: Option[Array[Byte]]) extends TableRecord {
+           val bytearraynullable: Option[Array[Byte]]) extends TableRecord[Int] {
   def _table = User
-  def _primaryKey: Int = id
+  def _primaryKey = id
   def toMutable: MutableUser = {val m = new MutableUser; m.id = id; m.email = email; m.passwordHash = passwordHash; m.active = active; m.rating = rating; m.verbose = verbose; m.jsB = jsB; m.js = js; m.jsBNullable = jsBNullable; m.jsNullable = jsNullable; m.lastlogin = lastlogin; m.bytearray = bytearray; m.bytearraynullable = bytearraynullable; m}
 }
 
 
-class MutableUser extends MutableTableRecord[User] {
+class MutableUser extends MutableTableRecord[Int, User] {
   var id: Int = _
   var email: String = _
   var passwordHash: String = _

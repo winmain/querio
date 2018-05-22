@@ -15,7 +15,7 @@ trait TestStubs {
 
   // ------------------------------- Test table -------------------------------
 
-  class ArticleTable(alias: String) extends Table[Article, MutableArticle]("db", "article", alias) {
+  class ArticleTable(alias: String) extends Table[Int, Article, MutableArticle]("db", "article", alias) {
     val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
     val vis = new Boolean_TF(TFD("vis", _.vis, _.vis, _.vis = _))
     val text = new String_TF(TFD("text", _.text, _.text, _.text = _))
@@ -30,9 +30,9 @@ trait TestStubs {
 
   class Article(val id: Int,
                 val vis: Boolean,
-                val text: String) extends TableRecord {
-    override def _table: AnyTable = Article
-    override def toMutable: AnyMutableTableRecord = {
+                val text: String) extends TableRecord[Int] {
+    override def _table: AnyPKTable[Int] = Article
+    override def toMutable: AnyPKMutableTableRecord[Int] = {
       val m = new MutableArticle
       m.id = id
       m.vis = vis
@@ -42,12 +42,12 @@ trait TestStubs {
     override def _primaryKey: Int = id
   }
 
-  class MutableArticle extends MutableTableRecord[Article] {
+  class MutableArticle extends MutableTableRecord[Int, Article] {
     var id: Int = _
     var vis: Boolean = _
     var text: String = _
 
-    override def _table: TrTable[Article] = Article
+    override def _table: TrTable[Int, Article] = Article
     override def _setPrimaryKey(key: Int): Unit = {id = key}
     override def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = ???
     override def _renderChangedUpdate(originalRecord: Article, updateSetStep: UpdateSetStep): Unit = ???

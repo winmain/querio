@@ -8,13 +8,13 @@ import scala.collection.mutable
  *
  * Обновлятор создаётся методом Table.createSubTableUpdater, и хранится, как правило, в самом объекте Table.
  */
-class SubTableUpdater[TR <: TableRecord, MTR <: MutableTableRecord[TR], V]
-(table: Table[TR, MTR], get: TR => V, create: (MTR, Int) => Any, update: (MTR, V) => Any)(implicit db: DbTrait) {
+class SubTableUpdater[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR], V]
+(table: Table[PK, TR, MTR], get: TR => V, create: (MTR, PK) => Any, update: (MTR, V) => Any)(implicit db: DbTrait) {
 
   /**
    * Обновить значения подтаблиц по заданному списку newValues.
    */
-  def update(parentId: Int, newValues: Set[V], maybeSubTableList: Option[SubTableList[TR, MTR]])(implicit dt: DataTr) {
+  def update(parentId: PK, newValues: Set[V], maybeSubTableList: Option[SubTableList[PK, TR, MTR]])(implicit dt: DataTr) {
     maybeSubTableList match {
       case Some(subTableList) =>
         val remainValues: mutable.Set[V] = newValues.to[mutable.Set]
@@ -50,7 +50,7 @@ class SubTableUpdater[TR <: TableRecord, MTR <: MutableTableRecord[TR], V]
   /**
    * Добавить новые значения
    */
-  protected def addNew(parentId: Int, values: Iterable[V])(implicit dt: DataTr) {
+  protected def addNew(parentId: PK, values: Iterable[V])(implicit dt: DataTr) {
     for (value <- values) {
       val mutableRecord = table._newMutableRecord
       create(mutableRecord, parentId)

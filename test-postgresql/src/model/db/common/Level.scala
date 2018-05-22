@@ -1,5 +1,5 @@
 package model.db.common
-// querioVersion: 2
+// querioVersion: 3
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -8,7 +8,7 @@ import model.db.PostgresSQLVendor
 import querio._
 import querio.json.JSON4SJsonFields
 
-class LevelTable(alias: String) extends Table[Level, MutableLevel]("postgres", "level", alias) with JSON4SJsonFields[Level, MutableLevel] {
+class LevelTable(alias: String) extends Table[Int, Level, MutableLevel]("postgres", "level", alias) with JSON4SJsonFields[Int, Level, MutableLevel] {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
   val jsB = new String_TF(TFD("js_b", _.jsB, _.jsB, _.jsB = _))
   val js = new String_TF(TFD("js", _.js, _.js, _.js = _))
@@ -34,14 +34,14 @@ class Level(val id: Int,
             val level: Int,
             val score: Int,
             val complete: Boolean,
-            val createdAt: LocalDateTime) extends TableRecord {
+            val createdAt: LocalDateTime) extends TableRecord[Int] {
   def _table = Level
-  def _primaryKey: Int = id
+  def _primaryKey = id
   def toMutable: MutableLevel = {val m = new MutableLevel; m.id = id; m.jsB = jsB; m.js = js; m.userId = userId; m.level = level; m.score = score; m.complete = complete; m.createdAt = createdAt; m}
 }
 
 
-class MutableLevel extends MutableTableRecord[Level] {
+class MutableLevel extends MutableTableRecord[Int, Level] {
   var id: Int = _
   var jsB: String = _
   var js: String = _

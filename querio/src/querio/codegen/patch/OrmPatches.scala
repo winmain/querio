@@ -4,11 +4,12 @@ import java.nio.file.{Files, Paths}
 import querio.vendor.Vendor
 
 class OrmPatches(val vendor: Vendor) {
-  val currentVersion = 2
+  val currentVersion = 3
 
   private def patch(lines: List[String], fromVersion: Int): List[String] = (fromVersion match {
     case 0 => OrmPatch0
     case 1 => OrmPatch1
+    case 2 => OrmPatch2
   }).patch(lines)
 
   // ------------------------------- Inner methods -------------------------------

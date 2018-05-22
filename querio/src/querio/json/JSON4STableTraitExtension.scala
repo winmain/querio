@@ -14,9 +14,7 @@ object JSON4STableTraitExtension extends TableTraitExtension {
   override def getPossibleExtendDef(data: TableGeneratorData): Set[ExtendDef] = Set(makeExtendDef(data))
 
 
-  def makeExtendDef(data: TableGeneratorData): ExtendDef = {
-    new ExtendDef("JSON4SJsonFields", s"[${data.tableClassName}, ${data.tableMutableName}]")
-  }
+  def makeExtendDef(data: TableGeneratorData): ExtendDef = data.toExtendDef("JSON4SJsonFields")
 
   def isExtensionRequired(data: TableGeneratorData): Boolean = {
     data.columns.exists { col =>

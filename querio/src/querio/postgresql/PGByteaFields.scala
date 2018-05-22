@@ -6,7 +6,7 @@ import querio._
 import querio.vendor.Vendor
 
 
-trait PGByteaFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+trait PGByteaFields[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]] {self: Table[PK, TR, MTR] =>
 
   class MyCustom_TF(tfd: TFD[Int]) extends SimpleTableField[Int](tfd) with IntField
   class Bytea_TF(tfd: TFD[Array[Byte]]) extends SimpleTableField[Array[Byte]](tfd) with ByteaField

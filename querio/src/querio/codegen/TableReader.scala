@@ -34,6 +34,9 @@ class TableReader(db: Vendor, lines: List[String]) {
   var constructorVarNames: Vector[String] = null
 
   var tableRecognized = false
+
+  var primaryKeyType: Option[String] = None
+
   var tableName: Option[String] = None
   var tableDefinition: Option[TableDef] = None
   var userTableLines = mutable.Buffer[String]()
@@ -42,13 +45,13 @@ class TableReader(db: Vendor, lines: List[String]) {
   var objectDefinition: Option[String] = None
   var userObjectLines = mutable.Buffer[String]()
 
-  var className: Option[String] = None
-  var classExtends: Option[String] = None
-  var userClassLines = mutable.Buffer[String]()
+  var trName: Option[String] = None
+  var trMoreExtends: Option[String] = None
+  var userTrLines = mutable.Buffer[String]()
 
-  var mutableName: Option[String] = None
-  var mutableDefinition: Option[String] = None
-  var userMutableLines = mutable.Buffer[String]()
+  var mtrName: Option[String] = None
+  var mtrMoreExtends: Option[String] = None
+  var userMtrLines = mutable.Buffer[String]()
 
   private def makeDefinition(s: String): Some[String] = {
     val line = s.trim
@@ -62,24 +65,25 @@ class TableReader(db: Vendor, lines: List[String]) {
     if (bodyAndAfter.nonEmpty) {
       val sp: Splitted = Utils.splitClassHeader(bodyAndAfter)
       sp.head match {
-        case tableR(name, tr, mtr, moreExtends) =>
+        case tableR(name, pk, tr, mtr, moreExtends) =>
           tableRecognized = true
           tableName = Some(name)
+          primaryKeyType = Some(pk)
           preTableLines = pre
-          tableDefinition = Some(TableDef(tr, mtr, moreExtends.trim))
+          tableDefinition = Some(TableDef(pk, tr, mtr, moreExtends.trim))
           readTable(sp.body)
           resolveBlocks(sp.after, Nil)
 
-        case classR(name) =>
-          className = Some(name)
+        case trClassR(name) =>
+          trName = Some(name)
           preClassLines = pre
-          readClass(sp.head, sp.body)
+          readTr(sp.head, sp.body)
           resolveBlocks(sp.after, Nil)
 
-        case mutableR(name) =>
-          mutableName = Some(name)
+        case mtrClassR(name) =>
+          mtrName = Some(name)
           preMutableLines = pre
-          readMutable(sp.head, sp.body)
+          readMtr(sp.head, sp.body)
           resolveBlocks(sp.after, Nil)
 
         case head =>
@@ -131,12 +135,12 @@ class TableReader(db: Vendor, lines: List[String]) {
     for (line <- classBody) userObjectLines += line
   }
 
-  // read class
-  def readClass(head: String, classBody: List[String]) {
+  // read TableRecord class
+  def readTr(head: String, classBody: List[String]) {
     require(tableRecognized, "Table class not recognized, " + head)
     require(constructorVarNames != null)
-    classExtends = head match {
-      case extendsR(ext) => Some(ext)
+    trMoreExtends = head match {
+      case trExtendsTableRecordR(ext) => Some(ext)
       case _ => None
     }
     // parse class header values
@@ -146,21 +150,21 @@ class TableReader(db: Vendor, lines: List[String]) {
         for ((line, idx) <- StringUtils.split("val" + splitted(1), '\n').zipWithIndex) {
           if (constructorVarNames.isDefinedAt(idx)) {
             line.trim match {
-              case classHeaderFieldR(gotName, scalaType) =>
+              case trHeaderFieldR(gotName, scalaType) =>
 //                val name: String = constructorVarNames(idx)
                 // name теперь получается из gotName, потому что был случай, когда я удалил поле
                 // из всех трёх классов (чтобы генератор заново создал его),
                 // а из-за этого последнее поле получалось нераспознанным.
                 val name = gotName
                 userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
-              case classHeaderPrivateFieldR(gotName, scalaType) =>
+              case trHeaderPrivateFieldR(gotName, scalaType) =>
 //                val name: String = constructorVarNames(idx)
                 val name = gotName
                 userColumnsByVarName.get(name).foreach {col =>
                   col.isPrivate = true
                   col.scalaType = scalaType.trim
                 }
-              case l => sys.error(s"Invalid definition for class ${className.getOrElse("[None]")}: $l")
+              case l => sys.error(s"Invalid definition for class ${trName.getOrElse("[None]")}: $l")
             }
           }
         }
@@ -169,37 +173,40 @@ class TableReader(db: Vendor, lines: List[String]) {
 
     // remove toMutable method and it's body
     val clearedClassBody: List[String] = {
-      val (before, inMutable) = classBody.span(s => !classToMutableBlockR.pattern.matcher(s.trim).matches())
+      val (before, inMutable) = classBody.span(s => !trToMutableBlockR.pattern.matcher(s.trim).matches())
       before ++ inMutable.dropWhile(_.trim != "}").drop(1)
     }
     for (line <- clearedClassBody) line.trim match {
-      case s if s.startsWith(classToMutableString) => ()
-      case classFieldR(_, scalaType, varName) =>
+      case s if s.startsWith(trToMutableString) => ()
+      case trFieldR(_, scalaType, varName) =>
         val name: String = varName.trim
         if (userColumnsByVarName.contains(name)) userColumnsByVarName(name).scalaType = scalaType.trim
-      case classTableR() | classPrimaryKeyR() => ()
-      case s => userClassLines += line
+      case trDefTableR() | trPrimaryKeyR() => ()
+      case s => userTrLines += line
     }
-    userClassLines = userClassLines.dropWhile(StringUtils.isBlank)
+    userTrLines = userTrLines.dropWhile(StringUtils.isBlank)
   }
 
-  // read mutable
-  def readMutable(head: String, classBody: List[String]) {
-    mutableDefinition = makeDefinition(head)
+  // read MutableTableRecord
+  def readMtr(head: String, classBody: List[String]) {
+    mtrMoreExtends = head match {
+      case mtrExtendsTableRecordR(ext) => Some(ext)
+      case _ => None
+    }
     // This flag is set only for the very first block containing field `vars`.
     // The flag resets on the first non-var statement.
     // This technique prevents removing non-field user-defined `vars` in mutable class (see issue #7)
     var inFieldDefinition = true
 
     for (line <- classBody) StringUtils.stripEnd(StringUtils.removeStart(line, "  "), " ") match {
-      case mutableFieldR() =>
-        if (!inFieldDefinition) userMutableLines += line
-      case mutableTableR() | mutablePrimaryKeyR() | mutableSetPrimaryKeyR() |
-           mutableRenderValuesR() | mutableRenderChangedUpdateR() | mutableToRecordR() =>
+      case mtrFieldR() =>
+        if (!inFieldDefinition) userMtrLines += line
+      case mtrDefTableR() | mtrPrimaryKeyR() | mtrSetPrimaryKeyR() |
+           mtrRenderValuesR() | mtrRenderChangedUpdateR() | mtrToRecordR() =>
         inFieldDefinition = false
-      case s => userMutableLines += line
+      case s => userMtrLines += line
     }
-    userMutableLines = userMutableLines.dropWhile(StringUtils.isBlank)
+    userMtrLines = userMtrLines.dropWhile(StringUtils.isBlank)
   }
 
   def trimEmptyLines(lines: List[String]): List[String] = lines.dropWhile(_.isEmpty)
@@ -207,15 +214,15 @@ class TableReader(db: Vendor, lines: List[String]) {
 
 object TableReader {
 
-  val extendsR = """(?s).*\) *(extends .*) *\{""".r
-
   val tableR =
     """(?xs)
     class\ +([^\ \[]+Table) # param1: name
     \(alias:\ *String\)     # (alias: String)
     \s+extends\ +Table      # extends Table
     \[                      # [
-    ([^,]+) ,\s* ([^\]]+)   # param2: TR, param3: MTR
+    ([^,]+) ,\s*            # param1: PK,
+    ([^,]+) ,\s*            # param2: TR
+    ([^\]]+)                # param3: MTR
     \]                      # ]
     \("[^"]+"\,             # (_fullTableName,
     \ *"[^"]+"\,            # _tableName,
@@ -248,10 +255,11 @@ object TableReader {
   val tableNewRecordR = """def +_newRecordFromResultSet\([^)]+\):.*?new [^\(]+\((.*)\)""".r
   val tableNewRecordGetValueR = """([\w\d$_]+)\.get(?:Table)?Value\(""".r
 
-  val classR = """(?s)class +([^ \[\(]+).*(?:extends|with) +TableRecord.*""".r
-  val classHeaderFieldR = """val +([^:]+): *(.+?)(?:,|\) +extends.*)""".r
-  val classHeaderPrivateFieldR = """_([^:]+): *(.+?)(?:,|\) +extends.*)""".r
-  val classFieldR =
+  val trClassR = """(?s)class +([^ \[\(]+).*(?:extends|with) +TableRecord\b.*""".r
+  val trExtendsTableRecordR = """(?s).*\) *extends +TableRecord\[[^\]]+\](.*) *\{""".r
+  val trHeaderFieldR = """val +([^:]+): *(.+?)(?:,|\) +extends.*)""".r
+  val trHeaderPrivateFieldR = """_([^:]+): *(.+?)(?:,|\) +extends.*)""".r
+  val trFieldR =
     """(?x)
     val\ +([^:]+)       # ignore val name
     :\ *(.+?)           # param: scalaType
@@ -259,17 +267,18 @@ object TableReader {
     ([^\ \.]+)          # param: varName
     \.getValue\(rs\)
     """.r
-  val classTableR = "def +_table *=.*".r
-  val classPrimaryKeyR = """def +_primaryKey *: *Int *=.*""".r
-  val classToMutableString = "def toMutable:"
-  val classToMutableBlockR = """def +toMutable:.*= *\{""".r
+  val trDefTableR = "def +_table *=.*".r
+  val trPrimaryKeyR = """def +_primaryKey\b.*=.*""".r
+  val trToMutableString = "def toMutable:"
+  val trToMutableBlockR = """def +toMutable:.*= *\{""".r
 
-  val mutableR = """(?s)class +([^ \[]+).*extends +MutableTableRecord.*""".r
-  val mutableFieldR = "var .*".r
-  val mutableTableR = "def +_table *=.*".r
-  val mutablePrimaryKeyR = "def +_primaryKey *:.*".r
-  val mutableSetPrimaryKeyR = "def +_setPrimaryKey *\\(.*".r
-  val mutableRenderValuesR = """def +_renderValues *\( *withPrimaryKey *: *Boolean.*""".r
-  val mutableRenderChangedUpdateR = """def +_renderChangedUpdate *\(.*""".r
-  val mutableToRecordR = """def +toRecord *:.*""".r
+  val mtrClassR = """(?s)class +([^ \[]+).*extends +MutableTableRecord\b.*""".r
+  val mtrExtendsTableRecordR = """.*\bextends +MutableTableRecord\[[^\]]+\](.*) *\{""".r
+  val mtrFieldR = "var .*".r
+  val mtrDefTableR = "def +_table *=.*".r
+  val mtrPrimaryKeyR = "def +_primaryKey\\b.*".r
+  val mtrSetPrimaryKeyR = "def +_setPrimaryKey *\\(.*".r
+  val mtrRenderValuesR = """def +_renderValues *\( *withPrimaryKey *: *Boolean.*""".r
+  val mtrRenderChangedUpdateR = """def +_renderChangedUpdate *\(.*""".r
+  val mtrToRecordR = """def +toRecord *:.*""".r
 }

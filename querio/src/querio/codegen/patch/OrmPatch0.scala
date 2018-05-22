@@ -5,8 +5,8 @@ import querio.codegen.Utils.Splitted
 import scala.annotation.tailrec
 
 /**
- * Разделяем объекты таблиц на класс таблицы и объект, его наследующий
- */
+  * Разделяем объекты таблиц на класс таблицы и объект, его наследующий
+  */
 object OrmPatch0 extends OrmPatch {
   override def patch(original: List[String]): List[String] = {
     @tailrec def process(prepend: List[String], lines: List[String]): List[String] = lines match {

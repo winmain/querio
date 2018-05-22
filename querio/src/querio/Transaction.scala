@@ -18,12 +18,12 @@ trait Transaction extends Conn {
   protected val modifyQueries = mutable.Buffer[String]()
 
   /** Добавить информацию о том, что создана новая запись. Эта информация используется для обновления кешей. */
-  protected def addInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit = {}
-  private[querio] def querioAddInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit = addInsertChange(record, newId)
+  protected def addInsertChange[PK](record: AnyPKMutableTableRecord[PK], newId: Option[PK]): Unit = {}
+  private[querio] def querioAddInsertChange[PK](record: AnyPKMutableTableRecord[PK], newId: Option[PK]): Unit = addInsertChange[PK](record, newId)
 
   /** Добавить информацию о том, что запись обновлена или удалена. Эта информация используется для обновления кешей. */
-  protected def addUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit = {}
-  private[querio] def querioAddUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit = addUpdateDeleteChange(table, id, change)
+  protected def addUpdateDeleteChange[PK](table: AnyPKTable[PK], id: PK, change: TrRecordChange): Unit = {}
+  private[querio] def querioAddUpdateDeleteChange[PK](table: AnyPKTable[PK], id: PK, change: TrRecordChange): Unit = addUpdateDeleteChange[PK](table, id, change)
 
   /** Продублировать выполненный sql-запрос модификации данных.
     * Это нужно для того, чтобы перезапустить транзакцию в случае ошибки БД sql deadlock. */
@@ -46,22 +46,22 @@ trait CacheRespectingTransaction extends Transaction {
   /**
    * Накопленные изменения
    */
-  protected val changes = new mutable.OpenHashMap[AnyTable, IntMap[TrRecordChange]]
+  protected val changes = new mutable.OpenHashMap[AnyTable, mutable.Map[Any, TrRecordChange]]
 
-  protected def addChange(table: AnyTable, id: Int, mtr: TrRecordChange): Unit = {
+  protected def addChange(table: AnyTable, id: Any, mtr: TrRecordChange): Unit = {
     changes.get(table) match {
       case Some(records) => changes.put(table, records.updated(id, mtr))
-      case None => changes.put(table, IntMap(id -> mtr))
+      case None => changes.put(table, mutable.Map(id -> mtr))
     }
   }
 
   /** Добавить информацию о том, что создана новая запись. Эта информация используется для обновления кешей. */
-  override protected[querio] def addInsertChange(record: AnyMutableTableRecord, newId: Option[Int]): Unit = {
+  override protected[querio] def addInsertChange[PK](record: AnyPKMutableTableRecord[PK], newId: Option[PK]): Unit = {
     newId.foreach(id => addChange(record._table, id, TrSomeChange(record)))
   }
 
   /** Добавить информацию о том, что запись обновлена или удалена. Эта информация используется для обновления кешей. */
-  override protected[querio] def addUpdateDeleteChange(table: AnyTable, id: Int, change: TrRecordChange): Unit = {
+  override protected[querio] def addUpdateDeleteChange[PK](table: AnyPKTable[PK], id: PK, change: TrRecordChange): Unit = {
     addChange(table, id, change)
   }
 
@@ -89,7 +89,7 @@ trait CacheRespectingTransaction extends Transaction {
 
   // ------------------------------- Abstract methods -------------------------------
 
-  protected def resetRecordCache(table: AnyTable, id: Int, change: TrRecordChange)
+  protected def resetRecordCache(table: AnyTable, id: Any, change: TrRecordChange)
 }
 
 

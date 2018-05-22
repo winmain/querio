@@ -8,6 +8,8 @@ import test.DbFunSpec
 class AggregateFunTest extends DbFunSpec(schemaSql = Resources.commonSchema) {
 
   test("count on empty table should return 0") {db =>
+    db.findById(User, 333)
+
     val result = db.query(_ select Fun.count from User fetchOne())
     assert(result === Some(0))
   }

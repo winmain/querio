@@ -21,8 +21,8 @@ object SourcesGenerator extends SQLUtil {
         pkg = "model.db.common",
         tableListClass = "model.db.CommonTables",
         dir = dir,
-        noRead = false,
-        isDefaultDatabase = true).generateDb()
+        isDefaultDatabase = true
+      ).generateDb()
     }
     pg.close()
   }

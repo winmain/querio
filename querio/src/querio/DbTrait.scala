@@ -1,8 +1,8 @@
 package querio
 import java.lang.StringBuilder
 import java.sql.{Connection, SQLException}
-import javax.annotation.Nullable
 
+import javax.annotation.Nullable
 import org.slf4j.{Logger, LoggerFactory}
 import querio.vendor.{MysqlVendor, PostgreSQLVendor, Vendor}
 
@@ -200,31 +200,31 @@ trait DbTrait {
 
   // ------------------------------- Modification methods -------------------------------
 
-  def insert(record: AnyMutableTableRecord)(implicit dt: DataTr): Option[Int] = {
+  def insert[PK](record: AnyPKMutableTableRecord[PK])(implicit dt: DataTr): Option[PK] = {
     newQuery(dt).insert(record)
   }
 
-  def insertRaw(record: AnyMutableTableRecord)(implicit conn: Conn): Option[Int] = {
+  def insertRaw[PK](record: AnyPKMutableTableRecord[PK])(implicit conn: Conn): Option[PK] = {
     newQuery(conn).insertRaw(record)
   }
 
-  def delete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord] = None)(implicit dt: DataTr): Int = {
+  def delete[PK](table: AnyPKTable[PK], id: PK, mtrOpt: Option[AnyPKMutableTableRecord[PK]] = None)(implicit dt: DataTr): Int = {
     newQuery(dt).delete(table, id, mtrOpt)
   }
 
-  def deleteRaw(table: AnyTable, id: Int)(implicit tr: Transaction): Int = {
+  def deleteRaw[PK](table: AnyPKTable[PK], id: PK)(implicit tr: Transaction): Int = {
     newQuery(tr).deleteRaw(table) where table._primaryKey.get == id execute()
   }
 
   /** Удалить запись и все её подтаблицы */
-  def deleteFull(record: TableRecord)(implicit dt: DataTr): Int = {
+  def deleteFull[PK](record: TableRecord[PK])(implicit dt: DataTr): Int = {
     record._subTables.foreach(_.delete())
-    delete(record._table, record._primaryKey, Some(record.toMutable))
+    delete[PK](record._table, record._primaryKey, Some(record.toMutable))
   }
 
-  def deleteByCondition(table: AnyTable, cond: Condition)(implicit dt: DataTr): Vector[Int] = {
-    val ids: Vector[Int] = newQuery(dt) select table._primaryKey.get from table where cond fetch()
-    ids.foreach(delete(table, _))
+  def deleteByCondition[PK](table: AnyPKTable[PK], cond: Condition)(implicit dt: DataTr): Vector[PK] = {
+    val ids: Vector[PK] = newQuery(dt) select table._primaryKey.get from table where cond fetch()
+    ids.foreach(delete[PK](table, _))
     ids
   }
 
@@ -232,30 +232,34 @@ trait DbTrait {
     newQuery(tr).deleteRaw(table) where cond execute()
   }
 
-  def deleteByField[T](field: AnyTable#Field[T, _], value: T)(implicit dt: DataTr): Vector[Int] = {
-    deleteByCondition(field.table, field == value)
+  def deleteByField[PK, T](field: AnyPKTable[PK]#Field[T, _], value: T)(implicit dt: DataTr): Vector[PK] = {
+    deleteByCondition[PK](field.table, field == value)
   }
 
   def deleteByFieldRaw[T](field: AnyTable#Field[T, _], value: T)(implicit tr: Transaction): Int = {
     deleteByConditionRaw(field.table, field == value)
   }
 
-  def deleteWithSubTables(table: AnyTable, cond: Condition)(subTableFields: AnyTable#Field[Int, _]*)(implicit dt: DataTr): Vector[Int] = {
-    val ids: Vector[Int] = newQuery(dt) select table._primaryKey.get from table where cond fetch()
+  def deleteWithSubTables[PK](table: AnyPKTable[PK], cond: Condition)
+                             (subTableFields: AnyPKTable[PK]#Field[PK, _]*)(implicit dt: DataTr): Vector[PK] = {
+    val ids: Vector[PK] = newQuery(dt) select table._primaryKey.get from table where cond fetch()
     subTableFields.foreach(field => deleteByCondition(field.table, field.in(ids)))
     ids.foreach(delete(table, _))
     ids
   }
 
-  def deleteWithSubTablesRaw(table: AnyTable, cond: Condition)(subTableFields: AnyTable#Field[Int, _]*)(implicit tr: Transaction): Vector[Int] = {
-    val ids: Vector[Int] = newQuery(tr) select table._primaryKey.get from table where cond fetch()
+  def deleteWithSubTablesRaw[PK](table: AnyPKTable[PK], cond: Condition)
+                                (subTableFields: AnyPKTable[PK]#Field[PK, _]*)(implicit tr: Transaction): Vector[PK] = {
+    val ids: Vector[PK] = newQuery(tr) select table._primaryKey.get from table where cond fetch()
     subTableFields.foreach(field => deleteByConditionRaw(field.table, field.in(ids)))
     ids.foreach(deleteRaw(table, _))
     ids
   }
 
   /** Выполнить update только для изменившихся полей. */
-  def updateChanged[TR <: TableRecord](originalRecord: TR, record: MutableTableRecord[TR])(implicit dt: DataTr): Unit = {
+  def updateChanged[PK, TR <: TableRecord[PK]](originalRecord: TR,
+                                               record: MutableTableRecord[PK, TR])
+                                              (implicit dt: DataTr): Unit = {
     val update: UpdateSetStep = newQuery(dt).update(record._table, originalRecord._primaryKey)
     record.validateOrFail
     record._renderChangedUpdate(originalRecord, update)
@@ -263,7 +267,8 @@ trait DbTrait {
   }
 
   /** Do update if original record defined, otherwise do insert */
-  def updateOrInsert[TR <: TableRecord, MTR <: MutableTableRecord[TR]](maybeOriginalRecord: Option[TR], record: MTR)(implicit dt: DataTr): Unit = {
+  def updateOrInsert[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]](maybeOriginalRecord: Option[TR],
+                                                                                   record: MTR)(implicit dt: DataTr): Unit = {
     maybeOriginalRecord match {
       case Some(original) => updateChanged(original, record)
       case None => insert(record)
@@ -271,7 +276,8 @@ trait DbTrait {
   }
 
   /** Выполнить update только для изменившихся полей внутри патча. */
-  def updateRecordPatch[TR <: TableRecord, MTR <: MutableTableRecord[TR]](table: Table[TR, MTR], record: TR)(patch: MTR => Any)(implicit dt: DataTr): MTR = {
+  def updateRecordPatch[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]](table: Table[PK, TR, MTR],
+                                                                                      record: TR)(patch: MTR => Any)(implicit dt: DataTr): MTR = {
     val update: UpdateSetStep = newQuery(dt).update(table, record._primaryKey)
     val mtr: MTR = record.toMutable.asInstanceOf[MTR]
     patch(mtr)
@@ -282,8 +288,9 @@ trait DbTrait {
   }
 
   /** Выбрать одну запись, пропатчить её через MutableTableRecord, и сохранить */
-  def updatePatchOne[TR <: TableRecord, MTR <: MutableTableRecord[TR]](table: Table[TR, MTR], selectCondition: Condition)
-                                                                      (patch: MTR => Any)(implicit dt: DataTr): Boolean = {
+  def updatePatchOne[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]](table: Table[PK, TR, MTR],
+                                                                                   selectCondition: Condition)
+                                                                                  (patch: MTR => Any)(implicit dt: DataTr): Boolean = {
     newQuery(dt).select(table).from(table).where(selectCondition).fetchOne().fold(false) {record =>
       val mtr: MTR = record.toMutable.asInstanceOf[MTR]
       patch(mtr)
@@ -293,13 +300,15 @@ trait DbTrait {
   }
 
   /** Выбрать запись, пропатчить её через MutableTableRecord, и сохранить */
-  def updatePatchOne[TR <: TableRecord, MTR <: MutableTableRecord[TR]](table: Table[TR, MTR], id: Int)
-                                                                      (patch: MTR => Any)(implicit dt: DataTr): Boolean =
+  def updatePatchOne[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]](table: Table[PK, TR, MTR],
+                                                                                   id: PK)
+                                                                                  (patch: MTR => Any)(implicit dt: DataTr): Boolean =
     updatePatchOne(table, table._primaryKey.get == id)(patch)
 
   /** Выбрать несколько записей, пропатчить их через MutableTableRecord, и сохранить */
-  def updatePatchAll[TR <: TableRecord, MTR <: MutableTableRecord[TR]](table: Table[TR, MTR], selectCondition: Condition)
-                                                                      (patch: MTR => Any)(implicit dt: DataTr): Int = {
+  def updatePatchAll[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]](table: Table[PK, TR, MTR],
+                                                                                   selectCondition: Condition)
+                                                                                  (patch: MTR => Any)(implicit dt: DataTr): Int = {
     var count = 0
     newQuery(dt).select(table).from(table).where(selectCondition).fetch().foreach {record =>
       val mtr: MTR = record.toMutable.asInstanceOf[MTR]
@@ -353,48 +362,48 @@ trait DbTrait {
 
   // --- queryAll
 
-  def queryAll[TR <: TableRecord](table: TrTable[TR]): Vector[TR] = query(_ select table from table fetch())
+  def queryAll[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR]): Vector[TR] = query(_ select table from table fetch())
 
   // --- *ById*
 
-  def findById[TR <: TableRecord](table: TrTable[TR], id: Int): Option[TR] =
+  def findById[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], id: PK): Option[TR] =
     query(_.findById(table, id))
 
-  def queryByIds[TR <: TableRecord](table: TrTable[TR], ids: Iterable[Int]): Vector[TR] = {
+  def queryByIds[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], ids: Iterable[PK]): Vector[TR] = {
     val pk = table._primaryKey.get
     query(_ select table from table where pk.in(ids) orderBy pk.desc fetch())
   }
 
-  def existsById[TR <: TableRecord](table: TrTable[TR], id: Int): Boolean =
+  def existsById[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], id: PK): Boolean =
     query(_.selectExists from table where table._primaryKey.get == id fetchExists())
 
   // --- existsBy*
 
-  def existsByCondition[TR <: TableRecord, A](table: TrTable[TR], cond: Condition): Boolean =
+  def existsByCondition[PK, TR <: TableRecord[PK], A](table: TrTable[PK, TR], cond: Condition): Boolean =
     query(_.selectExists from table where cond fetchExists())
 
-  def existsByField[TR <: TableRecord, A](field: TrTable[TR]#Field[A, _], value: A): Boolean =
+  def existsByField[PK, TR <: TableRecord[PK], A](field: TrTable[PK, TR]#Field[A, _], value: A): Boolean =
     existsByCondition(field.table, field == value)
 
   // --- countBy*
 
-  def countByCondition[TR <: TableRecord, A](table: TrTable[TR], cond: Condition): Int =
+  def countByCondition[PK, TR <: TableRecord[PK], A](table: TrTable[PK, TR], cond: Condition): Int =
     query(_.select(Fun.count) from table where cond fetchOne()).get
 
   // --- findBy*
 
-  def findByCondition[TR <: TableRecord](table: TrTable[TR], cond: Condition): Option[TR] =
+  def findByCondition[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], cond: Condition): Option[TR] =
     query(_ select table from table where cond fetchOne())
 
-  def findByField[TR <: TableRecord, A](field: TrTable[TR]#Field[A, _], value: A): Option[TR] =
+  def findByField[PK, TR <: TableRecord[PK], A](field: TrTable[PK, TR]#Field[A, _], value: A): Option[TR] =
     findByCondition(field.table, field == value)
 
   // --- queryBy*
 
-  def queryByCondition[TR <: TableRecord](table: TrTable[TR], cond: Condition): Vector[TR] =
+  def queryByCondition[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], cond: Condition): Vector[TR] =
     query(_ select table from table where cond fetch())
 
-  def queryByField[TR <: TableRecord, A](field: TrTable[TR]#Field[A, _], value: A): Vector[TR] =
+  def queryByField[PK, TR <: TableRecord[PK], A](field: TrTable[PK, TR]#Field[A, _], value: A): Vector[TR] =
     queryByCondition(field.table, field == value)
 
   // ------------------------------- Utility methods -------------------------------

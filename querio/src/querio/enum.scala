@@ -151,7 +151,7 @@ trait WeakArrayStringEnumField[EE <: StringEnumEntry, V] extends ArrayStringEnum
 
 // ------------------------------- Table fields -------------------------------
 
-trait EnumeratumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+trait EnumeratumTableFields[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]] {self: Table[PK, TR, MTR] =>
 
   // ---------------------- Int Enum ----------------------
   class EnumInt_TF[EE <: IntEnumEntry](val enum: IntEnum[EE])(tfd: TFD[EE]) extends SimpleTableField[EE](tfd) with EnumIntEl[EE]

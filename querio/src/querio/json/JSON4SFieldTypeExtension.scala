@@ -2,7 +2,7 @@ package querio.json
 import querio.codegen.{FieldType, FieldTypeExtension}
 
 object JSON4SFieldTypeExtension extends FieldTypeExtension {
-  type T = JSON4SJsonFields[_, _]
+  type T = JSON4SJsonFields[_, _, _]
 
   val commonJson = FieldType.ft("org.json4s.JsonAST.JValue", classOf[T#Json_J4S_TF], classOf[T#OptionJson_J4S_TF])
   val pgJson = FieldType.ft("org.json4s.JsonAST.JValue", classOf[T#Json_PG_J4S_TF], classOf[T#OptionJson_PG_J4S_TF])

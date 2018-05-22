@@ -5,46 +5,46 @@ import javax.annotation.Nullable
  * Запись таблицы, прочитанная из БД.
  * Запись неизменяемая, служит только для чтения.
  */
-trait TableRecord {
+trait TableRecord[PK] {
   /**
    * Таблица этой записи.
    */
-  def _table: AnyTable
+  def _table: AnyPKTable[PK]
 
   /**
    * Величина primaryKey, либо 0 если у таблицы нет integer primary key
    */
-  def _primaryKey: Int
+  def _primaryKey: PK
 
   /**
    * Список всех подтаблиц. Задаётся вручную (т.е., TableGenerator не создаёт это поле)
    */
-  def _subTables: Vector[AnySubTableList] = Vector.empty
+  def _subTables: Vector[AnySubTableList[PK]] = Vector.empty
 
   /**
    * Создаёт изменяемую копию этой записи.
    */
-  def toMutable: AnyMutableTableRecord
+  def toMutable: AnyPKMutableTableRecord[PK]
 }
 
 /**
  * Изменяемая запись таблицы. Служит для добавления и обновления записей.
  */
-trait MutableTableRecord[R <: TableRecord] {
+trait MutableTableRecord[PK, R <: TableRecord[PK]] {
   /**
    * Таблица этой записи. Нужна, например, для создания insert запросов.
    */
-  def _table: TrTable[R]
+  def _table: TrTable[PK, R]
 
   /**
    * Величина primaryKey, либо 0 если у таблицы нет integer primary key
    */
-  def _primaryKey: Int
+  def _primaryKey: PK
 
   /**
    * Установить новое значение primaryKey. Если у таблицы нет integer primary key, то метод ничего не делает.
    */
-  def _setPrimaryKey(key: Int): Unit
+  def _setPrimaryKey(key: PK): Unit
 
   /**
    * Отрисовать все значения для sql запроса через запятую. Используется при создании insert запроса.

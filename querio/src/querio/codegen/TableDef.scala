@@ -1,6 +1,9 @@
 package querio.codegen
 
-case class TableDef(tableName: String, mutableTableName: String, moreExtends: String = "") {
+case class TableDef(primaryKeyType: String,
+                    tableName: String,
+                    mutableTableName: String,
+                    moreExtends: String = "") {
   val extendDefs: Seq[ExtendDef] = TableDef.extendStrToDefs(moreExtends)
 }
 

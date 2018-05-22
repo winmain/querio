@@ -1,7 +1,7 @@
 package querio
 
-case class SubTableList[TR <: TableRecord, MTR <: MutableTableRecord[TR]]
-(field: Table[TR, MTR]#Field[Int, Int], value: Int)(implicit db: DbTrait) {
+case class SubTableList[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]]
+(field: Table[PK, TR, MTR]#Field[PK, PK], value: PK)(implicit db: DbTrait) {
 
   private var _items: Vector[TR] = null
 
@@ -16,13 +16,13 @@ case class SubTableList[TR <: TableRecord, MTR <: MutableTableRecord[TR]]
     _items = items
   }
 
-  def queryRecords(fieldValues: Iterable[Int], iterator: Iterator[TR] => Unit) {
+  def queryRecords(fieldValues: Iterable[PK], iterator: Iterator[TR] => Unit) {
     db.query(_ select field.table from field.table where field.in(fieldValues) fetchLazy(iterator, 100))
   }
 
   /**
-   * Удалить все записи подтаблиц
-   */
+    * Удалить все записи подтаблиц
+    */
   def delete()(implicit dt: DataTr) {
     db.deleteByField(field, value)
   }

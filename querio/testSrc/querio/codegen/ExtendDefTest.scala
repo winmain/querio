@@ -7,7 +7,7 @@ class ExtendDefTest extends FlatSpec with Matchers {
 
   def toTableDef(str: String): TableDef = {
     str match {
-      case TableReader.tableR(_, tr, mtr, moreExtends) => TableDef(tr, mtr, moreExtends.trim)
+      case TableReader.tableR(_, pk, tr, mtr, moreExtends) => TableDef(pk, tr, mtr, moreExtends.trim)
       case _ => throw new RuntimeException("Invalid string")
     }
   }
@@ -18,23 +18,23 @@ class ExtendDefTest extends FlatSpec with Matchers {
     str should be(testComplex._2)
   }
 
-  val levelWithoutTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Level, MutableLevel](\"postgres\", \"level\", alias, false, false) ", "with JSON4SJsonFields[Level, MutableLevel] with PGByteaFields[Level, MutableLevel]", "{")
-  val levelWithOneTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Level, MutableLevel](\"postgres\", \"level\", alias, false, false) ", "with JSON4SJsonFields[Level, MutableLevel]", "{")
-  val levelWithTwoTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Level, MutableLevel](\"postgres\", \"level\", alias, false, false)", "", "{")
+  val levelWithoutTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Int, Level, MutableLevel](\"postgres\", \"level\", alias, false, false) ", "with JSON4SJsonFields[Int, Level, MutableLevel] with PGByteaFields[Int, Level, MutableLevel]", "{")
+  val levelWithOneTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Long, Level, MutableLevel](\"postgres\", \"level\", alias, false, false) ", "with JSON4SJsonFields[Long, Level, MutableLevel]", "{")
+  val levelWithTwoTrait: (String, String, String) = ("class LevelTable(alias: String) extends Table[Unit, Level, MutableLevel](\"postgres\", \"level\", alias, false, false)", "", "{")
 
-  "ExtendDef" should "store and reconstruct without diferences in same format. Case 1" in {
+  "ExtendDef" should "store and reconstruct without differences in same format. Case 1" in {
     val testComplex: (String, String, String) = levelWithOneTrait
     test(testComplex)
 
   }
 
-  "ExtendDef" should "store and reconstruct without diferences in same format. Case 2" in {
+  "ExtendDef" should "store and reconstruct without differences in same format. Case 2" in {
     val testComplex: (String, String, String) = levelWithTwoTrait
     test(testComplex)
 
   }
 
-  "ExtendDef" should "store and reconstruct without diferences in same format. Case 3" in {
+  "ExtendDef" should "store and reconstruct without differences in same format. Case 3" in {
     val testComplex: (String, String, String) = levelWithoutTrait
     test(testComplex)
   }

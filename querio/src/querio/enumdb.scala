@@ -58,7 +58,7 @@ trait ScalaDbEnumStringEl[E <: ScalaDbEnumCls[E]] extends El[E, E] with BaseStri
 
 // ------------------------------- Table fields -------------------------------
 
-trait DbEnumTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+trait DbEnumTableFields[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]] {self: Table[PK, TR, MTR] =>
 
   // ---------------------- Int Enum ----------------------
   class DbEnumInt_TF[E <: DbEnum](val enum: E)(tfd: TFD[E#V]) extends SimpleTableField[E#V](tfd) with DbEnumIntEl[E]

@@ -1,22 +1,22 @@
 package querio
 
-import java.sql.Statement
+import java.sql.{ResultSet, Statement}
 
 import querio.utils.IterableTools.wrapIterable
 
 trait EssentialModifyTrait extends SqlQuery {
 
-  def insert(record: AnyMutableTableRecord)(implicit dt: DataTr): Option[Int] = _insert(record, Some(dt.md), Some(dt), dt.logSql)
+  def insert[PK](record: AnyPKMutableTableRecord[PK])(implicit dt: DataTr): Option[PK] = _insert(record, Some(dt.md), Some(dt), dt.logSql)
 
-  def insertRaw(record: AnyMutableTableRecord): Option[Int] = _insert(record, None, None, logSql = false)
+  def insertRaw[PK](record: AnyPKMutableTableRecord[PK]): Option[PK] = _insert(record, None, None, logSql = false)
 
-  def multiInsertRaw[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean = false): MultiInsertRawStep[TR] = {
+  def multiInsertRaw[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], withPrimaryKey: Boolean = false): MultiInsertRawStep[PK, TR] = {
     printInsertInto(table, withPrimaryKey = withPrimaryKey)
     buf ++ " values"
-    multipleInsertRawBuilder[TR](table, withPrimaryKey = withPrimaryKey)
+    multipleInsertRawBuilder[PK, TR](table, withPrimaryKey = withPrimaryKey)
   }
 
-  def update(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep = {
+  def update[PK](table: AnyPKTable[PK], id: PK)(implicit dt: DataTr): UpdateSetStep = {
     buf ++ "update " ++ table._aliasName
     updateBuilder(table, id)
   }
@@ -26,12 +26,13 @@ trait EssentialModifyTrait extends SqlQuery {
     updateRawBuilder()
   }
 
-  def update(record: TableRecord)(implicit dt: DataTr): UpdateSetStep = update(record._table, record._primaryKey)
+  def update[PK](record: TableRecord[PK])(implicit dt: DataTr): UpdateSetStep = update[PK](record._table, record._primaryKey)
 
-  def delete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord] = None)(implicit dt: DataTr): Int = {
+  def delete[PK](table: AnyPKTable[PK], id: PK, mtrOpt: Option[AnyPKMutableTableRecord[PK]] = None)(implicit dt: DataTr): Int = {
     mtrOpt.foreach(mtr => require(mtr._table == table && mtr._primaryKey == id))
     val pk = table._primaryKey.getOrElse(sys.error("Cannot delete from table without primary key"))
-    buf ++ "delete from " ++ table._defName ++ " where " ++ pk.name ++ " = " ++ id
+    buf ++ "delete from " ++ table._defName ++ " where " ++ pk.name ++ " = "
+    pk.renderV(id)
 
     doDelete(table, id, mtrOpt)
   }
@@ -43,8 +44,10 @@ trait EssentialModifyTrait extends SqlQuery {
 
   // ------------------------------- Private & protected methods -------------------------------
 
-  protected def _insert(record: AnyMutableTableRecord, modifyData: Option[ModifyData],
-                        tr: Option[Transaction], logSql: Boolean): Option[Int] = {
+  protected def _insert[PK](record: AnyPKMutableTableRecord[PK],
+                            modifyData: Option[ModifyData],
+                            tr: Option[Transaction],
+                            logSql: Boolean): Option[PK] = {
     record.validateOrFail
     val table = record._table
     val withPK: Boolean = record._primaryKey != 0 || table._primaryKey.isEmpty
@@ -70,62 +73,65 @@ trait EssentialModifyTrait extends SqlQuery {
 
   // ------------------------------- Methods to override -------------------------------
 
-  protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit
+  protected def logSql[PK](table: AnyPKTable[PK], id: Option[PK], modifyData: ModifyData, sql: String): Unit
 
-  protected def doInsert(record: AnyMutableTableRecord, modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[Int]
+  protected def doInsert[PK](record: AnyPKMutableTableRecord[PK], modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[PK]
 
-  protected def multipleInsertRawBuilder[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean): MultiInsertRawStep[TR]
+  protected def multipleInsertRawBuilder[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], withPrimaryKey: Boolean): MultiInsertRawStep[PK, TR]
 
-  protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep
+  protected def updateBuilder[PK](table: AnyPKTable[PK], id: PK)(implicit dt: DataTr): UpdateSetStep
 
   protected def updateRawBuilder(): UpdateRawSetStep
 
-  protected def doDelete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord])(implicit dt: DataTr): Int
+  protected def doDelete[PK](table: AnyPKTable[PK], id: PK, mtrOpt: Option[AnyPKMutableTableRecord[PK]])(implicit dt: DataTr): Int
 
   protected def deleteBuilder(): DeleteWhereStep
 }
 
 /**
- * Default methods implementation for [[EssentialModifyTrait]]
- */
+  * Default methods implementation for [[EssentialModifyTrait]]
+  */
 trait ModifyTrait extends EssentialModifyTrait {
 
-  override protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit = {}
+  override protected def logSql[PK](table: AnyPKTable[PK], id: Option[PK], modifyData: ModifyData, sql: String): Unit = {}
 
-  override protected def doInsert(record: AnyMutableTableRecord, modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[Int] = {
+  override protected def doInsert[PK](record: AnyPKMutableTableRecord[PK], modifyData: Option[ModifyData], tr: Option[Transaction], logSql: Boolean): Option[PK] = {
     buf.statement {(st, sql) =>
       st.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-      val rs = st.getGeneratedKeys
-      val idOpt: Option[Int] =
-        if (record._table._primaryKey.isDefined && rs.next()) {
-          val id = rs.getInt(1)
-          record._setPrimaryKey(id)
-          Some(id)
-        } else None
-      if (logSql) modifyData.foreach(this.logSql(record._table, idOpt, _, sql))
+      val rs: ResultSet = st.getGeneratedKeys
+      val idOpt: Option[PK] =
+        record._table._primaryKey.flatMap {pk: Field[PK, PK] =>
+          if (rs.next()) {
+            val id = pk.getValue(rs, 1)
+            record._setPrimaryKey(id)
+            Some(id)
+          } else None
+        }
+      if (logSql) modifyData.foreach(this.logSql[PK](record._table, idOpt, _, sql))
       tr.foreach(_.querioAddInsertChange(record, idOpt))
       idOpt
     }
   }
 
-  override protected def multipleInsertRawBuilder[TR <: TableRecord](table: TrTable[TR], withPrimaryKey: Boolean): MultiInsertRawStep[TR] =
-    new MultiInsertRawBuilder[TR](table, withPrimaryKey = withPrimaryKey)
+  override protected def multipleInsertRawBuilder[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR],
+                                                                             withPrimaryKey: Boolean): MultiInsertRawStep[PK, TR] =
+    new MultiInsertRawBuilder[PK, TR](table, withPrimaryKey = withPrimaryKey)
 
-  override protected def updateBuilder(table: AnyTable, id: Int)(implicit dt: DataTr): UpdateSetStep =
-    new UpdateBuilder(table, id) {
+  override protected def updateBuilder[PK](table: AnyPKTable[PK], id: PK)(implicit dt: DataTr): UpdateSetStep =
+    new UpdateBuilder[PK](table, id) {
       override protected def afterExecute(sql: String, mtrOpt: Option[AnyMutableTableRecord]): Unit = {
-        if (dt.logSql) logSql(table, Some(id), dt.md, sql)
-        dt.querioAddUpdateDeleteChange(table, id, TrRecordChange(mtrOpt))
+        if (dt.logSql) logSql[PK](table, Some(id), dt.md, sql)
+        dt.querioAddUpdateDeleteChange[PK](table, id, TrRecordChange(mtrOpt))
       }
     }
 
   override protected def updateRawBuilder(): UpdateRawSetStep = new UpdateRawBuilder
 
-  override protected def doDelete(table: AnyTable, id: Int, mtrOpt: Option[AnyMutableTableRecord])(implicit dt: DataTr): Int = {
+  override protected def doDelete[PK](table: AnyPKTable[PK], id: PK, mtrOpt: Option[AnyPKMutableTableRecord[PK]])(implicit dt: DataTr): Int = {
     buf.statement {(st, sql) =>
       val ret = st.executeUpdate(sql)
-      if (dt.logSql) logSql(table, Some(id), dt.md, sql)
-      dt.querioAddUpdateDeleteChange(table, id, TrDeleteChange(mtrOpt))
+      if (dt.logSql) logSql[PK](table, Some(id), dt.md, sql)
+      dt.querioAddUpdateDeleteChange[PK](table, id, TrDeleteChange(mtrOpt))
       ret
     }
   }

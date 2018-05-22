@@ -2,8 +2,8 @@ package querio.codegen
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
-import javax.annotation.Nullable
 
+import javax.annotation.Nullable
 import org.apache.commons.lang3.StringUtils
 import querio.codegen.Utils.wrapIterable
 import querio.codegen.patch.OrmPatches
@@ -12,19 +12,24 @@ import querio.vendor.Vendor
 import scala.collection.mutable
 
 
-class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
-                     dbName: String, table: TableRS, columnsRs: Vector[ColumnRS],
-                     primaryKeyNames: Vector[String], pkg: String, tgFile: TableGenFile,
+class TableGenerator(vendor: Vendor,
+                     vendorClassName: ClassName,
+                     dbName: String,
+                     table: TableRS,
+                     columnsRs: Vector[ColumnRS],
+                     primaryKeyNames: Vector[String],
+                     pkg: String,
+                     genTarget: TableGenTarget,
                      namePrefix: String = "",
                      isDefaultDatabase: Boolean = false,
                      noRead: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
 
-  tgFile.init(pkg.replace('.', File.separatorChar) + File.separatorChar + originalTableClassName + ".scala")
+  genTarget.init(pkg.replace('.', File.separatorChar) + File.separatorChar + originalTableClassName + ".scala")
 
   def generateToFile(): Generator = {
     val gen: Generator = makeGenerator
-    gen.generate().saveToFile(tgFile.filePath)
+    gen.generate().saveToFile(genTarget.filePath)
     gen
   }
 
@@ -47,7 +52,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
   private def makeGenerator: Generator = {
     if (noRead) new Generator(null)
-    else new Generator(tgFile.readSource())
+    else new Generator(genTarget.readSource())
   }
 
   class Generator(source: String) extends TableGeneratorData {
@@ -66,16 +71,23 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       }
     }
 
-    val tableClassName = reader.className.getOrElse(originalTableClassName)
+    val tableClassName = reader.trName.getOrElse(originalTableClassName)
     val tableTableName = reader.tableName.getOrElse(GeneratorConfig.tableNameTableName(namePrefix, table.name))
     val tableObjectName = reader.objectName.getOrElse(GeneratorConfig.tableNameObjectName(namePrefix, table.name))
-    val tableMutableName = reader.mutableName.getOrElse(GeneratorConfig.tableNameMutableName(namePrefix, table.name))
+    val tableMutableName = reader.mtrName.getOrElse(GeneratorConfig.tableNameMutableName(namePrefix, table.name))
 
     val primaryKey: Option[InnerCol] = if (primaryKeyNames.nonEmpty) {
       val pkName = primaryKeyNames.head
       val pk = columns.find(_.rs.name == pkName).getOrElse(sys.error(s"Field for primary key not found in ${table.fullName}"))
-      if (pk.shortScalaType == "Int") Some(pk) else None
+      Some(pk)
     } else None
+
+    val tableDef: TableDef = reader.tableDefinition.getOrElse(
+      TableDef(primaryKey.fold("Unit")(_.shortScalaType),
+        tableClassName,
+        tableMutableName))
+
+    override val primaryKeyType: String = tableDef.primaryKeyType
 
     trait InnerCol extends Col {
       def rs: ColumnRS
@@ -178,11 +190,15 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p imp GeneratorConfig.importTable
       val escaped = vendor.isNeedEscape(table.name)
       val needPrefix = !isDefaultDatabase
-      val tableDef = reader.tableDefinition.getOrElse(TableDef(tableClassName, tableMutableName))
       val extensions: Seq[TableTraitExtension] = vendor.getTableTraitsExtensions
       val (newTableDef, imports) = TableGenerator.withAdditionTraitsForTable(this, extensions, tableDef)
       imports.foreach(x => p imp x)
-      p ++ "class " ++ tableTableName ++ "(alias: String) extends Table[" ++ tableDef.tableName ++ ", " ++ tableDef.mutableTableName ++ "]"
+      p ++ "class " ++ tableTableName ++ "(alias: String) extends Table"
+      p ++ "["
+      p ++ primaryKeyType ++ ", "
+      p ++ tableDef.tableName ++ ", "
+      p ++ tableDef.mutableTableName
+      p ++ "]"
       p ++ s"""("$dbName", "${table.name}", alias"""
       if (needPrefix) p ++ ", _needDbPrefix = true"
       if (escaped) p ++ ", _escapeName = true"
@@ -221,50 +237,58 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
     }
 
     /**
-      * Создать неизменяемый класс таблицы
+      * Create immutable TableRecord class
       */
-    def genClass(p: SourcePrinter) {
+    def genTableRecord(p: SourcePrinter) {
       p imp GeneratorConfig.importJavaResultSet
       p imp GeneratorConfig.importTableRecord
       // class header
       locally {
-        val clsExtends = reader.classExtends.getOrElse("extends TableRecord").trim
+        val clsMoreExtends: String = reader.trMoreExtends.getOrElse("").trim
         val firstLine: String = s"class $tableClassName("
         val headerIndents = StringUtils.repeat(' ', firstLine.length)
         p ++ firstLine
         columns.init.foreach {c => c.classField(p); p ++ ",\n" ++ headerIndents}
         columns.last.classField(p)
-        p ++ ") " ++ clsExtends
+        p ++ ") extends TableRecord[" ++ primaryKeyType ++ "]" ++ clsMoreExtends
       }
 
       // class body
       p block {
         p ++ "def _table = " ++ tableObjectName n()
-        p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
+        p ++ "def _primaryKey = " ++ primaryKey.fold("Unit")(_.varName) n()
         p ++ s"""def toMutable: $tableMutableName = {"""
         locally {
           p ++ s"""val m = new $tableMutableName; """
           columns.foreach(c => p ++ "m." ++ c.varName ++ " = " ++ c.varName ++ "; ")
           p ++ "m}" n()
         }
-        printUserLines(p, reader.userClassLines)
+        printUserLines(p, reader.userTrLines)
       }
     }
 
     /**
-      * Создать изменяемый класс таблицы
+      * Create MutableTableRecord class
       */
-    def genMutable(p: SourcePrinter) {
+    def genMutableTableRecord(p: SourcePrinter) {
       p imp GeneratorConfig.importMutableTableRecord
       p imp GeneratorConfig.importSqlBuffer
       p imp GeneratorConfig.importUpdateSetStep
-      p ++ reader.mutableDefinition.getOrElse( s"""class $tableMutableName extends MutableTableRecord[$tableClassName]""")
+      // class header
+      locally {
+        val clsMoreExtends: String = reader.mtrMoreExtends.getOrElse("").trim
+        p ++ "class " ++ tableMutableName
+        p ++ " extends MutableTableRecord[" ++ primaryKeyType ++ ", " ++ tableClassName ++ "]"
+        p ++ clsMoreExtends
+      }
+
+      // class body
       p block {
         columns.foreach(_.mutableClassField(p))
         p n()
         p ++ "def _table = " ++ tableObjectName n()
-        p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
-        p ++ "def _setPrimaryKey($: Int): Unit = " ++ primaryKey.fold("{}")(_.varName + " = $") n()
+        p ++ "def _primaryKey: " ++ primaryKeyType ++ " = " ++ primaryKey.fold("Unit")(_.varName) n()
+        p ++ "def _setPrimaryKey($: " ++ primaryKeyType ++ "): Unit = " ++ primaryKey.fold("{}")(_.varName + " = $") n()
         locally {
           p ++ "def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {"
           for (c <- columns) {
@@ -294,7 +318,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
           columns.foreachWithSep(c => p ++ c.varName, p ++ ", ")
           p ++ ")" n()
         }
-        printUserLines(p, reader.userMutableLines)
+        printUserLines(p, reader.userMtrLines)
       }
     }
 
@@ -309,10 +333,10 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       genObject(p)
       p n() n()
       reader.preClassLines.foreach(p ++ _ n())
-      genClass(p)
+      genTableRecord(p)
       p n() n()
       reader.preMutableLines.foreach(p ++ _ n())
-      genMutable(p)
+      genMutableTableRecord(p)
       if (reader.afterMutableLines.nonEmpty) {
         p n() n()
         reader.afterMutableLines.foreach(p ++ _ n())
@@ -358,29 +382,30 @@ object TableGenerator {
     }
     val extendStr: String = TableDef.defsToExtendStr(newExtendDefSet.toSeq)
     val imports: Seq[String] = foundExtensionInfos.flatMap(_.imports)
-    (new TableDef(
-      tableName = tableDefinition.tableName,
-      mutableTableName = tableDefinition.mutableTableName,
-      moreExtends = extendStr), imports)
+    (tableDefinition.copy(moreExtends = extendStr), imports)
   }
 }
 
 trait TableGeneratorData {
   val columns: Vector[Col]
+  val primaryKeyType: String
   val tableClassName: String
   val tableTableName: String
   val tableObjectName: String
   val tableMutableName: String
+
+  def toExtendDef(name: String): ExtendDef =
+    ExtendDef(name, s"[$primaryKeyType, $tableClassName, $tableMutableName]")
 }
 
 
-trait TableGenFile {
+trait TableGenTarget {
   def filePath: Path
   def init(addToDir:String): Unit
   @Nullable def readSource(): String
 }
 
-case class RealTableGenFile(dir:Path) extends TableGenFile {
+case class RealTableGenTarget(dir:Path) extends TableGenTarget {
   private var _filePath: Path = _
   override def filePath: Path = _filePath
 

@@ -1,14 +1,13 @@
 package querio
 
-import java.sql.{PreparedStatement, ResultSet, Timestamp, Array => SqlArray}
+import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.temporal.Temporal
 import java.time.{Instant, LocalDate, LocalDateTime}
-import javax.annotation.Nullable
 
+import javax.annotation.Nullable
 import querio.utils.IterableTools.wrapIterable
 import querio.vendor.Vendor
 
-import scala.collection.immutable.IntMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -20,15 +19,20 @@ import scala.reflect.ClassTag
   * @param _alias        Table alias for SQL queries. For example, if alias equals "u2" then the query will be like "select * from dbname.user u2".
   * @param _needDbPrefix Flag shows that full table name is required. Example: for true full name is "_dbName._name", for false it's enough "_name"
   * @param _escapeName   Flag shows that escape symbols is required for table name.
+  * @tparam PK  Private key type
   * @tparam TR  Bound [[TableRecord]] type
   * @tparam MTR Bound [[MutableTableRecord]] type
   */
-abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbName: String,
-                                                                       val _name: String,
-                                                                       @Nullable val _alias: String,
-                                                                       val _needDbPrefix: Boolean = false,
-                                                                       val _escapeName: Boolean = false)
-  extends ElTable[TR] with ArrayTableFields[TR, MTR] with DbEnumTableFields[TR, MTR] with EnumeratumTableFields[TR, MTR] {selfTable =>
+abstract class Table[@specialized(Int, Long, Short) PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]]
+(val _dbName: String,
+ val _name: String,
+ @Nullable val _alias: String,
+ val _needDbPrefix: Boolean = false,
+ val _escapeName: Boolean = false)
+  extends ElTable[TR]
+    with ArrayTableFields[PK, TR, MTR]
+    with DbEnumTableFields[PK, TR, MTR]
+    with EnumeratumTableFields[PK, TR, MTR] {selfTable =>
 
   type ThisField = this.Field[_, _]
 
@@ -38,7 +42,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   override def _getValue(rs: ResultSet, index: Int): TR = _newRecordFromResultSet(rs, index - 1)
 
   override def _getValueOpt(rs: ResultSet, index: Int): Option[TR] = {
-    val pk: Field[Int, Int] = _primaryKey.getOrElse(sys.error("Cannot get option value for table without primary key"))
+    val pk: Field[PK, PK] = _primaryKey.getOrElse(sys.error("Cannot get option value for table without primary key"))
     pk.getTableValue(rs, index - 1) // None определяем когда primary key is null
     if (rs.wasNull()) None else Some(_newRecordFromResultSet(rs, index - 1))
   }
@@ -88,32 +92,37 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
     * Чтобы не делать множество запросов, можно предварительно выбрать список всех ResExp, необходимых для этих резюме.
     * Также, если первая запись из records уже имеет проинициализированную подтаблицу, то новые данные загружены не будут (это ленивая инициализация).
     */
-  def prepareSubTable[SR <: TableRecord, MSR <: MutableTableRecord[SR]](records: Iterable[TR], listProvider: TR => SubTableList[SR, MSR]): ChainedPrepareTable = {
+  def prepareSubTable[SR <: TableRecord[PK], MSR <: MutableTableRecord[PK, SR]](records: Iterable[TR],
+                                                                                       listProvider: TR => SubTableList[PK, SR, MSR]): ChainedPrepareTable = {
     if (records.nonEmpty) {
       val record: TR = records.head
       val stl = listProvider(record)
       if (!stl.initialized) {
         val stlGetter = stl.field.get
-        stl.queryRecords(records.map(_._primaryKey), { it =>
-          var map = IntMap.empty[mutable.Builder[SR, Vector[SR]]]
-          records.foreach(r => map = map.updated(r._primaryKey, Vector.newBuilder[SR]))
+        stl.queryRecords(records.map(_._primaryKey), {it =>
+          val map = new mutable.HashMap[PK, mutable.Builder[SR, Vector[SR]]]()
+          records.foreach {r =>
+            map.update(r._primaryKey, Vector.newBuilder[SR])
+          }
           for (sub <- it) map(stlGetter(sub)) += sub
 
-          records.foreach(r => listProvider(r).fill(map(r._primaryKey).result()))
+          records.foreach {r =>
+            listProvider(r).fill(map(r._primaryKey).result())
+          }
         })
       }
     }
     new ChainedPrepareTable {
-      override def apply[SR2 <: TableRecord, MSR2 <: MutableTableRecord[SR2]](listProvider: (TR) => SubTableList[SR2, MSR2]): ChainedPrepareTable = prepareSubTable(records, listProvider)
+      override def apply[SR2 <: TableRecord[PK], MSR2 <: MutableTableRecord[PK, SR2]](listProvider: (TR) => SubTableList[PK, SR2, MSR2]): ChainedPrepareTable = prepareSubTable(records, listProvider)
     }
   }
 
   sealed trait ChainedPrepareTable {
-    def apply[SR <: TableRecord, MSR <: MutableTableRecord[SR]](listProvider: TR => SubTableList[SR, MSR]): ChainedPrepareTable
+    def apply[SR <: TableRecord[PK], MSR <: MutableTableRecord[PK, SR]](listProvider: TR => SubTableList[PK, SR, MSR]): ChainedPrepareTable
   }
 
-  def createSubTableUpdater[V](get: TR => V, create: (MTR, Int) => Any, update: (MTR, V) => Any)(implicit db: DbTrait) =
-    new SubTableUpdater[TR, MTR, V](this, get, create, update)
+  def createSubTableUpdater[V](get: TR => V, create: (MTR, PK) => Any, update: (MTR, V) => Any)(implicit db: DbTrait) =
+    new SubTableUpdater[PK, TR, MTR, V](this, get, create, update)
 
   // ------------------------------- Fill MTR from Map and make Map from MTR -------------------------------
 
@@ -151,7 +160,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
 
   // ------------------------------- Abstract methods -------------------------------
 
-  def _primaryKey: Option[Field[Int, Int]]
+  def _primaryKey: Option[Field[PK, PK]]
   def _newMutableRecord: MTR
   def _newRecordFromResultSet(rs: ResultSet, index: Int): TR
 
@@ -162,13 +171,13 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   sealed case class TFD[V](name: String, get: TR => V, getM: MTR => V, set: (MTR, V) => Unit, escaped: Boolean = false, comment: String = null)
 
   abstract class Field[T, V](tfd: TFD[V]) extends querio.Field[T, V] {field =>
-    def table: Table[TR, MTR] = selfTable
+    def table: Table[PK, TR, MTR] = selfTable
     val name: String = if (tfd.escaped) table._vendor.escapeName(tfd.name) else tfd.name
     val comment: String = tfd.comment
     def commentOrName: String = if (comment != null) comment else fullName
 
     val get: (TR) => V = tfd.get
-    def getAnyTR(tr: TableRecord): V = tfd.get(tr.asInstanceOf[TR])
+    def getAnyTR(tr: TableRecord[PK]): V = tfd.get(tr.asInstanceOf[TR])
     val getM: (MTR) => V = tfd.getM
     val set: (MTR, V) => Unit = tfd.set
 
@@ -224,8 +233,8 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
       }
     }
 
-    def forTableAlias[AT <: Table[TR, MTR]](t: AT) = new t.Field[T, V](tfd.asInstanceOf[t.TFD[V]]) {
-      override def table: Table[TR, MTR] = t
+    def forTableAlias[AT <: Table[PK, TR, MTR]](t: AT) = new t.Field[T, V](tfd.asInstanceOf[t.TFD[V]]) {
+      override def table: Table[PK, TR, MTR] = t
 
       // delegate overrides
       override def parser: TypeParser[V] = field.parser
@@ -310,7 +319,7 @@ abstract class Table[TR <: TableRecord, MTR <: MutableTableRecord[TR]](val _dbNa
   // ---------------------- Int ----------------------
 
   class Int_TF(tfd: TFD[Int]) extends SimpleTableField[Int](tfd) with IntField {
-    def subTableList(value: Int)(implicit db: DbTrait) = new SubTableList[TR, MTR](this, value)
+    ///////////////////// TODO: def subTableList(value: Int)(implicit db: DbTrait) = new SubTableList[PK, TR, MTR](this, value)
   }
   class OptionInt_TF(tfd: TFD[Option[Int]]) extends OptionTableField[Int](tfd) with OptionIntField
   class OptionIntZeroAsNone_TF(tfd: TFD[Option[Int]]) extends OptionTableField[Int](tfd) with OptionIntField {

@@ -22,6 +22,6 @@ class InnerQuery(vend: Vendor) extends QueryTrait {
     override def vendor: Vendor = vend
     override def conn: Conn = throw new UnsupportedOperationException("Inner query cannot execute sql")
   }
-  override protected def logSql(table: AnyTable, id: Option[Int], modifyData: ModifyData, sql: String): Unit =
+  override protected def logSql[PK](table: AnyPKTable[PK], id: Option[PK], modifyData: ModifyData, sql: String): Unit =
     throw new UnsupportedOperationException("Inner query cannot execute sql")
 }

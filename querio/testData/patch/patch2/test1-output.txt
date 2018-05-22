@@ -1,0 +1,37 @@
+package models.db.public
+// querioVersion: 2
+
+import java.sql.ResultSet
+
+import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+import querio.vendor.DefaultPostgreSQLVendor
+
+class DbEvolutionTable(alias: String) extends Table[Int, DbEvolution, MutableDbEvolution]("public", "db_evolution", alias) {
+  val version = new Int_TF(TFD("version", _.version, _.version, _.version = _))
+  _fields_registered()
+
+  override val _comment = "null"
+  def _vendor = DefaultPostgreSQLVendor
+  def _primaryKey = None
+  def _newMutableRecord = new MutableDbEvolution()
+  def _newRecordFromResultSet($rs: ResultSet, $i: Int): DbEvolution = new DbEvolution(version.getTableValue($rs, $i))
+}
+object DbEvolution extends DbEvolutionTable(null)
+
+class DbEvolution(val version: Int) extends TableRecord[Int] {
+  def _table = DbEvolution
+  def _primaryKey: Int = 0
+  def toMutable: MutableDbEvolution = {val m = new MutableDbEvolution; m.version = version; m}
+}
+
+
+class MutableDbEvolution extends MutableTableRecord[Int, DbEvolution] {
+  var version: Int = _
+
+  def _table = DbEvolution
+  def _primaryKey: Int = 0
+  def _setPrimaryKey($: Int): Unit = {}
+  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {DbEvolution.version.renderV(version); buf ++ ", "; buf del 2}
+  def _renderChangedUpdate($: DbEvolution, $u: UpdateSetStep): Unit = {DbEvolution.version.maybeUpdateSet($u, $.version, version);}
+  def toRecord: DbEvolution = new DbEvolution(version)
+}

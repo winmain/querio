@@ -19,7 +19,9 @@ trait UpdateFinalStep extends SqlQuery {
   def execute(): Unit
 }
 
-class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
+class UpdateBuilder[PK](table: AnyPKTable[PK],
+                        id: PK)
+                       (implicit val buf: SqlBuffer)
   extends UpdateSetStep with UpdateSetNextStep {
 
   private var firstSet = true
@@ -58,8 +60,10 @@ class UpdateBuilder(table: AnyTable, id: Int)(implicit val buf: SqlBuffer)
     if (firstSet) return // Может быть так, что изменений-то нет
 
     buf ++ "\nwhere "
-    table._primaryKey.getOrElse(sys.error(s"Cannot update for table '${table._defName}' without primary field")).render
-    buf ++ " = " ++ id
+    val pk: table.Field[PK, PK] = table._primaryKey.getOrElse(sys.error(s"Cannot update for table '${table._defName}' without primary field"))
+    pk.render
+    buf ++ " = "
+    pk.renderV(id)
 
     doExecute(buf)
   }

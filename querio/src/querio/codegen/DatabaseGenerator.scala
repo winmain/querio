@@ -60,7 +60,7 @@ class DatabaseGenerator(vendor: Vendor,
         val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
           tableDbNameSelector.get(Option(catalog), Option(schema)),
           trs, columns, primaryKeyNames, pkg,
-          RealTableGenFile(dir), tableNamePrefix, isDefaultDatabase, noRead = noRead)
+          RealTableGenTarget(dir), tableNamePrefix, isDefaultDatabase, noRead = noRead)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
             if (toTempFile) generator.generateToTempFile()

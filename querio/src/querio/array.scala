@@ -228,7 +228,7 @@ trait ArrayDoubleField[V] extends ArrayField[Double, V] {self =>
 
 // ------------------------------- Table fields -------------------------------
 
-trait ArrayTableFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+trait ArrayTableFields[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]] {self: Table[PK, TR, MTR] =>
   abstract class SimpleArrayTableField[T](tfd: TFD[Array[T]]) extends Field[Array[T], Array[T]](tfd) with querio.SimpleArrayField[T] {field =>
     def :=(value: Array[T]): FieldSetClause = new FieldSetClause(this) {
       override def renderValue(implicit buf: SqlBuffer): Unit = renderT(value)

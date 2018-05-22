@@ -74,8 +74,8 @@ class CompositeRecord(protected val compositeContext: CompositeContext) {
 
   implicit protected def _objectEl[V](el: El[_, V]): V = compositeContext.getValue(el, null.asInstanceOf[V])
 
-  implicit protected def _record[TR <: TableRecord](table: TrTable[TR]): TR = compositeContext.getValue(table, null.asInstanceOf[TR])
-  implicit protected def _optionRecord[TR <: TableRecord](table: TrTable[TR]): Option[TR] = compositeContext.getValueOpt(table)
+  implicit protected def _record[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR]): TR = compositeContext.getValue(table, null.asInstanceOf[TR])
+  implicit protected def _optionRecord[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR]): Option[TR] = compositeContext.getValueOpt(table)
 }
 
 

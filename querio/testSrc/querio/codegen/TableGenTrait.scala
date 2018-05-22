@@ -42,7 +42,7 @@ trait TableGenTrait {
     var autoIncrement: Boolean = _
   }
 
-  class FakeTableGenFile(@Nullable source: String) extends TableGenFile {
+  class FakeTableGenTarget(@Nullable source: String) extends TableGenTarget {
     override def filePath: Path = null
     override def init(addToDir: String): Unit = {}
     @Nullable override def readSource(): String = source

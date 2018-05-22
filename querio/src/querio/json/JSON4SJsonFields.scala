@@ -5,10 +5,10 @@ import org.json4s.JsonAST.JValue
 import org.json4s.{JsonMethods, _}
 import org.postgresql.util.PGobject
 import querio.vendor.Vendor
-import querio.{Table, _}
+import querio._
 
 
-trait JSON4SJsonFields[TR <: TableRecord, MTR <: MutableTableRecord[TR]] {self: Table[TR, MTR] =>
+trait JSON4SJsonFields[PK, TR <: TableRecord[PK], MTR <: MutableTableRecord[PK, TR]] {self: Table[PK, TR, MTR] =>
   class MyCustom_TF(tfd: TFD[Int]) extends SimpleTableField[Int](tfd) with IntField
 
   // ---------------------- Json_J4S ----------------------

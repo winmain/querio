@@ -1,7 +1,7 @@
 package querio
 
 trait SelectTrait extends SqlQuery with SelectTraitGenerated with SelectSqlUtils {
-  def selectFrom[TR <: TableRecord](table: TrTable[TR]): SelectJoinStep[TR] = select(table).from(table)
+  def selectFrom[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR]): SelectJoinStep[TR] = select(table).from(table)
 
   def select[V1](field1: ElTable[V1]): SelectFromStep[V1]
   = {buf ++ "select "; _fields(field1)}
@@ -42,9 +42,11 @@ trait SelectFlagOfStep extends SqlQuery with SelectFlagOfStepGenerated with Sele
 
 
 trait QuickSelectTrait extends SqlQuery with SelectTrait {
-  def findById[TR <: TableRecord](table: TrTable[TR], id: Int): Option[TR] = table._primaryKey match {
-    case Some(pk) => (select(table) from table where pk == id).fetchOne()
-    case None => sys.error("Table " + table._defName + " must have integer primary key")
+  def findById[PK, TR <: TableRecord[PK]](table: TrTable[PK, TR], id: PK): Option[TR] = {
+    table._primaryKey match {
+      case Some(pk) => (select(table) from table where pk == id).fetchOne()
+      case None => sys.error("Table " + table._defName + " must have integer primary key")
+    }
   }
 }
 

@@ -1,12 +1,12 @@
 package model.db.common
-// querioVersion: 2
+// querioVersion: 3
 
 import java.sql.ResultSet
 
 import model.db.PostgresSQLVendor
 import querio._
 
-class PurchaseTable(alias: String) extends Table[Purchase, MutablePurchase]("postgres", "purchase", alias) {
+class PurchaseTable(alias: String) extends Table[Int, Purchase, MutablePurchase]("postgres", "purchase", alias) {
   val id = new Int_TF(TFD("id", _.id, _.id, _.id = _))
   val userid = new Long_TF(TFD("userId", _.userid, _.userid, _.userid = _, escaped = true))
   val purchasecode = new Int_TF(TFD("purchaseCode", _.purchasecode, _.purchasecode, _.purchasecode = _, escaped = true))
@@ -26,14 +26,14 @@ class Purchase(val id: Int,
                val userid: Long,
                val purchasecode: Int,
                val price: Int,
-               val level: Option[Int]) extends TableRecord {
+               val level: Option[Int]) extends TableRecord[Int] {
   def _table = Purchase
-  def _primaryKey: Int = id
+  def _primaryKey = id
   def toMutable: MutablePurchase = {val m = new MutablePurchase; m.id = id; m.userid = userid; m.purchasecode = purchasecode; m.price = price; m.level = level; m}
 }
 
 
-class MutablePurchase extends MutableTableRecord[Purchase] {
+class MutablePurchase extends MutableTableRecord[Int, Purchase] {
   var id: Int = _
   var userid: Long = _
   var purchasecode: Int = _

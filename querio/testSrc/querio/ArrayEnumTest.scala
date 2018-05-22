@@ -7,7 +7,7 @@ import querio.vendor.{DefaultPostgreSQLVendor, Vendor}
 
 class ArrayEnumTest extends FunSuite {
   ignore("SetEnumArrayInt_TF") {
-    class MyTable extends Table[MyRecord, MyMutable]("db", "tlb", null) {
+    class MyTable extends Table[Int, MyRecord, MyMutable]("db", "tlb", null) {
       override def _vendor: Vendor = DefaultPostgreSQLVendor
       override def _primaryKey: Option[Field[Int, Int]] = ???
       override def _newMutableRecord: MyMutable = ???
@@ -15,14 +15,14 @@ class ArrayEnumTest extends FunSuite {
     }
     object MyTable extends MyTable
 
-    class MyRecord extends TableRecord {
-      override def _table: AnyTable = MyTable
+    class MyRecord extends TableRecord[Int] {
+      override def _table: AnyPKTable[Int] = MyTable
       override def _primaryKey: Int = ???
-      override def toMutable: AnyMutableTableRecord = ???
+      override def toMutable: AnyPKMutableTableRecord[Int] = ???
     }
 
-    class MyMutable extends MutableTableRecord[MyRecord] {
-      override def _table: TrTable[MyRecord] = MyTable
+    class MyMutable extends MutableTableRecord[Int, MyRecord] {
+      override def _table: TrTable[Int, MyRecord] = MyTable
       override def _primaryKey: Int = ???
       override def _setPrimaryKey(key: Int): Unit = ???
       override def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = ???

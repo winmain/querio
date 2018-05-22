@@ -292,7 +292,7 @@ protected class SqlBuilder1[V1](f1: ElTable[V1])(implicit val buf: SqlBuffer) ex
   override protected def recordFromResultSet(rs: ResultSet): V1 = f1._getValue(rs, 1)
   override protected def onErrorCreatingResultSet(rs: ResultSet, e: Exception): Nothing = {
     f1 match {
-      case table: TrTable[V1] =>
+      case table: TrTable[_, V1] =>
         table._primaryKey match {
           case Some(pk) =>
             val recordId = try pk.getTableValue(rs, 0) catch {case e: Exception => throw e}

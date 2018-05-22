@@ -1,0 +1,39 @@
+package foo
+// querioVersion: 3
+
+import java.sql.ResultSet
+
+import querio.{MutableTableRecord, SqlBuffer, Table, TableRecord, UpdateSetStep}
+
+class SimpleTable(alias: String) extends Table[Int, Simple, MutableSimple]("mydb", "Simple", alias, _needDbPrefix = true, _escapeName = true) {
+  val id = new OptionInt_TF(TFD("id", _.id, _.id, _.id = _))
+  val name = new OptionString_TF(TFD("name", _.name, _.name, _.name = _))
+  _fields_registered()
+
+  override val _comment = "mycomment"
+  def _vendor = MyVendor
+  def _primaryKey = None
+  def _newMutableRecord = new MutableSimple()
+  def _newRecordFromResultSet($rs: ResultSet, $i: Int): Simple = new Simple(id.getTableValue($rs, $i), name.getTableValue($rs, $i))
+}
+object Simple extends SimpleTable(null)
+
+class Simple(val id: Option[Int],
+             val name: Option[String]) extends TableRecord[Unit] {
+  def _table = Simple
+  def _primaryKey = id
+  def toMutable: MutableSimple = {val m = new MutableSimple; m.id = id; m.name = name; m}
+}
+
+
+class MutableSimple extends MutableTableRecord[Unit, Simple] {
+  var id: Option[Int] = None
+  var name: Option[String] = None
+
+  def _table = Simple
+  def _primaryKey: Unit = Unit
+  def _setPrimaryKey($: Unit): Unit = {}
+  def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {Simple.id.renderV(id); buf ++ ", "; Simple.name.renderV(name); buf ++ ", "; buf del 2}
+  def _renderChangedUpdate($: Simple, $u: UpdateSetStep): Unit = {Simple.id.maybeUpdateSet($u, $.id, id); Simple.name.maybeUpdateSet($u, $.name, name);}
+  def toRecord: Simple = new Simple(id, name)
+}
