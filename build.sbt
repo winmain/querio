@@ -70,7 +70,10 @@ val noPublishSettings = Seq(
 
 // ------------------------------- Main project -------------------------------
 
-lazy val main: Project = project.in(file(".")).settings(noPublishSettings).settings(
+lazy val main: Project = Project("querio-main",
+  base = file("."),
+  settings = noPublishSettings
+).settings(
   publishArtifact := false,
   genQuerioLibSourcesTask,
   genTestPostgreSqlDbSourcesTask,
