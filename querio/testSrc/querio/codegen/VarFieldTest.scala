@@ -10,7 +10,7 @@ class VarFieldTest extends FunSuite with MockFactory with Matchers with TableGen
     // The field `var updateFilter` should remain after generator (github issue #7)
     val source = """
 // querioVersion: 3
-class MutableDbVehicle extends MutableTableRecord[Int, DbVehicle] {
+class MutableDbVehicle extends MutableTableRecord[Unit, Dbvehicle] {
   var id: Int = _
   var extId: Int = _
   var nonExistentField: String = _
@@ -41,7 +41,7 @@ class MutableDbVehicle extends MutableTableRecord[Int, DbVehicle] {
     val trimmedResult = "(?s)class MutableDbVehicle.*".r.findFirstIn(result).getOrElse("").trim
 
     trimmedResult shouldEqual """
-class MutableDbVehicle extends MutableTableRecord[Int, DbVehicle] {
+class MutableDbVehicle extends MutableTableRecord[Unit, Dbvehicle] {
   var id: Option[Int] = None
   var extid: Option[Int] = None
 
