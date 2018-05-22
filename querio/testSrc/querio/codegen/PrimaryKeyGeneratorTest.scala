@@ -22,7 +22,39 @@ class PrimaryKeyGeneratorTest extends FunSuite with TableGenTrait {
   }
 
 
-  test("generate code with int primary key") {
+  test("generate code with Int primary key") {
+    val table = StubTableRS("Simple")
+    val columns = Vector(
+      StubColumnRS("id", Types.INTEGER, nullable = false),
+      StubColumnRS("name", Types.VARCHAR))
+    val primaryKeys = Vector("id")
+    val tableGenFile = new FakeTableGenTarget(null)
+
+    val generator = new TableGenerator(DefaultPostgreSQLVendor, ClassName("MyVendor"),
+      "mydb", table, columns, primaryKeys, "foo", tableGenFile)
+
+    val result = generator.generateToString()
+    assert(result.trim === Resources.loadStr("codegen/pk-int-output.txt").trim)
+  }
+
+
+  test("generate code with Long primary key") {
+    val table = StubTableRS("Simple")
+    val columns = Vector(
+      StubColumnRS("id", Types.BIGINT, nullable = false),
+      StubColumnRS("name", Types.VARCHAR))
+    val primaryKeys = Vector("id")
+    val tableGenFile = new FakeTableGenTarget(null)
+
+    val generator = new TableGenerator(DefaultPostgreSQLVendor, ClassName("MyVendor"),
+      "mydb", table, columns, primaryKeys, "foo", tableGenFile)
+
+    val result = generator.generateToString()
+    assert(result.trim === Resources.loadStr("codegen/pk-long-output.txt").trim)
+  }
+
+
+  test("generate code with Option[Int] primary key") {
     val table = StubTableRS("Simple")
     val columns = Vector(
       StubColumnRS("id", Types.INTEGER),
@@ -34,7 +66,7 @@ class PrimaryKeyGeneratorTest extends FunSuite with TableGenTrait {
       "mydb", table, columns, primaryKeys, "foo", tableGenFile)
 
     val result = generator.generateToString()
-    assert(result.trim === Resources.loadStr("codegen/pk-int-output.txt").trim)
+    assert(result.trim === Resources.loadStr("codegen/pk-option-int-output.txt").trim)
   }
 
 
