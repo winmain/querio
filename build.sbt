@@ -25,7 +25,7 @@ val defaultProjectStructure = Seq(
 
 val commonSettings = _root_.bintray.BintrayPlugin.bintrayPublishSettings ++ scalaSettings ++ defaultProjectStructure ++ Seq(
   organization := "com.github.citrum.querio",
-  version := "0.7.0",
+  version := "0.7.1",
 
   incOptions := incOptions.value.withNameHashing(nameHashing = true),
   sources in doc in Compile := List(), // Выключить генерацию JavaDoc, ScalaDoc
