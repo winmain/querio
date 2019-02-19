@@ -10,7 +10,7 @@ class SourcePrinterTest extends FlatSpec with Matchers {
   val imports: mutable.Set[String] = mutable.Set(
     "lib.db.LinkedTable",
     "lib.db.LinkedTable.WrappedTable",
-    "lib.db.MyVendor",
+    "lib.db.MyVendor"
   )
 
   SourcePrinter.writeImportGroup(imports, sb)
