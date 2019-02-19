@@ -119,7 +119,9 @@ class TableReader(db: Vendor, lines: List[String]) {
       case tableNewRecordR(constructorParams) =>
         constructorVarNames = tableNewRecordGetValueR.findAllMatchIn(constructorParams).map(_.group(1)).toVector
 
-      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() | tableNewMutableRecordR() | tableVendorFieldR() => ()
+      case tableFieldsRegisteredR() | tableCommentFieldR() | tablePrimaryKeyR() |
+           tableNewMutableRecordR() | tableVendorFieldR() |
+           formatterOffR() | formatterOnR() => ()
       case s => userTableLines += line
     }
     userTableLines = userTableLines.dropWhile(StringUtils.isBlank)
@@ -147,14 +149,14 @@ class TableReader(db: Vendor, lines: List[String]) {
           if (constructorVarNames.isDefinedAt(idx)) {
             line.trim match {
               case classHeaderFieldR(gotName, scalaType) =>
-//                val name: String = constructorVarNames(idx)
+                //val name: String = constructorVarNames(idx)
                 // name теперь получается из gotName, потому что был случай, когда я удалил поле
                 // из всех трёх классов (чтобы генератор заново создал его),
                 // а из-за этого последнее поле получалось нераспознанным.
                 val name = gotName
                 userColumnsByVarName.get(name).foreach {col => col.scalaType = scalaType.trim}
               case classHeaderPrivateFieldR(gotName, scalaType) =>
-//                val name: String = constructorVarNames(idx)
+                //val name: String = constructorVarNames(idx)
                 val name = gotName
                 userColumnsByVarName.get(name).foreach {col =>
                   col.isPrivate = true
@@ -177,7 +179,8 @@ class TableReader(db: Vendor, lines: List[String]) {
       case classFieldR(_, scalaType, varName) =>
         val name: String = varName.trim
         if (userColumnsByVarName.contains(name)) userColumnsByVarName(name).scalaType = scalaType.trim
-      case classTableR() | classPrimaryKeyR() => ()
+      case classTableR() | classPrimaryKeyR() |
+           formatterOffR() | formatterOnR() => ()
       case s => userClassLines += line
     }
     userClassLines = userClassLines.dropWhile(StringUtils.isBlank)
@@ -195,7 +198,8 @@ class TableReader(db: Vendor, lines: List[String]) {
       case mutableFieldR() =>
         if (!inFieldDefinition) userMutableLines += line
       case mutableTableR() | mutablePrimaryKeyR() | mutableSetPrimaryKeyR() |
-           mutableRenderValuesR() | mutableRenderChangedUpdateR() | mutableToRecordR() =>
+           mutableRenderValuesR() | mutableRenderChangedUpdateR() | mutableToRecordR() |
+           formatterOffR() | formatterOnR() =>
         inFieldDefinition = false
       case s => userMutableLines += line
     }
@@ -272,4 +276,7 @@ object TableReader {
   val mutableRenderValuesR = """def +_renderValues *\( *withPrimaryKey *: *Boolean.*""".r
   val mutableRenderChangedUpdateR = """def +_renderChangedUpdate *\(.*""".r
   val mutableToRecordR = """def +toRecord *:.*""".r
+
+  val formatterOffR = """// @formatter:off""".r
+  val formatterOnR = """// @formatter:on""".r
 }
