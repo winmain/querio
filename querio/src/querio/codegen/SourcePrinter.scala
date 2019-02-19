@@ -8,10 +8,12 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.mutable
 
 class SourcePrinter(groupImports: Boolean = true) {
+  import SourcePrinter._
+
   private val sb = new java.lang.StringBuilder()
 
   private var _package: String = null
-  private val _imports = mutable.SortedSet[String]()
+  private val _imports = mutable.Set[String]()
   private val _wildImports = mutable.Set[String]()
   private var _indent = 0
   private var _version = 0
@@ -20,49 +22,24 @@ class SourcePrinter(groupImports: Boolean = true) {
     val src = new java.lang.StringBuilder(sb.length() + 256)
     if (_package != null) src append "package " append _package append "\n"
     src append "// querioVersion: " append _version append "\n\n"
-    val allImports: mutable.SortedSet[String] = _imports ++ _wildImports.map(_ + "._")
-
-    def writeImportGroup(group: mutable.SortedSet[String]): Unit = {
-      var lastPackage: String = null
-      var lastNames: mutable.Buffer[String] = null
-      def writeLastImp(): Unit = {
-        if (lastPackage != null) {
-          src append "import " append lastPackage
-          if (lastNames.length == 1) src append '.' append lastNames(0) append "\n"
-          else src append ".{" append lastNames.mkString(", ") append "}\n"
-        }
-      }
-      for (imp <- group) {
-        val idx = imp.lastIndexOf('.')
-        val pkg = imp.substring(0, idx)
-        val name = imp.substring(idx + 1)
-        if (lastPackage == pkg) {
-          lastNames += name
-        } else {
-          writeLastImp()
-          lastPackage = pkg
-          lastNames = mutable.Buffer(name)
-        }
-      }
-      writeLastImp()
-    }
+    val allImports: mutable.Set[String] = _imports ++ _wildImports.map(_ + "._")
 
     if (groupImports) {
       // group imports: java,javax | common imports | scala,scalax
-      val javaImports = mutable.SortedSet[String]()
-      val commonImports = mutable.SortedSet[String]()
-      val scalaImports = mutable.SortedSet[String]()
+      val javaImports = mutable.Set[String]()
+      val commonImports = mutable.Set[String]()
+      val scalaImports = mutable.Set[String]()
       allImports.foreach {
         case i if i.startsWith("java.") || i.startsWith("javax.") => javaImports += i
         case i if i.startsWith("scala.") || i.startsWith("scalax.") => scalaImports += i
         case i => commonImports += i
       }
       for (group <- Seq(javaImports, commonImports, scalaImports) if group.nonEmpty) {
-        writeImportGroup(group)
+        writeImportGroup(group, src)
         src append "\n"
       }
     } else {
-      writeImportGroup(allImports)
+      writeImportGroup(allImports, src)
       src append "\n"
     }
 
@@ -134,4 +111,30 @@ class SourcePrinter(groupImports: Boolean = true) {
       }
     }
   }
+}
+
+object SourcePrinter {
+  private[codegen] def writeImportGroup(group: mutable.Set[String], src: java.lang.StringBuilder): Unit = {
+    val pkgNames: Seq[(String, String)] = group.map {imp =>
+      val idx = imp.lastIndexOf('.')
+      val pkg = imp.substring(0, idx)
+      val name = imp.substring(idx + 1)
+      (pkg, name)
+    }(scala.collection.breakOut)
+
+    val grouped: Seq[(String, Seq[String])] = pkgNames.groupBy(_._1).mapValues(_.map(_._2).sorted).toSeq
+
+    val importStrings: Seq[String] = grouped.map {case (pkg, names) =>
+      val importSb = new java.lang.StringBuilder()
+      importSb append pkg
+      if (names.length == 1) importSb append '.' append names.head
+      else importSb append ".{" append names.mkString(", ") append "}"
+      importSb.toString
+    }.sorted
+
+    for (imp <- importStrings) {
+      src append "import " append imp append "\n"
+    }
+  }
+
 }
