@@ -44,14 +44,12 @@ class MutableDbVehicle extends MutableTableRecord[DbVehicle] {
   var id: Option[Int] = None
   var extid: Option[Int] = None
 
-  // @formatter:off
   def _table = Dbvehicle
   def _primaryKey: Int = 0
   def _setPrimaryKey($: Int): Unit = {}
   def _renderValues(withPrimaryKey: Boolean)(implicit buf: SqlBuffer): Unit = {Dbvehicle.id.renderV(id); buf ++ ", "; Dbvehicle.extid.renderV(extid); buf ++ ", "; buf del 2}
   def _renderChangedUpdate($: Dbvehicle, $u: UpdateSetStep): Unit = {Dbvehicle.id.maybeUpdateSet($u, $.id, id); Dbvehicle.extid.maybeUpdateSet($u, $.extid, extid);}
   def toRecord: Dbvehicle = new Dbvehicle(id, extid)
-  // @formatter:on
 
   def foo(): Unit = {
     println("bar")

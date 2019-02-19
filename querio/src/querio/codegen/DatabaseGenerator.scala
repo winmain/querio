@@ -23,6 +23,8 @@ import scala.collection.mutable
   * @param vendorClassName   define custom vendor ClassName, otherwise it will be created from `vendor` parameter
   * @param toTempFile        generate classes to temporary file (for testing purposes).
   *                          Better use with tableNamePattern set.
+  * @param noRead            ignore existing sources
+  * @param useFormatterOff   wrap generated code with `@formatter:off/on` directives
   */
 class DatabaseGenerator(vendor: Vendor,
                         connection: Connection,
@@ -37,6 +39,7 @@ class DatabaseGenerator(vendor: Vendor,
                         vendorClassName: ClassName = null,
                         toTempFile: Boolean = false,
                         noRead: Boolean = false,
+                        useFormatterOff: Boolean = false,
                         tableDbNameSelector: TableDbNameSelector = CommonTableDbNameSelector) {
 
   def generateDb() {
@@ -60,7 +63,8 @@ class DatabaseGenerator(vendor: Vendor,
         val generator: TableGenerator = new TableGenerator(vendor, vendClassName,
           tableDbNameSelector.get(Option(catalog), Option(schema)),
           trs, columns, primaryKeyNames, pkg,
-          RealTableGenFile(dir), tableNamePrefix, isDefaultDatabase, noRead = noRead)
+          RealTableGenFile(dir), tableNamePrefix, isDefaultDatabase,
+          noRead = noRead, useFormatterOff = useFormatterOff)
         tableObjectNames += {
           val gen: TableGenerator#Generator =
             if (toTempFile) generator.generateToTempFile()

@@ -17,7 +17,8 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
                      primaryKeyNames: Vector[String], pkg: String, tgFile: TableGenFile,
                      namePrefix: String = "",
                      isDefaultDatabase: Boolean = false,
-                     noRead: Boolean = false) {
+                     noRead: Boolean = false,
+                     useFormatterOff: Boolean = false) {
   val originalTableClassName = namePrefix + GeneratorConfig.nameToClassName(table.name)
 
   tgFile.init(pkg.replace('.', File.separatorChar) + File.separatorChar + originalTableClassName + ".scala")
@@ -192,7 +193,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         for (c <- columns) c.objectField(p)
         p ++ "_fields_registered()" n()
         p n()
-        p ++ "// @formatter:off" n()
+        if (useFormatterOff) p ++ "// @formatter:off" n()
         if (table.comment != "") p ++ "override val _comment = \"" ++ GeneratorUtils.prepareComment(table.comment) ++ "\"" n()
         vendorClassName.imp(p)
         p ++ "def _vendor = " ++ vendorClassName.shortName n()
@@ -205,7 +206,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
         }
         p del 2
         p ++ ")" n()
-        p ++ "// @formatter:on" n()
+        if (useFormatterOff) p ++ "// @formatter:on" n()
 
         printUserLines(p, reader.userTableLines)
       }
@@ -241,7 +242,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
 
       // class body
       p block {
-        p ++ "// @formatter:off" n()
+        if (useFormatterOff) p ++ "// @formatter:off" n()
         p ++ "def _table = " ++ tableObjectName n()
         p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
         p ++ s"""def toMutable: $tableMutableName = {"""
@@ -250,7 +251,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
           columns.foreach(c => p ++ "m." ++ c.varName ++ " = " ++ c.varName ++ "; ")
           p ++ "m}" n()
         }
-        p ++ "// @formatter:on" n()
+        if (useFormatterOff) p ++ "// @formatter:on" n()
         printUserLines(p, reader.userClassLines)
       }
     }
@@ -266,7 +267,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
       p block {
         columns.foreach(_.mutableClassField(p))
         p n()
-        p ++ "// @formatter:off" n()
+        if (useFormatterOff) p ++ "// @formatter:off" n()
         p ++ "def _table = " ++ tableObjectName n()
         p ++ "def _primaryKey: Int = " ++ primaryKey.fold("0")(_.varName) n()
         p ++ "def _setPrimaryKey($: Int): Unit = " ++ primaryKey.fold("{}")(_.varName + " = $") n()
@@ -299,7 +300,7 @@ class TableGenerator(vendor: Vendor, vendorClassName: ClassName,
           columns.foreachWithSep(c => p ++ c.varName, p ++ ", ")
           p ++ ")" n()
         }
-        p ++ "// @formatter:on" n()
+        if (useFormatterOff) p ++ "// @formatter:on" n()
         printUserLines(p, reader.userMutableLines)
       }
     }
